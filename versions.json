@@ -1,6 +1,6 @@
 {
   "8.1": {
-    "version": "8.1.0-rc2",
+    "version": "8.1.0-rc1",
     "valkey-server": {
         "version": "8.1.0-rc2"
       },
