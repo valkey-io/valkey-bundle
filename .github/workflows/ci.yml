@@ -54,7 +54,7 @@ jobs:
           DOCKERHUB_ACCOUNT: ${{ secrets.DOCKERHUB_ACCOUNT }}
         run: |
           original_tags="${{ toJson(matrix.meta.entries[0].tags) }}"
-          tags=$(echo "$original_tags" | sed "s|valkey-extension|${DOCKERHUB_ACCOUNT}/valkey-extension|g" | sed 's/\[ *//; s/ *\]//; s/ //g')
+          tags=$(echo $original_tags | sed "s|valkey-extension|${DOCKERHUB_ACCOUNT}/valkey-extension|g" | sed 's/\[ *//; s/ *\]//; s/ //g' | tr -d '\n')  
           echo "modified_tags=$tags" >> "$GITHUB_OUTPUT"
 
       - name: Build and push
