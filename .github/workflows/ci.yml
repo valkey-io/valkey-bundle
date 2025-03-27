@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - '**/Dockerfile*'
+  workflow_dispatch:
 
 defaults:
   run:
