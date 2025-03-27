@@ -26,4 +26,4 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           repository: ${{ secrets.DOCKERHUB_REPOSITORY }}
           readme-filepath: ./dockerhub-description.md
-          short-description: 'Valkey is a high-performance data structure server that primarily serves key/value workloads.'
+          short-description: 'Valkey-extension installs valkey-server and loads all the valkey modules.'
