@@ -6,7 +6,7 @@ The Project is maintained by [the Valkey Community](https://github.com/valkey-io
 
 ## When should a new image built and publish new Docker Image?
 
-A new Docker Image should built and published after a new major, minor or patch version of Valkey or any Valkey module releases.
+A new Docker Image should be built and published after a new major, minor or patch version of Valkey or any Valkey module releases.
 
 ## How do you build and publish new version of a Docker Image?
 
@@ -16,4 +16,4 @@ A new Docker Image should built and published after a new major, minor or patch 
 2. Run `apply-templates.sh`
 3. Update the `dockerhub-description.md` with the updated tags.
 4. Open a new PR for the new changes.
-5. Once the PR is merged, Sit back, relax and enjoy looking at your creation getting published to the official Valkey-extension Docker Hub page.
+5. Once the PR is merged, sit back, relax and enjoy looking at your creation getting published to the official Valkey-extension Docker Hub page.

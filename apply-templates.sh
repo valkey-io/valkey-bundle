@@ -6,8 +6,8 @@ if [ -f versions.json ]; then
     echo "versions.json exists"
 else
     echo "versions.json does not exist"
+	exit 1
 fi
- # run "versions.sh" first
 
 jqt='.jq-template.awk'
 if [ -n "${BASHBREW_SCRIPTS:-}" ]; then
