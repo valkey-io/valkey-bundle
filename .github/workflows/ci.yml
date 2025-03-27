@@ -46,13 +46,20 @@ jobs:
           registry: docker.io
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      
+      - name: Prepare Tags
+        id: prep_tags
+        run: |
+          original_tags="${{ toJson(matrix.meta.entries[0].tags) }}"
+          tags=$(echo $original_tags | sed 's/valkey-extension/${{ secrets.DOCKERHUB_ACCOUNT }}\/valkey-extension/g'| sed 's/\[ *//; s/ *\]//; s/ //g')
+          echo "modified_tags=$tags" >> $GITHUB_OUTPUT
 
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
           file: ./${{ matrix.meta.entries[0].directory }}/Dockerfile
           push: true
-          tags: ${{ join(fromJson(format('[{0}]', join(matrix.meta.entries[0].tags | map('format', '%s/%s', secrets.DOCKERHUB_USERNAME) | list, ','))), ',') }}
+          tags: ${{ steps.prep_tags.outputs.modified_tags }}
           platforms: linux/amd64,linux/arm64
           provenance: false
           load: false
