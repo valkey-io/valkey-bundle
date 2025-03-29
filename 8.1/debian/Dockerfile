@@ -39,7 +39,7 @@ WORKDIR /opt
 RUN set -eux; \
     git clone --branch 1.0.0-rc1  https://github.com/valkey-io/valkey-json.git; \
     git clone --branch 1.0.0-rc1 https://github.com/valkey-io/valkey-bloom.git; \
-    git clone --branch 1.0 https://github.com/valkey-io/valkey-search.git;
+    git clone --branch 1.0.0-rc1 https://github.com/valkey-io/valkey-search.git;
 
 # Build JSON module
 WORKDIR /opt/valkey-json
