@@ -66,6 +66,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           provenance: false
           load: false
+          no-cache: true
 
   update-dockerhub-description:
     if: |
