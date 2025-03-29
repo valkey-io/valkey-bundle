@@ -41,34 +41,35 @@ RUN set -eux; \
     git clone --branch 1.0.0-rc1 https://github.com/valkey-io/valkey-bloom.git; \
     git clone --branch 1.0.0-rc1 https://github.com/valkey-io/valkey-search.git;
 
-# Build JSON module
-WORKDIR /opt/valkey-json
-RUN set -eux; \
-    mkdir -p build; \
-    cd ./build; \
-    cmake .. -DVALKEY_VERSION=${SERVER_VERSION}; \
-    make;
+# # Build JSON module
+# WORKDIR /opt/valkey-json
+# RUN set -eux; \
+#     mkdir -p build; \
+#     cd ./build; \
+#     cmake .. -DVALKEY_VERSION=${SERVER_VERSION}; \
+#     make;
 
-# Build Bloom module
-WORKDIR /opt/valkey-bloom
-RUN cargo build --all --all-targets --release;
+# # Build Bloom module
+# WORKDIR /opt/valkey-bloom
+# RUN cargo build --all --all-targets --release;
 
 # Build Search module
 WORKDIR /opt/valkey-search
 RUN set -eux;       \
-    ./build.sh;
+    ./build.sh; \
+    ls -R .build_release/
 
 FROM docker.io/valkey/valkey:8.1.0-rc2-bookworm
 
 RUN mkdir -p /usr/lib/valkey;
 
 # Copy built modules from the build stage
-COPY --from=build /opt/valkey-json/build/src/libjson.so /usr/lib/valkey/libjson.so
-COPY --from=build /opt/valkey-bloom/target/release/libvalkey_bloom.so /usr/lib/valkey/libvalkey_bloom.so
+# COPY --from=build /opt/valkey-json/build/src/libjson.so /usr/lib/valkey/libjson.so
+# COPY --from=build /opt/valkey-bloom/target/release/libvalkey_bloom.so /usr/lib/valkey/libvalkey_bloom.so
 COPY --from=build /opt/valkey-search/.build_release/libsearch.so /usr/lib/valkey/libsearch.so
 
 CMD ["valkey-server",                                               \
-            "--loadmodule", "/usr/lib/valkey/libjson.so",           \
-            "--loadmodule", "/usr/lib/valkey/libvalkey_bloom.so"    \
+            # "--loadmodule", "/usr/lib/valkey/libjson.so",           \
+            # "--loadmodule", "/usr/lib/valkey/libvalkey_bloom.so"    \
             "--loadmodule", "/usr/lib/valkey/libsearch.so"       \
     ]
