@@ -60,10 +60,10 @@ RUN mkdir -p /usr/lib/valkey;
 # Copy built modules from the build stage
 COPY --from=build /opt/valkey-json/build/src/libjson.so /usr/lib/valkey/libjson.so
 COPY --from=build /opt/valkey-bloom/target/release/libvalkey_bloom.so /usr/lib/valkey/libvalkey_bloom.so
-COPY --from=build /opt/valkey-search/.build_release/libsearch.so /usr/lib/valkey/libsearch.so
+COPY --from=build /opt/valkey-search/.build-release/libsearch.so /usr/lib/valkey/libsearch.so
 
 CMD ["valkey-server",                                               \
             "--loadmodule", "/usr/lib/valkey/libjson.so",           \
-            "--loadmodule", "/usr/lib/valkey/libvalkey_bloom.so"    \
+            "--loadmodule", "/usr/lib/valkey/libvalkey_bloom.so",   \
             "--loadmodule", "/usr/lib/valkey/libsearch.so"       \
     ]
