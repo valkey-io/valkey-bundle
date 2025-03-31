@@ -63,7 +63,7 @@ jobs:
           file: ./${{ matrix.meta.entries[0].directory }}/Dockerfile
           push: true
           tags: ${{ steps.prep_tags.outputs.modified_tags }}
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           provenance: false
           load: false
           cache-from: type=gha
