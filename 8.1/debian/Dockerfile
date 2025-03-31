@@ -47,7 +47,7 @@ RUN set -eux; \
     mkdir -p build; \
     cd ./build; \
     cmake .. -DVALKEY_VERSION=${SERVER_VERSION}; \
-    make -j;
+    make;
 
 # Build Bloom module
 WORKDIR /opt/valkey-bloom
