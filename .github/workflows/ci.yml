@@ -35,7 +35,7 @@ jobs:
         version: ${{ fromJson(needs.generate-jobs.outputs.strategy).matrix.include }}
         platform: [linux/amd64, linux/arm64]
     name: Build and push - ${{ matrix.version.name }} - ${{ matrix.platform }}
-    runs-on: ${{ matrix.version.os }}
+    runs-on: ${{ matrix.platform == 'linux/arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     steps:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -72,8 +72,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   update-dockerhub-description:
-    if: |
-      (github.event_name == 'push' && github.ref == 'refs/heads/mainline')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/mainline'
     needs: 
       - generate-jobs
       - build_and_push
