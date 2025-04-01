@@ -11,11 +11,17 @@
 ## Release candidates
 - [`8.1.0-rc1`, `8.1`, `8`, `latest`, `8.1.0-rc1-bookworm`, `8.1-bookworm`, `8-bookworm`, `bookworm`](https://github.com/valkey-io/valkey-extension/blob/mainline/8.1/debian/Dockerfile)
 
-What is [Valkey-Extension](https://github.com/valkey-io/valkey-extension)?
+## What is [Valkey-Extension](https://github.com/valkey-io/valkey-extension)?
 --------------
 Valkey-Extension is a containerized version of Valkey, enhanced with popular modules like [Valkey-JSON](https://github.com/valkey-io/valkey-json), [Valkey-Bloom](https://github.com/valkey-io/valkey-bloom), and [Valkey-Search](https://github.com/valkey-io/valkey-search), allowing you to utilize advanced data structures and additional search capabilities alongside standard Valkey functionality.
 
 This image is built on top of the official Valkey base image and simplifies deployment of Valkey with these powerful modules included.
+
+## Module Versions
+
+| Valkey-Extension Version | Valkey-JSON | Valkey-Bloom | Valkey-Search |
+|-------------------------|-------------|--------------|---------------|
+| [8.1.0-rc1](https://github.com/valkey-io/valkey-extension/releases/tag/8.1.0-rc1) | [1.0.0](https://github.com/valkey-io/valkey-json/releases/tag/1.0.0)| [1.0.0](https://github.com/valkey-io/valkey-bloom/releases/tag/1.0.0)| [1.0.0-rc1](https://github.com/valkey-io/valkey-search/releases/tag/1.0.0-rc1)      |
 
 # Security
 
