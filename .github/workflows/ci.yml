@@ -83,6 +83,7 @@ jobs:
         with:
           file: ./${{ matrix.version.meta.entries[0].directory }}/Dockerfile
           platforms: ${{ matrix.platform }}
+          push: true
           outputs: type=image,push-by-digest=true,name-canonical=true
           tags: ${{ env.REGISTRY_IMAGE }}
           provenance: false
