@@ -4,9 +4,9 @@
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
 
-FROM docker.io/valkey/valkey:8.1.0-rc2-bookworm AS build
+FROM docker.io/valkey/valkey:8.1.0-bookworm AS build
 
-ARG SERVER_VERSION=8.1.0-rc2
+ARG SERVER_VERSION=8.1.0
 
 RUN set -eux;   \
                 \
@@ -58,7 +58,7 @@ WORKDIR /opt/valkey-search
 RUN set -eux;       \
     ./build.sh;
 
-FROM docker.io/valkey/valkey:8.1.0-rc2-bookworm
+FROM docker.io/valkey/valkey:8.1.0-bookworm
 
 RUN mkdir -p /usr/lib/valkey;
 
