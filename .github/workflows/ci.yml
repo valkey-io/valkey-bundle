@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 env:
-  REGISTRY_IMAGE: ${{ secrets.DOCKERHUB_ACCOUNT }}/valkey-extension
+  DOCKER_REPO_NAME: ${{ secrets.DOCKERHUB_ACCOUNT }}/valkey-extension
 
 defaults:
   run:
@@ -23,25 +23,31 @@ jobs:
       strategy: ${{ steps.generate-jobs.outputs.strategy }}
     steps:
       - uses: actions/checkout@v4
+      
       - uses: docker-library/bashbrew@v0.1.12
+
       - id: generate-jobs
         run: |
           strategy="$("$BASHBREW_SCRIPTS/github-actions/generate.sh")"
           echo "strategy=$(jq -c . <<<"$strategy")" >> "$GITHUB_OUTPUT"
-          jq . <<<"$strategy" # sanity check / debugging aid
+          jq . <<<"$strategy" # debugging aid to visually inspect the generated matrix
 
+  # Job to build and push Docker images individually for each architecture/platform
   build_and_push:
-    needs: 
-      - generate-jobs
+    needs: generate-jobs
     strategy:
-      fail-fast: false
+      fail-fast: false # continue other jobs even if one job fails
       matrix:
         version: ${{ fromJson(needs.generate-jobs.outputs.strategy).matrix.include }}
         platform: [linux/amd64, linux/arm64]
-    name: Build and push - ${{ matrix.version.name }} - ${{ matrix.platform }}
-    runs-on: ${{ matrix.platform == 'linux/arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
-    steps:
 
+    name: Build and push - ${{ matrix.version.name }} - ${{ matrix.platform }}
+
+    # Dynamic runner selection based on architecture
+    runs-on: ${{ matrix.platform == 'linux/arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
+
+    steps:
+      # Replace "/" with "-" in platform name for valid artifact naming
       - name: Prepare platform name
         run: |
           platform=${{ matrix.platform }}
@@ -60,13 +66,13 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      # Prepare Docker tags from version metadata, replacing repository name with ACCOUNT/DOCKER_REPOSITORY
       - name: Prepare Tags
         id: prep_tags
-        env:
-          DOCKERHUB_ACCOUNT: ${{ secrets.DOCKERHUB_ACCOUNT }}
         run: |
           original_tags="${{ toJson(matrix.version.meta.entries[0].tags) }}"
-          tags=$(echo $original_tags | sed "s|valkey-extension|${DOCKERHUB_ACCOUNT}/valkey-extension|g" | sed 's/\[ *//; s/ *\]//; s/ //g' | tr -d '\n')  
+          tags=$(echo $original_tags | sed "s|valkey-extension|${{ env.DOCKER_REPO_NAME }}|g" \
+          | sed 's/\[ *//; s/ *\]//; s/ //g' | tr -d '\n')  
           echo "modified_tags=$tags" >> "$GITHUB_OUTPUT"
           echo "$tags" > tags.txt
 
@@ -77,6 +83,7 @@ jobs:
           path: tags.txt
           overwrite: true
 
+      # Build Docker images and push them to Docker Hub by digest (sha256)
       - name: Build and push by digest
         id: build
         uses: docker/build-push-action@v6
@@ -85,12 +92,13 @@ jobs:
           platforms: ${{ matrix.platform }}
           push: true
           outputs: type=image,push-by-digest=true,name-canonical=true
-          tags: ${{ env.REGISTRY_IMAGE }}
+          tags: ${{ env.DOCKER_REPO_NAME }}
           provenance: false
           load: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # Export digest to a file to reference it later in merging manifests
       - name: Export digest
         run: |
           mkdir -p ${{ runner.temp }}/digests
@@ -105,10 +113,10 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+  # Job to merge architecture-specific images into a single multi-arch manifest
   merge-manifest:
     runs-on: ubuntu-latest
-    needs: 
-      - build_and_push
+    needs: build_and_push
     steps:
       - name: Download Digests
         uses: actions/download-artifact@v4
@@ -132,11 +140,15 @@ jobs:
 
       - uses: docker/setup-buildx-action@v3
 
+      # Use imagetools to combine the arch-specific digests into one multi-arch manifest
       - name: Create Multi-Arch Manifest and Push
         working-directory: ${{ runner.temp }}/digests
         run: |
+          # Prepare tags argument from downloaded tags artifact
           TAGS=$(sed 's/,/ /g' ${{ runner.temp }}/tags/*.txt | xargs -n1 echo "-t" | tr '\n' ' ')
-          DIGESTS=$(printf '${{ env.REGISTRY_IMAGE }}@sha256:%s ' *)
+          # Construct image digest references
+          DIGESTS=$(printf '${{ env.DOCKER_REPO_NAME }}@sha256:%s ' *)
+          # Create and push the multi-architecture manifest
           docker buildx imagetools create $TAGS $DIGESTS
 
   update-dockerhub-description:

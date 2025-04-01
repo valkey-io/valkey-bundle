@@ -65,5 +65,5 @@ COPY --from=build /opt/valkey-search/.build-release/libsearch.so /usr/lib/valkey
 CMD ["valkey-server",                                               \
             "--loadmodule", "/usr/lib/valkey/libjson.so",           \
             "--loadmodule", "/usr/lib/valkey/libvalkey_bloom.so",   \
-            "--loadmodule", "/usr/lib/valkey/libsearch.so"       \
+            "--loadmodule", "/usr/lib/valkey/libsearch.so"          \
     ]
