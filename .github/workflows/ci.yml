@@ -41,6 +41,12 @@ jobs:
     name: Build and push - ${{ matrix.version.name }} - ${{ matrix.platform }}
     runs-on: ${{ matrix.platform == 'linux/arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     steps:
+
+      - name: Prepare platform name
+        run: |
+          platform=${{ matrix.platform }}
+          echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
@@ -67,8 +73,9 @@ jobs:
       - name: Upload Tags Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: tags-${{ matrix.platform }}-${{ matrix.version.name }}
+          name: tags-${{ matrix.version.name }}
           path: tags.txt
+          overwrite: true
 
       - name: Build and push by digest
         id: build
@@ -76,7 +83,6 @@ jobs:
         with:
           file: ./${{ matrix.version.meta.entries[0].directory }}/Dockerfile
           platforms: ${{ matrix.platform }}
-          push: true
           outputs: type=image,push-by-digest=true,name-canonical=true
           tags: ${{ env.REGISTRY_IMAGE }}
           provenance: false
@@ -88,17 +94,20 @@ jobs:
         run: |
           mkdir -p ${{ runner.temp }}/digests
           digest="${{ steps.build.outputs.digest }}"
-          echo "${digest#sha256:}" > ${{ runner.temp }}/digests/digest.txt
+          touch "${{ runner.temp }}/digests/${digest#sha256:}"
 
       - name: Upload digest
         uses: actions/upload-artifact@v4
         with:
-          name: digests-${{ matrix.platform }}-${{ matrix.version.name }}
-          path: ${{ runner.temp }}/digests/digest.txt
+          name: digests-${{ env.PLATFORM_PAIR }}-${{ matrix.version.name }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
 
   merge-manifest:
     runs-on: ubuntu-latest
-    needs: build_and_push
+    needs: 
+      - build_and_push
     steps:
       - name: Download Digests
         uses: actions/download-artifact@v4
@@ -126,7 +135,7 @@ jobs:
         run: |
           TAGS=$(cat ${{ runner.temp }}/tags/*.txt | tr ',' '\n' | sed 's/^/-t /' | tr '\n' ' ')
           DIGESTS=$(cat ${{ runner.temp }}/digests/*.txt | awk '{print "${{ env.REGISTRY_IMAGE }}@sha256:" $1}' | tr '\n' ' ')
-          docker buildx imagetools create $TAGS $DIGESTS
+          # docker buildx imagetools create $TAGS $DIGESTS
 
   update-dockerhub-description:
     if: github.event_name == 'push' && github.ref == 'refs/heads/mainline'
