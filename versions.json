@@ -6,10 +6,10 @@
       },
     "modules": {
       "valkey-json": {
-        "version": "1.0.0-rc2"
+        "version": "1.0.0"
       },
       "valkey-bloom": {
-        "version": "1.0.0-rc1"
+        "version": "1.0.0"
       },
       "valkey-search": {
         "version": "1.0.0-rc1"
