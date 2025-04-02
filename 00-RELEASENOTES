@@ -35,7 +35,7 @@ Platform Support:
 Key Changes
 ===========================
 Security:
-* Protected mode disabled by default
+* Protected mode config(`--protected-mode no`) disabled by default on valkey base image
 * Authentication strongly recommended for external exposure
 
 Features:
@@ -43,7 +43,6 @@ Features:
 * Configurable via environment variable `VALKEY_EXTRA_FLAGS`
 * Custom configuration file support `valkey.conf`
 * Connecting via `valkey-cli`
-* Container networking optimizations
 
 We appreciate the efforts of all who contributed to this Docker image release!
 
