@@ -6,14 +6,14 @@ Valkey Extension 8.1.0-rc1 - Released Tue 1 April 2025
 ================================================================================
 Overview
 ===========================
-* Valkey-Extension is a containerized version of Valkey, enhanced with popular modules for advanced data structures and additional search capabilities.
-* This image is built on top of the official Valkey base image and includes pre-installed modules for simplified deployment.
+* valkey-extension is a containerized version of valkey, enhanced with popular modules for advanced data structures and additional search capabilities.
+* This image is built on top of the official valkey base image and includes pre-installed modules for simplified deployment.
 
 Core Components
 ===========================
 * Base Image: valkey/valkey:8.1.0-bookworm
 * valkey - 8.1.0
-* valkey-jSON - 1.0.0
+* valkey-json - 1.0.0
 * valkey-bloom - 1.0.0  
 * valkey-search - 1.0.0-rc1
 
@@ -39,9 +39,10 @@ Security:
 * Authentication strongly recommended for external exposure
 
 Features:
-* Persistent storage support (/data volume)
-* Configurable via environment variables
-* Custom configuration file support
+* Persistent storage support `(/data volume)`
+* Configurable via environment variable `VALKEY_EXTRA_FLAGS`
+* Custom configuration file support `valkey.conf`
+* Connecting via `valkey-cli`
 * Container networking optimizations
 
 We appreciate the efforts of all who contributed to this Docker image release!
