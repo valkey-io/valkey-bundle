@@ -1,0 +1,49 @@
+Valkey Extension 8.1.0-rc1 release notes
+================================================================================
+
+================================================================================
+Valkey Extension 8.1.0-rc1 - Released Tue 1 April 2025
+================================================================================
+Overview
+===========================
+* Valkey-Extension is a containerized version of Valkey, enhanced with popular modules for advanced data structures and additional search capabilities.
+* This image is built on top of the official Valkey base image and includes pre-installed modules for simplified deployment.
+
+Core Components
+===========================
+* Base Image: valkey/valkey:8.1.0-bookworm
+* Valkey Version - 8.1.0
+* Valkey-JSON - 1.0.0
+* Valkey-Bloom - 1.0.0  
+* Valkey-Search - 1.0.0-rc1
+
+Supported Tags and Platforms
+===========================
+Supported Tags:
+* 8.1.0-rc1
+* 8.1
+* 8
+* latest
+* 8.1.0-rc1-bookworm
+* 8.1-bookworm
+* 8-bookworm
+
+Platform Support:
+* linux/amd64
+* linux/arm64
+
+Key Changes
+===========================
+Security:
+* Protected mode disabled by default
+* Authentication recommended for external exposure
+
+Features:
+* Persistent storage support (/data volume)
+* Configurable via environment variables
+* Custom configuration file support
+* Container networking optimizations
+
+We appreciate the efforts of all who contributed to this Docker image release!
+
+Contributors: Roshan Khatri (roshkhatri)
