@@ -12,10 +12,10 @@ Overview
 Core Components
 ===========================
 * Base Image: valkey/valkey:8.1.0-bookworm
-* Valkey Version - 8.1.0
-* Valkey-JSON - 1.0.0
-* Valkey-Bloom - 1.0.0  
-* Valkey-Search - 1.0.0-rc1
+* valkey - 8.1.0
+* valkey-jSON - 1.0.0
+* valkey-bloom - 1.0.0  
+* valkey-search - 1.0.0-rc1
 
 Supported Tags and Platforms
 ===========================
@@ -36,7 +36,7 @@ Key Changes
 ===========================
 Security:
 * Protected mode disabled by default
-* Authentication recommended for external exposure
+* Authentication strongly recommended for external exposure
 
 Features:
 * Persistent storage support (/data volume)
