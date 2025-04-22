@@ -16,12 +16,12 @@ A new Docker Image should be built and published after a new major, minor or pat
 2. Run `apply-templates.sh`
 3. Update the `dockerhub-description.md` with the updated tags.
 4. Open a new PR for the new changes.
-5. Once the PR is merged, sit back, relax and enjoy looking at your creation getting published to the official Valkey-extension Docker Hub page.
+5. Once the PR is merged, sit back, relax and enjoy looking at your creation getting published to the official valkey-extensions Docker Hub page.
 
 ## How to add a New Module?
-1. Update [versions.json](https://github.com/valkey-io/valkey-extension/blob/mainline/versions.json):
+1. Update [versions.json](https://github.com/valkey-io/valkey-extensions/blob/mainline/versions.json):
    
-   The versions.json file maintains metadata for Valkey-extension and its associated modules. To add a new module:
+   The versions.json file maintains metadata for valkey-extensions and its associated modules. To add a new module:
    - Locate the modules object: These are all modules with their respective names and versions.
     ```
         "modules": {
@@ -43,7 +43,7 @@ A new Docker Image should be built and published after a new major, minor or pat
     }
    ```
 
-2. Modify the [Dockerfile.template](https://github.com/valkey-io/valkey-extension/blob/mainline/Dockerfile.template)
+2. Modify the [Dockerfile.template](https://github.com/valkey-io/valkey-extensions/blob/mainline/Dockerfile.template)
 
   - Add dependencies: Insert the necessary dependencies to download, build, and install your new module. For example:
     ```
@@ -62,7 +62,7 @@ A new Docker Image should be built and published after a new major, minor or pat
     ```
 
   - Add the clone steps for the new module
-    Locate the [Clone repositories](https://github.com/valkey-io/valkey-extension/blob/88722ae5568792c8751b017907c95cb4a8fe1a4d/Dockerfile.template#L33) section in the Dockerfile with similar module blocks and add your module in the same pattern like:
+    Locate the [Clone repositories](https://github.com/valkey-io/valkey-extensions/blob/88722ae5568792c8751b017907c95cb4a8fe1a4d/Dockerfile.template#L33) section in the Dockerfile with similar module blocks and add your module in the same pattern like:
     ```
      # Clone repositories
     RUN set -eux; \
@@ -83,7 +83,7 @@ A new Docker Image should be built and published after a new major, minor or pat
     This also helps to track the build changes that may take place in the new versions of the modules.
 
   - Add the step to copy the module binary to `/usr/lib/valkey/`
-    Locate the [Copy built modules](https://github.com/valkey-io/valkey-extension/blob/88722ae5568792c8751b017907c95cb4a8fe1a4d/Dockerfile.template#L60C1-L60C21) sections and add a step line for the new module like:
+    Locate the [Copy built modules](https://github.com/valkey-io/valkey-extensions/blob/88722ae5568792c8751b017907c95cb4a8fe1a4d/Dockerfile.template#L60C1-L60C21) sections and add a step line for the new module like:
     ```
     COPY --from=build /opt/valkey-json/build/src/libjson.so /usr/lib/valkey/libjson.so
     COPY --from=build /opt/valkey-bloom/target/release/libvalkey_bloom.so /usr/lib/valkey/libvalkey_bloom.so
@@ -91,7 +91,7 @@ A new Docker Image should be built and published after a new major, minor or pat
     ```
 
   - Add the new module to be loaded on `valkey-server` start up
-    Locate the [`valkey-server`](https://github.com/valkey-io/valkey-extension/blob/88722ae5568792c8751b017907c95cb4a8fe1a4d/Dockerfile.template#L65) command and add the new module binary to be loaded on the server:
+    Locate the [`valkey-server`](https://github.com/valkey-io/valkey-extensions/blob/88722ae5568792c8751b017907c95cb4a8fe1a4d/Dockerfile.template#L65) command and add the new module binary to be loaded on the server:
     ```
     CMD ["valkey-server",                                               \
             "--loadmodule", "/usr/lib/valkey/libjson.so",           \
@@ -102,7 +102,7 @@ A new Docker Image should be built and published after a new major, minor or pat
 
 3. Rebuild and Publish
    Now follow the [Build and Publish](#how-do-you-build-and-publish-new-version-of-a-docker-image) steps above.
-   - Run [./apply-templates.sh](https://github.com/valkey-io/valkey-extension/blob/mainline/apply-templates.sh)
+   - Run [./apply-templates.sh](https://github.com/valkey-io/valkey-extensions/blob/mainline/apply-templates.sh)
    - Test the build
    - Open a pull request
 
