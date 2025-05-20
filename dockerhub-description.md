@@ -1,31 +1,31 @@
 # Quick reference
 
 - **Maintained by**:  
-  [the Valkey Community](https://github.com/valkey-io/valkey-extension)
+  [the Valkey Community](https://github.com/valkey-io/valkey-extensions)
 
 - **Where to get help**:  
-  Please open an issue stating your question at [Valkey Extension Issues](https://github.com/valkey-io/valkey-extension/issues).
+  Please open an issue stating your question at [Valkey Extensions Issues](https://github.com/valkey-io/valkey-extensions/issues).
 
 # Supported tags and respective `Dockerfile` links
 
 ## Release candidates
-- [`8.1.0-rc1`, `8.1`, `8`, `latest`, `8.1.0-rc1-bookworm`, `8.1-bookworm`, `8-bookworm`, `bookworm`](https://github.com/valkey-io/valkey-extension/blob/mainline/8.1/debian/Dockerfile)
+- [`8.1.0-rc1`, `8.1`, `8`, `latest`, `8.1.0-rc1-bookworm`, `8.1-bookworm`, `8-bookworm`, `bookworm`](https://github.com/valkey-io/valkey-extensions/blob/mainline/8.1/debian/Dockerfile)
 
-## What is [Valkey Extension](https://github.com/valkey-io/valkey-extension)?
+## What is [Valkey Extensions](https://github.com/valkey-io/valkey-extensions)?
 --------------
-Valkey Extension is a containerized version of Valkey, enhanced with popular modules like [Valkey JSON](https://github.com/valkey-io/valkey-json), [Valkey Bloom](https://github.com/valkey-io/valkey-bloom), and [Valkey Search](https://github.com/valkey-io/valkey-search), allowing you to utilize advanced data structures and additional search capabilities alongside standard Valkey functionality.
+Valkey Extensions is a containerized version of Valkey, enhanced with popular modules like [Valkey JSON](https://github.com/valkey-io/valkey-json), [Valkey Bloom](https://github.com/valkey-io/valkey-bloom), and [Valkey Search](https://github.com/valkey-io/valkey-search), allowing you to utilize advanced data structures and additional search capabilities alongside standard Valkey functionality.
 
 This image is built on top of the official Valkey base image and simplifies deployment of Valkey with these powerful modules included.
 
 ## Module Versions
 
-| valkey-extension | valkey-json | valkey-bloom | valkey-search |
+| valkey-extensions | valkey-json | valkey-bloom | valkey-search |
 |-------------------------|-------------|--------------|---------------|
-| [8.1.0-rc1](https://github.com/valkey-io/valkey-extension/releases/tag/8.1.0-rc1) | [1.0.0](https://github.com/valkey-io/valkey-json/releases/tag/1.0.0)| [1.0.0](https://github.com/valkey-io/valkey-bloom/releases/tag/1.0.0)| [1.0.0-rc1](https://github.com/valkey-io/valkey-search/releases/tag/1.0.0-rc1)      |
+| [8.1.0-rc1](https://github.com/valkey-io/valkey-extensions/releases/tag/8.1.0-rc1) | [1.0.0](https://github.com/valkey-io/valkey-json/releases/tag/1.0.0)| [1.0.0](https://github.com/valkey-io/valkey-bloom/releases/tag/1.0.0)| [1.0.0-rc1](https://github.com/valkey-io/valkey-search/releases/tag/1.0.0-rc1)      |
 
 # Security
 
-For ease of accessing Valkey Extension from other containers via Docker networking, the "Protected mode" is turned off by default. This means if you expose the port externally (e.g., via `-p`), it will be open without authentication. It is **strongly recommended** to set a password or authentication method if exposing your instance to the internet.
+For ease of accessing Valkey Extensions from other containers via Docker networking, the "Protected mode" is turned off by default. This means if you expose the port externally (e.g., via `-p`), it will be open without authentication. It is **strongly recommended** to set a password or authentication method if exposing your instance to the internet.
 
 See the following resources for securing Valkey:
 
@@ -34,16 +34,16 @@ See the following resources for securing Valkey:
 
 # How to use this image
 
-## Start a valkey-extension instance
+## Start a valkey-extensions instance
 
 ```console
-$ docker run --name my-valkey-extension -d valkey/valkey-extension
+$ docker run --name my-valkey-extensions -d valkey/valkey-extensions
 ```
 
 ## Start with persistent storage
 
 ```console
-$ docker run --name my-valkey-extension -d valkey/valkey-extension valkey-server --save 60 1 --loglevel warning
+$ docker run --name my-valkey-extensions -d valkey/valkey-extensions valkey-server --save 60 1 --loglevel warning
 ```
 
 This example saves a snapshot every 60 seconds if at least one write occurred. Data is stored at `VOLUME /data`.
@@ -51,7 +51,7 @@ This example saves a snapshot every 60 seconds if at least one write occurred. D
 ## Connecting via `valkey-cli`
 
 ```console
-$ docker run -it --network some-network --rm valkey/valkey-extension valkey-cli -h my-valkey-extension
+$ docker run -it --network some-network --rm valkey/valkey-extensions valkey-cli -h my-valkey-extensions
 ```
 
 ## Pass additional start arguments with environment variable
@@ -59,7 +59,7 @@ $ docker run -it --network some-network --rm valkey/valkey-extension valkey-cli 
 You can configure startup arguments with the environment variable `VALKEY_EXTRA_FLAGS`:
 
 ```console
-$ docker run --env VALKEY_EXTRA_FLAGS='--save 60 1 --loglevel warning' valkey/valkey-extension
+$ docker run --env VALKEY_EXTRA_FLAGS='--save 60 1 --loglevel warning' valkey/valkey-extensions
 ```
 
 ## Custom valkey.conf usage
@@ -69,7 +69,7 @@ Create a custom configuration file `valkey.conf` and use it in your container:
 **Dockerfile approach**:
 
 ```dockerfile
-FROM valkey/valkey-extension:latest
+FROM valkey/valkey-extensions:latest
 COPY valkey.conf /usr/local/etc/valkey/valkey.conf
 CMD [ "valkey-server", "/usr/local/etc/valkey/valkey.conf" ]
 ```
@@ -77,11 +77,11 @@ CMD [ "valkey-server", "/usr/local/etc/valkey/valkey.conf" ]
 **Docker run approach**:
 
 ```console
-$ docker run -v /myvalkey/conf:/usr/local/etc/valkey --name my-valkey-extension valkey/valkey-extension valkey-server /usr/local/etc/valkey/valkey.conf
+$ docker run -v /myvalkey/conf:/usr/local/etc/valkey --name my-valkey-extensions valkey/valkey-extensions valkey-server /usr/local/etc/valkey/valkey.conf
 ```
 # Image Variants
 
-## `valkey/valkey-extension:<version>`
+## `valkey/valkey-extensions:<version>`
 
 This is the primary image, which includes Valkey along with common modules like valkey-json, valkey-bloom, and valkey-search preloaded. It is suitable for development, testing, and production environments where these modules are needed out of the box.
 
@@ -91,6 +91,6 @@ If you want a minimal yet functional Valkey container with built-in modules, thi
 
 # License
 
-View the [license information](https://github.com/valkey-io/valkey-extension/blob/mainline/LICENSE) for software included in this image.
+View the [license information](https://github.com/valkey-io/valkey-extensions/blob/mainline/LICENSE) for software included in this image.
 
 Users of this image are responsible for ensuring compliance with all licenses of software contained within.

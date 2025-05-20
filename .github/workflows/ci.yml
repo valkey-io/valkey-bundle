@@ -53,9 +53,9 @@ jobs:
       - name: Set DOCKER_REPO_NAME dynamically
         run: |
           if [[ "${{ env.IS_PULL }}" == "true" ]]; then
-            echo "DOCKER_REPO_NAME=${{ github.actor }}/valkey-extension" >> $GITHUB_ENV
+            echo "DOCKER_REPO_NAME=${{ github.actor }}/valkey-extensions" >> $GITHUB_ENV
           else
-            echo "DOCKER_REPO_NAME=${{ secrets.DOCKERHUB_ACCOUNT }}/valkey-extension" >> $GITHUB_ENV
+            echo "DOCKER_REPO_NAME=${{ secrets.DOCKERHUB_ACCOUNT }}/valkey-extensions" >> $GITHUB_ENV
           fi
 
       - name: Set up QEMU
@@ -77,7 +77,7 @@ jobs:
         id: prep_tags
         run: |
           original_tags="${{ toJson(matrix.version.meta.entries[0].tags) }}"
-          tags=$(echo $original_tags | sed "s|valkey-extension|${{ env.DOCKER_REPO_NAME }}|g" \
+          tags=$(echo $original_tags | sed "s|valkey-extensions|${{ env.DOCKER_REPO_NAME }}|g" \
           | sed 's/\[ *//; s/ *\]//; s/ //g' | tr -d '\n')  
           echo "modified_tags=$tags" >> "$GITHUB_OUTPUT"
           echo "$tags" > tags.txt
@@ -128,9 +128,9 @@ jobs:
       - name: Set DOCKER_REPO_NAME dynamically
         run: |
           if [[ "${{ env.IS_PULL }}" == "true" ]]; then
-            echo "DOCKER_REPO_NAME=${{ github.actor }}/valkey-extension" >> $GITHUB_ENV
+            echo "DOCKER_REPO_NAME=${{ github.actor }}/valkey-extensions" >> $GITHUB_ENV
           else
-            echo "DOCKER_REPO_NAME=${{ secrets.DOCKERHUB_ACCOUNT }}/valkey-extension" >> $GITHUB_ENV
+            echo "DOCKER_REPO_NAME=${{ secrets.DOCKERHUB_ACCOUNT }}/valkey-extensions" >> $GITHUB_ENV
           fi
 
       - name: Download Digests

@@ -1,6 +1,6 @@
-# valkey-extension
+# valkey-extensions
 
-This Project is the Git repo of the [Valkey Extension "Official Image"](https://hub.docker.com/r/valkey/valkey-extension/)
+This Project is the Git repo of the [Valkey Extensions "Official Image"](https://hub.docker.com/r/valkey/valkey-extensions/)
 
 The Project is maintained by [the Valkey Community](https://github.com/valkey-io/)
 
