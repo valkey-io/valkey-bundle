@@ -138,6 +138,8 @@ jobs:
         with:
           path: ${{ runner.temp }}/digests
           merge-multiple: true
+      
+      - name: List downloaded digests
         run: |
           # List all downloaded digests
           ls -l ${{ runner.temp }}/digests
