@@ -116,7 +116,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: digests-${{ env.PLATFORM_PAIR }}-${{ matrix.version.name }}
-          path: ${{ runner.temp }}/digests/*
+          path: ${{ runner.temp }}/digests/${{ matrix.version.meta.entries[0].directory }}/*
           if-no-files-found: error
           retention-days: 1
 
@@ -137,8 +137,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: ${{ runner.temp }}/digests
-          pattern: digests-*
           merge-multiple: true
+        run: |
+          # List all downloaded digests
+          ls -l ${{ runner.temp }}/digests
 
       - name: Download Tags
         uses: actions/download-artifact@v4
@@ -162,10 +164,12 @@ jobs:
       - name: Create Multi-Arch Manifest and Push
         working-directory: ${{ runner.temp }}/digests
         run: |
-          # Prepare tags argument from downloaded tags artifact
-          TAGS=$(sed 's/,/ /g' ${{ runner.temp }}/tags/*.txt | xargs -n1 echo "-t" | tr '\n' ' ')
+          # Prepare tags argument for bookworm and alpine separately from downloaded tags artifact
+          TAGS_bookworm=$(sed 's/,/ /g' ${{ runner.temp }}/tags/*.txt| grep -v "alpine" | xargs -n1 echo "-t" | tr '\n' ' ')
+          TAGS_alpine=$(sed 's/,/ /g' ${{ runner.temp }}/tags/*.txt| grep "alpine" | xargs -n1 echo "-t" | tr '\n' ' ')
+
           # Construct image digest references
-          DIGESTS=$(printf '${{ env.DOCKER_REPO_NAME }}@sha256:%s ' *)
+          DIGESTS=$(printf '${{ env.DOCKER_REPO_NAME }}@sha256:%s ' $(ls | grep -v "alpine")))
           # Create and push the multi-architecture manifest only for push events
           if [[ "${{ env.IS_PULL }}" == "true" ]]; then
             echo "Dry run: docker buildx imagetools create $TAGS $DIGESTS"
