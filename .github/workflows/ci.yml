@@ -178,7 +178,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Use imagetools to combine the arch-specific digests into one multi-arch manifest
+      # Use imagetools to combine the arch-specific digests into respective multi-arch manifest
       - name: Create Multi-Arch Manifest and Push
         working-directory: ${{ runner.temp }}/digests
         run: |
