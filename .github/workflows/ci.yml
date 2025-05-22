@@ -154,11 +154,6 @@ jobs:
           path: ${{ runner.temp }}/digests/alpine
           pattern: digests-alpine-*
           merge-multiple: true
-      
-      - name: List downloaded digests
-        run: |
-          # List all downloaded digests
-          ls -l ${{ runner.temp }}/digests
 
       - name: Download Tags
         uses: actions/download-artifact@v4
