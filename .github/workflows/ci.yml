@@ -107,15 +107,23 @@ jobs:
 
       # Export digest to a file to reference it later in merging manifests
       - name: Export digest
+        id: export-digest
         run: |
           mkdir -p ${{ runner.temp }}/digests
           digest="${{ steps.build.outputs.digest }}"
           touch "${{ runner.temp }}/digests/${digest#sha256:}"
-
+      
+          # Check if the version directory contains 'debian'
+          if [[ "${{ matrix.version.meta.entries[0].directory }}" == *"debian"* ]]; then
+            echo "linux_distro=bookworm" >> "$GITHUB_OUTPUT"
+          else
+            echo "linux_distro=alpine" >> "$GITHUB_OUTPUT"
+          fi
+    
       - name: Upload digest
         uses: actions/upload-artifact@v4
         with:
-          name: digests-${{ env.PLATFORM_PAIR }}-${{ matrix.version.name }}
+          name: digests-${{ steps.export-digest.outputs.linux_distro }}-${{ env.PLATFORM_PAIR }}-${{ matrix.version.name }}
           path: ${{ runner.temp }}/digests/*
           if-no-files-found: error
           retention-days: 1
@@ -133,11 +141,18 @@ jobs:
             echo "DOCKER_REPO_NAME=${{ secrets.DOCKERHUB_ACCOUNT }}/valkey-extensions" >> $GITHUB_ENV
           fi
 
-      - name: Download Digests
+      - name: Download Bookworm Digests
         uses: actions/download-artifact@v4
         with:
-          path: ${{ runner.temp }}/digests
-          pattern: digests-*
+          path: ${{ runner.temp }}/digests/bookworm
+          pattern: digests-bookworm-*
+          merge-multiple: true
+
+      - name: Download Alpine Digests
+        uses: actions/download-artifact@v4
+        with:
+          path: ${{ runner.temp }}/digests/alpine
+          pattern: digests-alpine-*
           merge-multiple: true
 
       - name: Download Tags
@@ -158,19 +173,44 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Use imagetools to combine the arch-specific digests into one multi-arch manifest
+      # Use imagetools to combine the arch-specific digests into respective multi-arch manifest
       - name: Create Multi-Arch Manifest and Push
         working-directory: ${{ runner.temp }}/digests
         run: |
-          # Prepare tags argument from downloaded tags artifact
-          TAGS=$(sed 's/,/ /g' ${{ runner.temp }}/tags/*.txt | xargs -n1 echo "-t" | tr '\n' ' ')
-          # Construct image digest references
-          DIGESTS=$(printf '${{ env.DOCKER_REPO_NAME }}@sha256:%s ' *)
-          # Create and push the multi-architecture manifest only for push events
-          if [[ "${{ env.IS_PULL }}" == "true" ]]; then
-            echo "Dry run: docker buildx imagetools create $TAGS $DIGESTS"
+          bookworm_exists=$([ -n "$(sed 's/,/ /g' ${{ runner.temp }}/tags/*.txt | grep -v "alpine")" ] && echo "true" || echo "false")
+
+          # Check if bookworm_exists is true
+          if [[ $bookworm_exists == "true" ]]; then
+            # Prepare tags and digest references argument for BOOKWORM from downloaded tags artifact
+            TAGS_bookworm=$(sed 's/,/ /g' ${{ runner.temp }}/tags/*.txt | grep -v "alpine" | xargs -n1 echo "-t" | tr '\n' ' ')
+            DIGESTS_bookworm=$(printf '${{ env.DOCKER_REPO_NAME }}@sha256:%s ' ./bookworm/* | sed 's|./bookworm/||g')
+
+            # Create and push the multi-architecture manifest for BOOKWORM only for push events
+            if [[ "${{ env.IS_PULL }}" == "true" ]]; then
+              echo "Dry run: docker buildx imagetools create $TAGS_bookworm $DIGESTS_bookworm"
+            else
+              docker buildx imagetools create $TAGS_bookworm $DIGESTS_bookworm
+            fi
           else
-            docker buildx imagetools create $TAGS $DIGESTS
+            echo "No valid bookworm tags found, skipping bookworm manifest creation."
+          fi
+
+          alpine_exists=$([ -n "$(sed 's/,/ /g' ${{ runner.temp }}/tags/*.txt | grep "alpine")" ] && echo "true" || echo "false")
+          
+          # Check if TAGS_alpine and DIGESTS_alpine are not empty
+          if [[ $alpine_exists == "true" ]]; then
+            # Prepare tags and digest references argument for ALPINE from downloaded tags artifact
+            TAGS_alpine=$(sed 's/,/ /g' ${{ runner.temp }}/tags/*.txt | grep "alpine" | xargs -n1 echo "-t" | tr '\n' ' ')
+            DIGESTS_alpine=$(printf '${{ env.DOCKER_REPO_NAME }}@sha256:%s ' ./alpine/* | sed 's|./alpine/||g')
+
+            # Create and push the multi-architecture manifest for ALPINE only for push events
+            if [[ "${{ env.IS_PULL }}" == "true" ]]; then
+              echo "Dry run: docker buildx imagetools create $TAGS_alpine $DIGESTS_alpine"
+            else
+              docker buildx imagetools create $TAGS_alpine $DIGESTS_alpine
+            fi
+          else
+            echo "No valid alpine tags found, skipping alpine manifest creation."
           fi
 
   update-dockerhub-description:
