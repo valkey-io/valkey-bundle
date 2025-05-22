@@ -45,19 +45,21 @@ generated_warning() {
 for version; do
 	rm -rf "$version"
 
-	variant="debian"
+	for variant in debian alpine; do
 
-	export version variant
+		export version variant
 
-	dir="$version/$variant"
+		dir="$version/$variant"
 
-	echo "processing $dir ..."
+		echo "processing $dir ..."
 
-	mkdir -p "$dir"
+		mkdir -p "$dir"
 
-	{
-		generated_warning
-		gawk -f "$jqt" Dockerfile.template
-	} > "$dir/Dockerfile"
+		{
+			generated_warning
+			gawk -f "$jqt" Dockerfile.template
+		} > "$dir/Dockerfile"
+
+	done
 
 done

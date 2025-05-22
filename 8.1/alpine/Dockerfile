@@ -1,13 +1,13 @@
-{{ include ".template-helper-functions" -}}
-{{ if env.variant == "alpine" then ( -}}
-FROM docker.io/valkey/valkey:{{ ."valkey-server".version }}-alpine AS build
-{{ ) else ( -}}
-FROM docker.io/valkey/valkey:{{ ."valkey-server".version }}-bookworm AS build
-{{ ) end -}}
+#
+# NOTE: THIS DOCKERFILE IS GENERATED VIA "apply-templates.sh"
+#
+# PLEASE DO NOT EDIT IT DIRECTLY.
+#
 
-ARG SERVER_VERSION={{ ."valkey-server".version }}
+FROM docker.io/valkey/valkey:8.1.0-alpine AS build
 
-{{ if env.variant == "alpine" then ( -}}
+ARG SERVER_VERSION=8.1.0
+
 RUN set -eux; \
     apk add --no-cache            \
 	        ca-certificates       \
@@ -27,28 +27,6 @@ RUN set -eux; \
 	;\
     update-ca-certificates; \
     ln -s /usr/lib/ninja-build/bin/ninja /usr/bin/ninja-build;
-{{ ) else ( -}}
-RUN set -eux;   \
-                \
-    apt-get update;     \
-    apt-get install -y --no-install-recommends  \
-                        ca-certificates         \
-                        build-essential         \
-                        cmake                   \
-                        git                     \
-                        curl                    \
-                        clang                   \
-                        clangd                  \
-                        g++                     \
-                        libgtest-dev            \
-                        ninja-build             \
-                        libssl-dev              \
-                        clang-tidy              \
-                        clang-format            \
-                        libsystemd-dev          \
-                    ;\
-    apt-get clean && rm -rf /var/lib/apt/lists/* ;
-{{ ) end -}}
 
 # Install Rust
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y;
@@ -58,18 +36,14 @@ WORKDIR /opt
 
 # Clone repositories
 RUN set -eux; \
-    git clone --depth 1 --branch {{ ."modules"."valkey-json".version }}  https://github.com/valkey-io/valkey-json.git; \
-    git clone --depth 1 --branch {{ ."modules"."valkey-bloom".version }} https://github.com/valkey-io/valkey-bloom.git; \
-{{ if env.variant == "alpine" then ( -}}
+    git clone --depth 1 --branch 1.0.0  https://github.com/valkey-io/valkey-json.git; \
+    git clone --depth 1 --branch 1.0.0 https://github.com/valkey-io/valkey-bloom.git; \
 # need to clone main on alpine until this commit is available in a release tag:
 # https://github.com/valkey-io/valkey-search/commit/eec38de7fb0423fb659b451b79a8e3420299e936
 # TODO: update this to use a release tag when available
     git clone https://github.com/valkey-io/valkey-search.git; \
     cd valkey-search; \
     git reset --hard eec38de7fb0423fb659b451b79a8e3420299e936;
-{{ ) else ( -}}
-    git clone --depth 1 --branch {{ ."modules"."valkey-search".version }} https://github.com/valkey-io/valkey-search.git;
-{{ ) end -}}
 
 # Build JSON module
 WORKDIR /opt/valkey-json
@@ -81,15 +55,10 @@ RUN set -eux; \
 
 # Build Bloom module
 WORKDIR /opt/valkey-bloom
-{{ if env.variant == "alpine" then ( -}}
 RUN RUSTFLAGS="-C target-feature=-crt-static" cargo build --all --all-targets --release;
-{{ ) else ( -}}
-RUN cargo build --all --all-targets --release;
-{{ ) end -}}
 
 # Build Search module
 WORKDIR /opt/valkey-search
-{{ if env.variant == "alpine" then ( -}}
 # on alpine, the first build fails due to this issue: https://github.com/grpc/grpc/issues/38438
 # we just replace mutable int32_t with mutable int in .build-release/.deps/grpc/third_party/re2/util/pcre.h
 # based on this upstream change https://github.com/google/re2/commit/b025c6a3ae05995660e3b882eb3277f4399ced1a
@@ -97,24 +66,12 @@ RUN set -eux;       \
     ./build.sh || true; \
     sed -i 's|^  mutable int32_t |  mutable int     |' .build-release/.deps/grpc/third_party/re2/util/pcre.h; \
     ./build.sh;
-{{ ) else ( -}}
-RUN set -eux;       \
-    ./build.sh;
-{{ ) end -}}
 
-{{ if env.variant == "alpine" then ( -}}
-FROM docker.io/valkey/valkey:{{ ."valkey-server".version }}-alpine
-{{ ) else ( -}}
-FROM docker.io/valkey/valkey:{{ ."valkey-server".version }}-bookworm
-{{ ) end -}}
+FROM docker.io/valkey/valkey:8.1.0-alpine
 
-{{ if env.variant == "alpine" then ( -}}
 RUN set -eux; \
     apk add --no-cache libstdc++; \
     mkdir -p /usr/lib/valkey;
-{{ ) else ( -}}
-RUN mkdir -p /usr/lib/valkey;
-{{ ) end -}}
 
 # Copy built modules from the build stage
 COPY --from=build /opt/valkey-json/build/src/libjson.so /usr/lib/valkey/libjson.so

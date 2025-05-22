@@ -74,7 +74,7 @@ for version; do
 		${aliases[$version]:-}
 	)
 
-	for variant in debian; do
+	for variant in debian alpine; do
 		export variant
 		dir="$version/$variant"
 
