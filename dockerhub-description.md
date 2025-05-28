@@ -9,7 +9,7 @@
 # Supported tags and respective `Dockerfile` links
 
 ## Release candidates
-- [`8.1.1-rc1`, `8.1`, `8`, `latest`, `8.1.0-rc1-bookworm`, `8.1-bookworm`, `8-bookworm`, `bookworm`](https://github.com/valkey-io/valkey-extensions/blob/mainline/8.1/debian/Dockerfile)
+- [`8.1.1-rc1`, `8.1`, `8`, `latest`, `8.1.1-rc1-bookworm`, `8.1-bookworm`, `8-bookworm`, `bookworm`](https://github.com/valkey-io/valkey-extensions/blob/mainline/8.1/debian/Dockerfile)
 - [`8.1.1-rc1-alpine`, `8.1-alpine`, `8-alpine`, `alpine`](https://github.com/valkey-io/valkey-extensions/blob/mainline/8.1/alpine/Dockerfile)
 
 ## What is [Valkey Extensions](https://github.com/valkey-io/valkey-extensions)?
