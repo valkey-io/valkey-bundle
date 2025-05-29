@@ -60,16 +60,7 @@ WORKDIR /opt
 RUN set -eux; \
     git clone --depth 1 --branch {{ ."modules"."valkey-json".version }}  https://github.com/valkey-io/valkey-json.git; \
     git clone --depth 1 --branch {{ ."modules"."valkey-bloom".version }} https://github.com/valkey-io/valkey-bloom.git; \
-{{ if env.variant == "alpine" then ( -}}
-# need to clone main on alpine until this commit is available in a release tag:
-# https://github.com/valkey-io/valkey-search/commit/eec38de7fb0423fb659b451b79a8e3420299e936
-# TODO: update this to use a release tag when available
-    git clone https://github.com/valkey-io/valkey-search.git; \
-    cd valkey-search; \
-    git reset --hard eec38de7fb0423fb659b451b79a8e3420299e936;
-{{ ) else ( -}}
     git clone --depth 1 --branch {{ ."modules"."valkey-search".version }} https://github.com/valkey-io/valkey-search.git;
-{{ ) end -}}
 
 # Build JSON module
 WORKDIR /opt/valkey-json
