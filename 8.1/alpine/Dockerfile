@@ -40,7 +40,6 @@ RUN set -eux; \
     git clone --depth 1 --branch 1.0.0 https://github.com/valkey-io/valkey-bloom.git; \
     git clone --depth 1 --branch main https://github.com/valkey-io/valkey-search.git;
 
-
 # Build JSON module
 WORKDIR /opt/valkey-json
 RUN set -eux; \
@@ -64,7 +63,6 @@ RUN set -eux;       \
     ./build.sh;
 
 FROM docker.io/valkey/valkey:8.1.1-alpine
-
 
 RUN set -eux; \
     apk add --no-cache libstdc++; \
