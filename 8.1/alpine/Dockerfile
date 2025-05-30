@@ -4,9 +4,9 @@
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
 
-FROM docker.io/valkey/valkey:8.1.0-alpine AS build
+FROM docker.io/valkey/valkey:8.1.1-alpine AS build
 
-ARG SERVER_VERSION=8.1.0
+ARG SERVER_VERSION=8.1.1
 
 RUN set -eux; \
     apk add --no-cache            \
@@ -38,12 +38,7 @@ WORKDIR /opt
 RUN set -eux; \
     git clone --depth 1 --branch 1.0.0  https://github.com/valkey-io/valkey-json.git; \
     git clone --depth 1 --branch 1.0.0 https://github.com/valkey-io/valkey-bloom.git; \
-# need to clone main on alpine until this commit is available in a release tag:
-# https://github.com/valkey-io/valkey-search/commit/eec38de7fb0423fb659b451b79a8e3420299e936
-# TODO: update this to use a release tag when available
-    git clone https://github.com/valkey-io/valkey-search.git; \
-    cd valkey-search; \
-    git reset --hard eec38de7fb0423fb659b451b79a8e3420299e936;
+    git clone --depth 1 --branch main https://github.com/valkey-io/valkey-search.git;
 
 # Build JSON module
 WORKDIR /opt/valkey-json
@@ -67,7 +62,7 @@ RUN set -eux;       \
     sed -i 's|^  mutable int32_t |  mutable int     |' .build-release/.deps/grpc/third_party/re2/util/pcre.h; \
     ./build.sh;
 
-FROM docker.io/valkey/valkey:8.1.0-alpine
+FROM docker.io/valkey/valkey:8.1.1-alpine
 
 RUN set -eux; \
     apk add --no-cache libstdc++; \
