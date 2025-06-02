@@ -1,8 +1,8 @@
 {
-  "8.1": {
-    "version": "8.1.0-rc1",
+  "8.1.1": {
+    "version": "8.1.1",
     "valkey-server": {
-        "version": "8.1.0"
+        "version": "8.1.1"
       },
     "modules": {
       "valkey-json": {
@@ -17,3 +17,4 @@
     }
   }
 }
+
