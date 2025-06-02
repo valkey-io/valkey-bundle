@@ -104,6 +104,7 @@ jobs:
           load: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          pull: true
 
       # Export digest to a file to reference it later in merging manifests
       - name: Export digest
