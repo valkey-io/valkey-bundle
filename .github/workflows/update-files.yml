@@ -1,0 +1,100 @@
+name: Update Valkey Extensions
+
+on:
+  repository_dispatch:
+    types: [valkey-release, json-release, bloom-release, search-release]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release'
+        required: true
+      module:
+        description: 'Module to release'
+        required: true
+        type: choice
+        options: [valkey, json, bloom, search]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-files:
+    name: Update Files and Create PR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Process inputs
+        id: process-inputs
+        run: |
+          if [[ "${{ github.event_name }}" == "repository_dispatch" ]]; then
+            # From trigger
+            echo "version=${{ github.event.client_payload.version }}" >> $GITHUB_OUTPUT
+            echo "module=${{ github.event.client_payload.module }}" >> $GITHUB_OUTPUT
+          else
+            # Manual trigger
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+            echo "module=${{ github.event.inputs.module }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Update versions.json
+        run: |
+          python scripts/update-versions.py versions.json \
+            "${{ steps.process-inputs.outputs.module }}" \
+            "${{ steps.process-inputs.outputs.version }}"
+
+      - name: Generate Dockerfiles
+        run: |
+          # Download the scripts for bashbrew in local
+            jqt='.jq-template.awk'
+            wget -qO "$jqt" 'https://github.com/docker-library/bashbrew/raw/9f6a35772ac863a0241f147c820354e4008edf38/scripts/jq-template.awk'
+            jqf='.template-helper-functions.jq'
+            wget -qO "$jqf" 'https://github.com/docker-library/bashbrew/raw/08c926140ad0af22de58c2a2656afda58082ba3e/scripts/template-helper-functions.jq'
+
+          # Run update script
+          chmod +x apply-templates.sh
+          ./apply-templates.sh
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "Regenerate Dockerfiles for ${{ steps.process-inputs.outputs.module }} ${{ steps.process-inputs.outputs.version }}" || echo "No changes to commit"
+
+      - name: Set up bashbrew
+        uses: docker-library/bashbrew@v0.1.12
+
+      - name: Generate Jobs Strategy
+        id: generate-jobs
+        run: |
+          BASHBREW_SCRIPTS=/home/runner/work/_actions/docker-library/bashbrew/v0.1.12/scripts
+          strategy="$("$BASHBREW_SCRIPTS/github-actions/generate.sh")"
+          echo "strategy=$strategy" >> $GITHUB_OUTPUT
+
+      - name: Update DockerHub description
+        run: |
+          echo '${{ steps.generate-jobs.outputs.strategy }}' > strategy.json
+          python scripts/update-dockerhub-description.py strategy.json dockerhub-description-template.md dockerhub-description.md
+          rm strategy.json
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: update-${{ steps.process-inputs.outputs.module }}-${{ steps.process-inputs.outputs.version }}
+          delete-branch: true
+          title: "Update for ${{ steps.process-inputs.outputs.module }} ${{ steps.process-inputs.outputs.version }}"
+          commit-message: |
+            Update for ${{ steps.process-inputs.outputs.module }} ${{ steps.process-inputs.outputs.version }}
+          body: |
+            This PR was automatically generated in response to a new release of ${{ steps.process-inputs.outputs.module }} version ${{ steps.process-inputs.outputs.version }}.
+            
+            Changes include:
+            - Updated versions.json for new ${{ steps.process-inputs.outputs.module }} version
+            - Regenerated Dockerfiles
+            - Updated DockerHub description
