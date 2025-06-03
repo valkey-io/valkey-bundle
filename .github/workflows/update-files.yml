@@ -39,6 +39,18 @@ jobs:
             echo "module=${{ github.event.inputs.module }}" >> $GITHUB_OUTPUT
           fi
 
+      - name: Guard against unsupported Valkey versions
+        if: ${{ steps.process-inputs.outputs.module == 'valkey' }}
+        run: |
+          VERSION="${{ steps.process-inputs.outputs.version }}"
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
+          MINOR=$(echo "$VERSION" | cut -d. -f2)
+
+          if [ "$MAJOR" -lt 8 ] || { [ "$MAJOR" -eq 8 ] && [ "$MINOR" -lt 1 ]; }; then
+            echo "Valkey version must be >= 8.1. Current: $VERSION"
+            exit 1
+          fi
+
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
