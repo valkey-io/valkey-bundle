@@ -10,7 +10,7 @@ A new Docker Image should be built and published after a new major, minor or pat
 
 ## How do you build and publish new version of a Docker Image?
 
-*Pre-requisites: [Fork](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo) this repo, create a private Docker Hub repo, and setup your GitHub secrets to access the private Docker Hub repo.*
+*Prerequisites: [Fork](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo) this repo, create a private Docker Hub repo, and setup your GitHub secrets to access the private Docker Hub repo.*
 
 1. Bump up the respective versions in versions.json. (will be automated by implementing versions.sh)
 2. Run `apply-templates.sh`
