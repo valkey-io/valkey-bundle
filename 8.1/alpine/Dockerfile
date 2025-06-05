@@ -58,9 +58,7 @@ WORKDIR /opt/valkey-search
 # we just replace mutable int32_t with mutable int in .build-release/.deps/grpc/third_party/re2/util/pcre.h
 # based on this upstream change https://github.com/google/re2/commit/b025c6a3ae05995660e3b882eb3277f4399ced1a
 RUN set -eux;       \
-    ./build.sh || true; \
-    sed -i 's|^  mutable int32_t |  mutable int     |' .build-release/.deps/grpc/third_party/re2/util/pcre.h; \
-    ./build.sh;
+    ./build.sh
 
 FROM docker.io/valkey/valkey:8.1.1-alpine
 
