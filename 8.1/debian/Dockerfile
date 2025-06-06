@@ -56,7 +56,7 @@ RUN cargo build --all --all-targets --release;
 # Build Search module
 WORKDIR /opt/valkey-search
 RUN set -eux;       \
-    ./build.sh;
+    ./build.sh
 
 FROM docker.io/valkey/valkey:8.1.1-bookworm
 
