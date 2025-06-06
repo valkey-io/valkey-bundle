@@ -24,6 +24,11 @@ RUN set -eux; \
 	        clang19-extra-tools   \
 	        linux-headers         \
 	        bash                  \
+            protobuf-dev          \
+            protobuf              \
+            grpc-dev              \
+            grpc                  \
+            grpc-plugins          \
 	;\
     update-ca-certificates; \
     ln -s /usr/lib/ninja-build/bin/ninja /usr/bin/ninja-build;
