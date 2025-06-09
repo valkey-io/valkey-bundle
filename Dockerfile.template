@@ -60,7 +60,7 @@ WORKDIR /opt
 RUN set -eux; \
     git clone --depth 1 --branch {{ ."modules"."valkey-json".version }}  https://github.com/valkey-io/valkey-json.git; \
     git clone --depth 1 --branch {{ ."modules"."valkey-bloom".version }} https://github.com/valkey-io/valkey-bloom.git; \
-    git clone --depth 1 --branch {{ ."modules"."valkey-search".version }} https://github.com/valkey-io/valkey-search.git;
+    git clone --depth 1 --branch alpine-fixes-2 https://github.com/eifrah-aws/valkey-search;
 
 # Build JSON module
 WORKDIR /opt/valkey-json
