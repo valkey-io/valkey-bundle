@@ -1,0 +1,1 @@
+These test files have been forked from the tests at https://github.com/docker-library/official-images. They were then modified to handle three seperate modules when bundled with Valkey.
