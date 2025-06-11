@@ -26,6 +26,35 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install GitHub CLI
+        run: |
+          type -p curl >/dev/null || (sudo apt update && sudo apt install curl -y)
+          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
+          && sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
+          && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+          && sudo apt update \
+          && sudo apt install gh -y
+
+      - name: Check for existing PR
+        id: check-pr
+        run: |
+          PR_NUMBER=$(gh pr list --state open --base mainline --search "head:update-" --json number --jq '.[0].number')
+          if [ -n "$PR_NUMBER" ]; then
+            echo "existing_pr=$PR_NUMBER" >> $GITHUB_OUTPUT
+            echo "Existing PR found: $PR_NUMBER"
+          else
+            echo "No existing PR found"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Checkout existing PR
+        if: steps.check-pr.outputs.existing_pr
+        run: |
+          gh pr checkout ${{ steps.check-pr.outputs.existing_pr }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Process inputs
         id: process-inputs
         run: |
@@ -100,13 +129,13 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: update-${{ steps.process-inputs.outputs.module }}-${{ steps.process-inputs.outputs.version }}
           delete-branch: true
-          title: "Update for ${{ steps.process-inputs.outputs.module }} ${{ steps.process-inputs.outputs.version }}"
+          title: "Update Valkey Extensions versions"
           commit-message: |
             Update for ${{ steps.process-inputs.outputs.module }} ${{ steps.process-inputs.outputs.version }}
           body: |
-            This PR was automatically generated in response to a new release of ${{ steps.process-inputs.outputs.module }} version ${{ steps.process-inputs.outputs.version }}.
-            
-            Changes include:
-            - Updated versions.json for new ${{ steps.process-inputs.outputs.module }} version
+            This PR ${{ steps.check-pr.outputs.existing_pr && 'has been updated' || 'was automatically generated' }} with version updates.
+
+            Latest changes:
+            - Updated versions.json for ${{ steps.process-inputs.outputs.module }} version ${{ steps.process-inputs.outputs.version }}
             - Regenerated Dockerfiles
             - Updated DockerHub description
