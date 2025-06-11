@@ -91,6 +91,21 @@ if __name__ == "__main__":
         logging.error(str(e))
         sys.exit(1)
 
+    if module != 'valkey':
+        major, minor, patch, _ = parse_version(new_version)
+        is_module_major_release = (minor == 0 and patch == 0)
+
+        if is_module_major_release:
+            latest_valkey_block = versions_data[get_latest_major_minor(versions_data)]
+            valkey_version = latest_valkey_block["valkey-server"]["version"]
+
+            if not re.match(r'^\d+\.0\.0(?:-rc\d+)?$', valkey_version):
+                logging.error(
+                    f"Cannot release {module} {new_version}: "
+                    f"latest Valkey version is '{valkey_version}', which is not a new major release (X.0.0 or X.0.0-rcY)."
+                )
+                sys.exit(1)
+
     updated = update_versions(versions_data, module, new_version)
 
     with open(json_file, 'w') as f:
