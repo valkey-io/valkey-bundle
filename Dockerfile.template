@@ -24,6 +24,7 @@ RUN set -eux; \
 	        clang19-extra-tools   \
 	        linux-headers         \
 	        bash                  \
+                pkgconfig             \
 	;\
     update-ca-certificates; \
     ln -s /usr/lib/ninja-build/bin/ninja /usr/bin/ninja-build;
@@ -46,6 +47,7 @@ RUN set -eux;   \
                         clang-tidy              \
                         clang-format            \
                         libsystemd-dev          \
+                        pkg-config              \
                     ;\
     apt-get clean && rm -rf /var/lib/apt/lists/* ;
 {{ ) end -}}
@@ -60,7 +62,8 @@ WORKDIR /opt
 RUN set -eux; \
     git clone --depth 1 --branch {{ ."modules"."valkey-json".version }}  https://github.com/valkey-io/valkey-json.git; \
     git clone --depth 1 --branch {{ ."modules"."valkey-bloom".version }} https://github.com/valkey-io/valkey-bloom.git; \
-    git clone --depth 1 --branch {{ ."modules"."valkey-search".version }} https://github.com/valkey-io/valkey-search.git;
+    git clone --depth 1 --branch {{ ."modules"."valkey-search".version }} https://github.com/valkey-io/valkey-search.git; \
+    git clone --depth 1 --branch {{ ."modules"."valkey-ldap".version }} https://github.com/valkey-io/valkey-ldap.git;
 
 # Build JSON module
 WORKDIR /opt/valkey-json
@@ -86,6 +89,14 @@ WORKDIR /opt/valkey-search
 RUN set -eux; \
     ./build.sh
 
+# Build LDAP module
+WORKDIR /opt/valkey-ldap
+{{ if env.variant == "alpine" then ( -}}
+RUN RUSTFLAGS="-C target-feature=-crt-static" cargo build --all --all-targets --release;
+{{ ) else ( -}}
+RUN cargo build --all --all-targets --release;
+{{ ) end -}}
+
 {{ if env.variant == "alpine" then ( -}}
 FROM docker.io/valkey/valkey:{{ ."valkey-server".version }}-alpine
 {{ ) else ( -}}
@@ -104,9 +115,11 @@ RUN mkdir -p /usr/lib/valkey;
 COPY --from=build /opt/valkey-json/build/src/libjson.so /usr/lib/valkey/libjson.so
 COPY --from=build /opt/valkey-bloom/target/release/libvalkey_bloom.so /usr/lib/valkey/libvalkey_bloom.so
 COPY --from=build /opt/valkey-search/.build-release/libsearch.so /usr/lib/valkey/libsearch.so
+COPY --from=build /opt/valkey-ldap/target/release/libvalkey_ldap.so /usr/lib/valkey/libvalkey_ldap.so
 
 CMD ["valkey-server",                                               \
             "--loadmodule", "/usr/lib/valkey/libjson.so",           \
             "--loadmodule", "/usr/lib/valkey/libvalkey_bloom.so",   \
-            "--loadmodule", "/usr/lib/valkey/libsearch.so"          \
+            "--loadmodule", "/usr/lib/valkey/libsearch.so",        \
+            "--loadmodule", "/usr/lib/valkey/libvalkey_ldap.so"    \
     ]
