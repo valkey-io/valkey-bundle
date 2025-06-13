@@ -1,4 +1,4 @@
-name: Update Valkey Extensions
+name: Automated Valkey Bundle Release
 
 on:
   repository_dispatch:
@@ -6,10 +6,10 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to release'
+        description: 'Version to be released'
         required: true
       module:
-        description: 'Module to release'
+        description: 'Module to be released'
         required: true
         type: choice
         options: [valkey, json, bloom, search]
@@ -30,11 +30,11 @@ jobs:
         id: process-inputs
         run: |
           if [[ "${{ github.event_name }}" == "repository_dispatch" ]]; then
-            # From trigger
+            # From "repository_dispatch" trigger
             echo "version=${{ github.event.client_payload.version }}" >> $GITHUB_OUTPUT
             echo "module=${{ github.event.client_payload.module }}" >> $GITHUB_OUTPUT
           else
-            # Manual trigger
+            # From "workflow_dispatch" trigger
             echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
             echo "module=${{ github.event.inputs.module }}" >> $GITHUB_OUTPUT
           fi
@@ -57,12 +57,14 @@ jobs:
           python-version: '3.x'
 
       - name: Update versions.json
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           python scripts/update-versions.py versions.json \
             "${{ steps.process-inputs.outputs.module }}" \
             "${{ steps.process-inputs.outputs.version }}"
 
-      - name: Generate Dockerfiles
+      - name: Update Dockerfiles
         run: |
           # Download the scripts for bashbrew in local
             jqt='.jq-template.awk'
@@ -76,7 +78,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .
-          git commit -m "Regenerate Dockerfiles for ${{ steps.process-inputs.outputs.module }} ${{ steps.process-inputs.outputs.version }}" || echo "No changes to commit"
+          git commit -m "Update Dockerfiles for ${{ steps.process-inputs.outputs.module }} ${{ steps.process-inputs.outputs.version }}" || echo "No changes to commit"
 
       - name: Set up bashbrew
         uses: docker-library/bashbrew@v0.1.12
@@ -107,6 +109,6 @@ jobs:
             This PR was automatically generated in response to a new release of ${{ steps.process-inputs.outputs.module }} version ${{ steps.process-inputs.outputs.version }}.
             
             Changes include:
-            - Updated versions.json for new ${{ steps.process-inputs.outputs.module }} version
-            - Regenerated Dockerfiles
+            - Updated versions.json for ${{ steps.process-inputs.outputs.module }} version ${{ steps.process-inputs.outputs.version }}.
+            - Updated Dockerfiles
             - Updated DockerHub description
