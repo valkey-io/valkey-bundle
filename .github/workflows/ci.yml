@@ -29,29 +29,29 @@ jobs:
           echo "strategy=$(jq -c . <<<"$strategy")" >> "$GITHUB_OUTPUT"
           jq . <<<"$strategy" # debugging aid to visually inspect the generated matrix
 
-  test:
-    needs: generate-jobs
-    strategy: ${{ fromJson(needs.generate-jobs.outputs.strategy) }}
-    name: ${{ matrix.name }} - test
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Prepare Environment
-        run: ${{ matrix.runs.prepare }}
-      - name: Pull Dependencies
-        run: ${{ matrix.runs.pull }}
-      - name: Build ${{ matrix.name }}
-        run: ${{ matrix.runs.build }}
-      - name: History ${{ matrix.name }}
-        run: ${{ matrix.runs.history }}
-      - name: Test ${{ matrix.name }}
-        run: ${{ matrix.runs.test }}
-      - name: '"docker images"'
-        run: ${{ matrix.runs.images }}
+  # test:
+  #  needs: generate-jobs
+  #  strategy: ${{ fromJson(needs.generate-jobs.outputs.strategy) }}
+  #  name: ${{ matrix.name }} - test
+  #  runs-on: ${{ matrix.os }}
+  #  steps:
+  #    - uses: actions/checkout@v4
+  #    - name: Prepare Environment
+  #      run: ${{ matrix.runs.prepare }}
+  #    - name: Pull Dependencies
+  #      run: ${{ matrix.runs.pull }}
+  #    - name: Build ${{ matrix.name }}
+  #      run: ${{ matrix.runs.build }}
+  #    - name: History ${{ matrix.name }}
+  #      run: ${{ matrix.runs.history }}
+  #    - name: Test ${{ matrix.name }}
+  #      run: ${{ matrix.runs.test }}
+  #    - name: '"docker images"'
+  #     run: ${{ matrix.runs.images }}
 
   # Job to build and push Docker images individually for each architecture/platform
   build_and_push:
-    needs: [generate-jobs, test]
+    needs: [generate-jobs]
     strategy:
       fail-fast: false # continue other jobs even if one job fails
       matrix:
@@ -127,6 +127,9 @@ jobs:
           load: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      
+      - name: Test ${{ matrix.name }}
+        run: ${{ matrix.runs.test }}
 
       # Export digest to a file to reference it later in merging manifests
       - name: Export digest
