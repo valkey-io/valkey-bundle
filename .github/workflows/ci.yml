@@ -3,6 +3,8 @@ name: GitHub CI
 on:
   pull_request:
   push:
+    paths:
+      - '**/Dockerfile'
   workflow_dispatch:
 
 env:
@@ -127,6 +129,7 @@ jobs:
           load: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          pull: true
       
       - name: Test ${{ matrix.name }}
         run: ${{ matrix.runs.test }}
