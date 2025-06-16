@@ -14,15 +14,15 @@
 
 ## What is [Valkey Extensions](https://github.com/valkey-io/valkey-extensions)?
 --------------
-Valkey Extensions is a containerized version of Valkey, enhanced with popular modules like [Valkey JSON](https://github.com/valkey-io/valkey-json), [Valkey Bloom](https://github.com/valkey-io/valkey-bloom), and [Valkey Search](https://github.com/valkey-io/valkey-search), allowing you to utilize advanced data structures and additional search capabilities alongside standard Valkey functionality.
+Valkey Extensions is a containerized version of Valkey, enhanced with popular modules like [Valkey JSON](https://github.com/valkey-io/valkey-json), [Valkey Bloom](https://github.com/valkey-io/valkey-bloom), [Valkey Search](https://github.com/valkey-io/valkey-search), and [Valkey LDAP](https://github.com/valkey-io/valkey-ldap), allowing you to utilize advanced data structures and additional search capabilities alongside standard Valkey functionality.
 
 This image is built on top of the official Valkey base image and simplifies deployment of Valkey with these powerful modules included.
 
 ## Module Versions
 
-| valkey-extensions | valkey-json | valkey-bloom | valkey-search |
-|-------------------------|-------------|--------------|---------------|
-| [8.1.1-rc1](https://github.com/valkey-io/valkey-extensions/releases/tag/8.1.0-rc1) | [1.0.0](https://github.com/valkey-io/valkey-json/releases/tag/1.0.0)| [1.0.0](https://github.com/valkey-io/valkey-bloom/releases/tag/1.0.0)| [1.0.1](https://github.com/valkey-io/valkey-search/releases/tag/1.0.1)      |
+| valkey-extensions | valkey-json | valkey-bloom | valkey-search | valkey-ldap |
+|-------------------------|-------------|--------------|---------------|---------------|
+| [8.1.0-rc1](https://github.com/valkey-io/valkey-extensions/releases/tag/8.1.0-rc1) | [1.0.0](https://github.com/valkey-io/valkey-json/releases/tag/1.0.0)| [1.0.0](https://github.com/valkey-io/valkey-bloom/releases/tag/1.0.0)| [1.0.1](https://github.com/valkey-io/valkey-search/releases/tag/1.0.1)      |[1.0.0](https://github.com/valkey-io/valkey-ldap/releases/tag/1.0.0)      |
 
 # Security
 
@@ -84,7 +84,7 @@ $ docker run -v /myvalkey/conf:/usr/local/etc/valkey --name my-valkey-extensions
 
 ## `valkey/valkey-extensions:<version>`
 
-This is the primary image, which includes Valkey along with common modules like valkey-json, valkey-bloom, and valkey-search preloaded. It is suitable for development, testing, and production environments where these modules are needed out of the box.
+This is the primary image, which includes Valkey along with common modules like valkey-json, valkey-bloom, valkey-search, and valkey-ldap preloaded. It is suitable for development, testing, and production environments where these modules are needed out of the box.
 
 Some of the tags may include names like `bookworm`, which refer to [Debian release codenames](https://wiki.debian.org/DebianReleases). These indicate the base image used and help ensure compatibility if your container needs additional packages. Specifying these explicitly is recommended to avoid unexpected changes when base image versions update.
 

@@ -13,6 +13,9 @@
       },
       "valkey-search": {
         "version": "1.0.1"
+      },
+      "valkey-ldap": {
+        "version": "1.0.0"
       }
     }
   }
