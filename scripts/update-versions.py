@@ -93,9 +93,6 @@ def update_versions(versions_data: Dict[str, Any], module: str, new_version: str
                     f"The latest Valkey version is '{valkey_version}', which is not a new major version release (X.0.0 or X.0.0-rcY)."
                 )
                 sys.exit(1)
-
-        if "modules" not in versions_data[latest]:
-            versions_data[latest]["modules"] = {}
             
         if module_key not in versions_data[latest]["modules"]:
             logging.info(f"Adding new module {module_key} to existing version block")
