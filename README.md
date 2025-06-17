@@ -1,6 +1,6 @@
 # valkey-bundle
 
-This Project is the Git repo of the [Valkey Extensions "Official Image"](https://hub.docker.com/r/valkey/valkey-bundle/)
+This Project is the Git repo of the [Valkey Bundle "Official Image"](https://hub.docker.com/r/valkey/valkey-bundle/)
 
 The Project is maintained by [the Valkey Community](https://github.com/valkey-io/)
 

@@ -4,7 +4,7 @@
   [the Valkey Community](https://github.com/valkey-io/valkey-bundle)
 
 - **Where to get help**:  
-  Please open an issue stating your question at [Valkey Extensions Issues](https://github.com/valkey-io/valkey-bundle/issues).
+  Please open an issue stating your question at [Valkey Bundle Issues](https://github.com/valkey-io/valkey-bundle/issues).
 
 # Supported tags and respective `Dockerfile` links
 
@@ -12,9 +12,9 @@
 - [`8.1.1-rc1`, `8.1`, `8`, `latest`, `8.1.1-rc1-bookworm`, `8.1-bookworm`, `8-bookworm`, `bookworm`](https://github.com/valkey-io/valkey-bundle/blob/mainline/8.1/debian/Dockerfile)
 - [`8.1.1-rc1-alpine`, `8.1-alpine`, `8-alpine`, `alpine`](https://github.com/valkey-io/valkey-bundle/blob/mainline/8.1/alpine/Dockerfile)
 
-## What is [Valkey Extensions](https://github.com/valkey-io/valkey-bundle)?
+## What is [Valkey Bundle](https://github.com/valkey-io/valkey-bundle)?
 --------------
-Valkey Extensions is a containerized version of Valkey, enhanced with popular modules like [Valkey JSON](https://github.com/valkey-io/valkey-json), [Valkey Bloom](https://github.com/valkey-io/valkey-bloom), [Valkey Search](https://github.com/valkey-io/valkey-search), and [Valkey LDAP](https://github.com/valkey-io/valkey-ldap), allowing you to utilize advanced data structures and additional search capabilities alongside standard Valkey functionality.
+Valkey Bundle is a containerized version of Valkey, enhanced with popular modules like [Valkey JSON](https://github.com/valkey-io/valkey-json), [Valkey Bloom](https://github.com/valkey-io/valkey-bloom), [Valkey Search](https://github.com/valkey-io/valkey-search), and [Valkey LDAP](https://github.com/valkey-io/valkey-ldap), allowing you to utilize advanced data structures and additional search capabilities alongside standard Valkey functionality.
 
 This image is built on top of the official Valkey base image and simplifies deployment of Valkey with these powerful modules included.
 
@@ -26,7 +26,7 @@ This image is built on top of the official Valkey base image and simplifies depl
 
 # Security
 
-For ease of accessing Valkey Extensions from other containers via Docker networking, the "Protected mode" is turned off by default. This means if you expose the port externally (e.g., via `-p`), it will be open without authentication. It is **strongly recommended** to set a password or authentication method if exposing your instance to the internet.
+For ease of accessing Valkey Bundle from other containers via Docker networking, the "Protected mode" is turned off by default. This means if you expose the port externally (e.g., via `-p`), it will be open without authentication. It is **strongly recommended** to set a password or authentication method if exposing your instance to the internet.
 
 See the following resources for securing Valkey:
 
