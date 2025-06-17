@@ -46,21 +46,21 @@ def get_module_versions() -> dict:
         with open('versions.json', 'r') as f:
             data = json.load(f)
             latest_version = max(data.keys(), key=lambda x: [int(i) for i in x.split('.')])
-            return {
-                'extension_version': data[latest_version]['version'],
-                'json_version': data[latest_version]['modules']['valkey-json']['version'],
-                'bloom_version': data[latest_version]['modules']['valkey-bloom']['version'],
-                'search_version': data[latest_version]['modules']['valkey-search']['version']
+
+            versions = {
+                'extension_version': data[latest_version]['version']
             }
+
+            if 'modules' in data[latest_version]:
+                for module_name, module_data in data[latest_version]['modules'].items():
+                    version_key = module_name.replace('valkey-', '') + '_version'
+                    versions[version_key] = module_data['version']
+
+            return versions
+
     except Exception as e:
         logging.error(f"Error reading versions.json: {e}")
-        return {
-            'extension_version': 'unknown',
-            'json_version': 'unknown',
-            'bloom_version': 'unknown',
-            'search_version': 'unknown'
-        }
-
+    
 def update_docker_description(json_file: str, template_file: str, output_file: str) -> None:
     try:
         # Read the strategy JSON file
@@ -97,10 +97,7 @@ def update_docker_description(json_file: str, template_file: str, output_file: s
             update_date=datetime.now().strftime("%Y-%m-%d"),
             official_releases=official_releases_section,
             release_candidates_section=rc_section,
-            extension_version=versions['extension_version'],
-            json_version=versions['json_version'],
-            bloom_version=versions['bloom_version'],
-            search_version=versions['search_version']
+            **versions
         )
 
         with open(output_file, 'w') as f:

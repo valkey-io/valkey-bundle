@@ -21,6 +21,18 @@ def get_latest_major_minor(versions_data: Dict[str, Any]) -> str:
     """Get the latest major.minor version (bottom most block)."""
     return max(versions_data.keys(), key=lambda x: [int(i) for i in x.split('.')])
 
+def get_known_modules_from_versions(versions_data: Dict[str, Any]) -> Dict[str, str]:
+    """Get all modules from the latest version block in versions.json."""
+    latest = get_latest_major_minor(versions_data)
+    modules = {}
+    
+    for module_name in versions_data[latest]["modules"].keys():
+        repo_name = f"valkey-io/{module_name}"
+        modules[module_name] = repo_name
+    
+    logging.info(f"Found modules in versions.json: {list(modules.keys())}")
+    return modules
+
 def get_latest_stable_module_release(repository: str) -> str:
     """Use GitHub CLI to fetch the latest stable release tag for each module."""
     try:
@@ -47,14 +59,10 @@ def update_versions(versions_data: Dict[str, Any], module: str, new_version: str
             versions_data[new_major_minor_release]["valkey-server"]["version"] = new_version
         else:
             # New major/minor version
-            module_repositories = {
-                "valkey-json": "valkey-io/valkey-json",
-                "valkey-bloom": "valkey-io/valkey-bloom",
-                "valkey-search": "valkey-io/valkey-search"
-            }
+            known_modules = get_known_modules_from_versions(versions_data)
 
             module_versions = {}
-            for name, repository in module_repositories.items():
+            for name, repository in known_modules.items():
                 latest_version = get_latest_stable_module_release(repository)
                 module_versions[name] = {"version": latest_version}
 
@@ -86,10 +94,15 @@ def update_versions(versions_data: Dict[str, Any], module: str, new_version: str
                 )
                 sys.exit(1)
 
-        if module_key in versions_data[latest]["modules"]:
-            versions_data[latest]["modules"][module_key]["version"] = new_version
+        if "modules" not in versions_data[latest]:
+            versions_data[latest]["modules"] = {}
+            
+        if module_key not in versions_data[latest]["modules"]:
+            logging.info(f"Adding new module {module_key} to existing version block")
+            versions_data[latest]["modules"][module_key] = {"version": new_version}
         else:
-            logging.error(f"Unknown module: {module_key}")
+            versions_data[latest]["modules"][module_key]["version"] = new_version
+            
         return versions_data
 
 if __name__ == "__main__":

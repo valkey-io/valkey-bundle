@@ -2,17 +2,17 @@ name: Automated Valkey Bundle Release
 
 on:
   repository_dispatch:
-    types: [valkey-release, json-release, bloom-release, search-release]
+    types: [valkey-release, json-release, bloom-release, search-release, ldap-release]
   workflow_dispatch:
     inputs:
       version:
         description: 'Version to be released'
         required: true
-      module:
-        description: 'Module to be released'
+      component:
+        description: 'Valkey Bundle component to be released'
         required: true
         type: choice
-        options: [valkey, json, bloom, search]
+        options: [valkey, json, bloom, search, ldap]
 
 permissions:
   contents: write
@@ -63,7 +63,7 @@ jobs:
           else
             # From "workflow_dispatch" trigger
             echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
-            echo "module=${{ github.event.inputs.module }}" >> $GITHUB_OUTPUT
+            echo "module=${{ github.event.inputs.component }}" >> $GITHUB_OUTPUT
           fi
 
       - name: Guard against unsupported Valkey versions
@@ -142,7 +142,7 @@ jobs:
           delete-branch: false
           title: "Automated Updates for Valkey Bundle"
           body: |
-            This PR contains automated updates for the valkey bundle releases.
+            This PR contains automated updates for the valkey bundle release.
             
             See commit history for details of the repositories and versions that were updated.
             
@@ -150,3 +150,10 @@ jobs:
             - Updated versions.json
             - Updated Dockerfiles  
             - Updated DockerHub description
+
+      - name: Comment on Pull Request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH_NAME="${{ steps.check-branch.outputs.branch-name }}"
+          gh pr comment "$BRANCH_NAME" --body "**Updated ${{ steps.process-inputs.outputs.module }} to version ${{ steps.process-inputs.outputs.version }}.**"
