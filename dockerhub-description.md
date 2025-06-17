@@ -1,18 +1,18 @@
 # Quick reference
 
 - **Maintained by**:  
-  [the Valkey Community](https://github.com/valkey-io/valkey-extensions)
+  [the Valkey Community](https://github.com/valkey-io/valkey-bundle)
 
 - **Where to get help**:  
-  Please open an issue stating your question at [Valkey Extensions Issues](https://github.com/valkey-io/valkey-extensions/issues).
+  Please open an issue stating your question at [Valkey Extensions Issues](https://github.com/valkey-io/valkey-bundle/issues).
 
 # Supported tags and respective `Dockerfile` links
 
 ## Release candidates
-- [`8.1.1-rc1`, `8.1`, `8`, `latest`, `8.1.1-rc1-bookworm`, `8.1-bookworm`, `8-bookworm`, `bookworm`](https://github.com/valkey-io/valkey-extensions/blob/mainline/8.1/debian/Dockerfile)
-- [`8.1.1-rc1-alpine`, `8.1-alpine`, `8-alpine`, `alpine`](https://github.com/valkey-io/valkey-extensions/blob/mainline/8.1/alpine/Dockerfile)
+- [`8.1.1-rc1`, `8.1`, `8`, `latest`, `8.1.1-rc1-bookworm`, `8.1-bookworm`, `8-bookworm`, `bookworm`](https://github.com/valkey-io/valkey-bundle/blob/mainline/8.1/debian/Dockerfile)
+- [`8.1.1-rc1-alpine`, `8.1-alpine`, `8-alpine`, `alpine`](https://github.com/valkey-io/valkey-bundle/blob/mainline/8.1/alpine/Dockerfile)
 
-## What is [Valkey Extensions](https://github.com/valkey-io/valkey-extensions)?
+## What is [Valkey Extensions](https://github.com/valkey-io/valkey-bundle)?
 --------------
 Valkey Extensions is a containerized version of Valkey, enhanced with popular modules like [Valkey JSON](https://github.com/valkey-io/valkey-json), [Valkey Bloom](https://github.com/valkey-io/valkey-bloom), [Valkey Search](https://github.com/valkey-io/valkey-search), and [Valkey LDAP](https://github.com/valkey-io/valkey-ldap), allowing you to utilize advanced data structures and additional search capabilities alongside standard Valkey functionality.
 
@@ -20,9 +20,9 @@ This image is built on top of the official Valkey base image and simplifies depl
 
 ## Module Versions
 
-| valkey-extensions | valkey-json | valkey-bloom | valkey-search | valkey-ldap |
+| valkey-bundle | valkey-json | valkey-bloom | valkey-search | valkey-ldap |
 |-------------------------|-------------|--------------|---------------|---------------|
-| [8.1.0-rc1](https://github.com/valkey-io/valkey-extensions/releases/tag/8.1.0-rc1) | [1.0.0](https://github.com/valkey-io/valkey-json/releases/tag/1.0.0)| [1.0.0](https://github.com/valkey-io/valkey-bloom/releases/tag/1.0.0)| [1.0.1](https://github.com/valkey-io/valkey-search/releases/tag/1.0.1)      |[1.0.0](https://github.com/valkey-io/valkey-ldap/releases/tag/1.0.0)      |
+| [8.1.0-rc1](https://github.com/valkey-io/valkey-bundle/releases/tag/8.1.0-rc1) | [1.0.0](https://github.com/valkey-io/valkey-json/releases/tag/1.0.0)| [1.0.0](https://github.com/valkey-io/valkey-bloom/releases/tag/1.0.0)| [1.0.1](https://github.com/valkey-io/valkey-search/releases/tag/1.0.1)      |[1.0.0](https://github.com/valkey-io/valkey-ldap/releases/tag/1.0.0)      |
 
 # Security
 
@@ -35,16 +35,16 @@ See the following resources for securing Valkey:
 
 # How to use this image
 
-## Start a valkey-extensions instance
+## Start a valkey-bundle instance
 
 ```console
-$ docker run --name my-valkey-extensions -d valkey/valkey-extensions
+$ docker run --name my-valkey-bundle -d valkey/valkey-bundle
 ```
 
 ## Start with persistent storage
 
 ```console
-$ docker run --name my-valkey-extensions -d valkey/valkey-extensions valkey-server --save 60 1 --loglevel warning
+$ docker run --name my-valkey-bundle -d valkey/valkey-bundle valkey-server --save 60 1 --loglevel warning
 ```
 
 This example saves a snapshot every 60 seconds if at least one write occurred. Data is stored at `VOLUME /data`.
@@ -52,7 +52,7 @@ This example saves a snapshot every 60 seconds if at least one write occurred. D
 ## Connecting via `valkey-cli`
 
 ```console
-$ docker run -it --network some-network --rm valkey/valkey-extensions valkey-cli -h my-valkey-extensions
+$ docker run -it --network some-network --rm valkey/valkey-bundle valkey-cli -h my-valkey-bundle
 ```
 
 ## Pass additional start arguments with environment variable
@@ -60,7 +60,7 @@ $ docker run -it --network some-network --rm valkey/valkey-extensions valkey-cli
 You can configure startup arguments with the environment variable `VALKEY_EXTRA_FLAGS`:
 
 ```console
-$ docker run --env VALKEY_EXTRA_FLAGS='--save 60 1 --loglevel warning' valkey/valkey-extensions
+$ docker run --env VALKEY_EXTRA_FLAGS='--save 60 1 --loglevel warning' valkey/valkey-bundle
 ```
 
 ## Custom valkey.conf usage
@@ -70,7 +70,7 @@ Create a custom configuration file `valkey.conf` and use it in your container:
 **Dockerfile approach**:
 
 ```dockerfile
-FROM valkey/valkey-extensions:latest
+FROM valkey/valkey-bundle:latest
 COPY valkey.conf /usr/local/etc/valkey/valkey.conf
 CMD [ "valkey-server", "/usr/local/etc/valkey/valkey.conf" ]
 ```
@@ -78,11 +78,11 @@ CMD [ "valkey-server", "/usr/local/etc/valkey/valkey.conf" ]
 **Docker run approach**:
 
 ```console
-$ docker run -v /myvalkey/conf:/usr/local/etc/valkey --name my-valkey-extensions valkey/valkey-extensions valkey-server /usr/local/etc/valkey/valkey.conf
+$ docker run -v /myvalkey/conf:/usr/local/etc/valkey --name my-valkey-bundle valkey/valkey-bundle valkey-server /usr/local/etc/valkey/valkey.conf
 ```
 # Image Variants
 
-## `valkey/valkey-extensions:<version>`
+## `valkey/valkey-bundle:<version>`
 
 This is the primary image, which includes Valkey along with common modules like valkey-json, valkey-bloom, valkey-search, and valkey-ldap preloaded. It is suitable for development, testing, and production environments where these modules are needed out of the box.
 
@@ -90,7 +90,7 @@ Some of the tags may include names like `bookworm`, which refer to [Debian relea
 
 If you want a minimal yet functional Valkey container with built-in modules, this image is a great place to start.
 
-## `valkey/valkey-extensions:<version>-alpine`
+## `valkey/valkey-bundle:<version>-alpine`
 
 This image is based on the popular [Alpine Linux project](https://alpinelinux.org), available in [the `alpine` official image](https://hub.docker.com/_/alpine). Alpine Linux is much smaller than most distribution base images (~5MB), and thus leads to much slimmer images in general.
 
@@ -100,6 +100,6 @@ To minimize image size, it's uncommon for additional related tools (such as `git
 
 # License
 
-View the [license information](https://github.com/valkey-io/valkey-extensions/blob/mainline/LICENSE) for software included in this image.
+View the [license information](https://github.com/valkey-io/valkey-bundle/blob/mainline/LICENSE) for software included in this image.
 
 Users of this image are responsible for ensuring compliance with all licenses of software contained within.

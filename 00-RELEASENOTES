@@ -6,7 +6,7 @@ Valkey Extension 8.1.0-rc1 - Released Tue 1 April 2025
 ================================================================================
 Overview
 ===========================
-* valkey-extensions is a containerized version of valkey, enhanced with popular modules for advanced data structures and additional search capabilities.
+* valkey-bundle is a containerized version of valkey, enhanced with popular modules for advanced data structures and additional search capabilities.
 * This image is built on top of the official valkey base image and includes pre-installed modules for simplified deployment.
 
 Core Components
