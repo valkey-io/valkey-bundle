@@ -45,12 +45,12 @@ def get_latest_stable_module_release(repository: str) -> str:
     except subprocess.CalledProcessError as e:
         raise RuntimeError(f"Failed to get release list for {repository}: {e}")
 
-def update_versions(versions_data: Dict[str, Any], module: str, new_version: str) -> Dict[str, Any]:
+def update_versions(versions_data: Dict[str, Any], component_name: str, new_version: str) -> Dict[str, Any]:
     """Update versions.json according to Valkey and module versioning strategy."""
     major, minor, patch, rc = parse_version(new_version)
     new_major_minor_release = f"{major}.{minor}"
 
-    if module == 'valkey':
+    if component_name == 'valkey':
         existing_entry = new_major_minor_release in versions_data
 
         if existing_entry:
@@ -80,7 +80,7 @@ def update_versions(versions_data: Dict[str, Any], module: str, new_version: str
 
     else:
         # Handle module update
-        module_key = f"valkey-{module}"
+        module_key = f"valkey-{component_name}"
         latest = get_latest_major_minor(versions_data)
 
         is_module_major_release = (minor == 0 and patch == 0)
@@ -89,7 +89,7 @@ def update_versions(versions_data: Dict[str, Any], module: str, new_version: str
             valkey_version = versions_data[latest]["valkey-server"]["version"]
             if not re.match(r'^\d+\.0\.0(?:-rc\d+)?$', valkey_version):
                 logging.error(
-                    f"Can't release {module} {new_version}: "
+                    f"Can't release {component_name} {new_version}: "
                     f"The latest Valkey version is '{valkey_version}', which is not a new major version release (X.0.0 or X.0.0-rcY)."
                 )
                 sys.exit(1)
@@ -104,11 +104,11 @@ def update_versions(versions_data: Dict[str, Any], module: str, new_version: str
 
 if __name__ == "__main__":
     if len(sys.argv) != 4:
-        logging.error("Usage: update_versions.py <json_file> <module> <new_version>")
+        logging.error("Usage: update_versions.py <json_file> <component> <new_version>")
         sys.exit(1)
 
     json_file = sys.argv[1]
-    module = sys.argv[2]
+    component_name = sys.argv[2]
     new_version = sys.argv[3]
 
     try:
@@ -123,10 +123,10 @@ if __name__ == "__main__":
         logging.error(version_error)
         sys.exit(1)
 
-    updated_file = update_versions(versions_data, module, new_version)
+    updated_file = update_versions(versions_data, component_name, new_version)
 
     with open(json_file, 'w') as f:
         json.dump(updated_file, f, indent=2)
         f.write('\n')
 
-    logging.info(f"Updated {module} to {new_version}")
+    logging.info(f"Updated {component_name} to {new_version}")
