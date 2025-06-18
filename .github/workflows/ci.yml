@@ -131,8 +131,8 @@ jobs:
           cache-to: type=gha,mode=max
           pull: true
       
-      - name: Test ${{ matrix.name }}
-        run: ${{ matrix.runs.test }}
+      - name: Test ${{ matrix.version.name }}
+        run: ${{ matrix.version.runs.test }}
 
       # Export digest to a file to reference it later in merging manifests
       - name: Export digest
