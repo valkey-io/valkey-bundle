@@ -60,6 +60,8 @@ for version; do
 			gawk -f "$jqt" Dockerfile.template
 		} > "$dir/Dockerfile"
 
+		cp -a bundle-docker-entrypoint.sh "$dir/"
+
 	done
 
 done
