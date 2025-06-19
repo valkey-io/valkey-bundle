@@ -49,6 +49,16 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
     """Update versions.json according to Valkey and module versioning strategy."""
     major, minor, patch, rc = parse_version(new_version)
     new_major_minor_release = f"{major}.{minor}"
+    latest = get_latest_major_minor(versions_data)
+
+    if component_name == "bundle":
+        versions_data[latest]["version"] = new_version
+        versions_data[latest]["valkey-server"]["version"] = get_latest_stable_module_release("valkey-io/valkey")
+
+        for module_key in versions_data[latest]["modules"].keys():
+            repo = f"valkey-io/{module_key}"
+            versions_data[latest]["modules"][module_key]["version"] = get_latest_stable_module_release(repo)
+        return versions_data
 
     if component_name == 'valkey':
         existing_entry = new_major_minor_release in versions_data
@@ -58,8 +68,13 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
             existing_bundle_version = versions_data[new_major_minor_release]["version"]
             versions_data[new_major_minor_release]["valkey-server"]["version"] = new_version
 
-            if (major, minor, patch) >= parse_version(existing_bundle_version)[:3]:
-                versions_data[new_major_minor_release]["version"] = new_version 
+            try:
+                subprocess.check_output(
+                    ["git", "ls-remote", "--exit-code", "--heads", "origin", "valkey-bundle-update"], stderr=subprocess.DEVNULL)
+                logging.info("PR exists — skipping extension version bump.")
+            except subprocess.CalledProcessError:
+                versions_data[new_major_minor_release]["version"] = f"{major}.{minor}.{patch + 1}"
+                logging.info("No PR — bumped extension version.")
         else:
             # New major/minor version
             known_modules = get_known_modules_from_versions(versions_data)
@@ -84,7 +99,6 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
     else:
         # Handle module update
         module_key = f"valkey-{component_name}"
-        latest = get_latest_major_minor(versions_data)
 
         is_module_major_release = (minor == 0 and patch == 0)
 
@@ -105,9 +119,7 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
 
         try:
             subprocess.check_output(
-                ["git", "ls-remote", "--exit-code", "--heads", "origin", "valkey-bundle-update"],
-                stderr=subprocess.DEVNULL
-            )
+                ["git", "ls-remote", "--exit-code", "--heads", "origin", "valkey-bundle-update"], stderr=subprocess.DEVNULL)
             logging.info("Branch valkey-bundle-update exists — skipping bundle version patch bump.")
         except subprocess.CalledProcessError:
             current_version = versions_data[latest]["version"]

@@ -12,7 +12,7 @@ on:
         description: 'Valkey Bundle component to be released'
         required: true
         type: choice
-        options: [valkey, json, bloom, search, ldap]
+        options: [valkey, json, bloom, search, ldap, bundle]
 
 permissions:
   contents: write
