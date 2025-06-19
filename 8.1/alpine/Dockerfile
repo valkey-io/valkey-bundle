@@ -4,9 +4,9 @@
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
 
-FROM docker.io/valkey/valkey:8.1.1-alpine AS build
+FROM docker.io/valkey/valkey:8.1.0-alpine AS build
 
-ARG SERVER_VERSION=8.1.1
+ARG SERVER_VERSION=8.1.0
 
 RUN set -eux; \
     apk add --no-cache            \
@@ -24,7 +24,6 @@ RUN set -eux; \
 	        clang19-extra-tools   \
 	        linux-headers         \
 	        bash                  \
-                pkgconfig             \
 	;\
     update-ca-certificates; \
     ln -s /usr/lib/ninja-build/bin/ninja /usr/bin/ninja-build;
@@ -37,15 +36,22 @@ WORKDIR /opt
 
 # Clone repositories
 RUN set -eux; \
-    git clone --depth 1 --branch build-script https://github.com/roshkhatri/valkey-json.git; \
+    git clone --depth 1 --branch 1.0.0  https://github.com/valkey-io/valkey-json.git; \
     git clone --depth 1 --branch 1.0.0 https://github.com/valkey-io/valkey-bloom.git; \
-    git clone --depth 1 --branch 1.0.1 https://github.com/valkey-io/valkey-search.git; \
-    git clone --depth 1 --branch 1.0.0 https://github.com/valkey-io/valkey-ldap.git;
+# need to clone main on alpine until this commit is available in a release tag:
+# https://github.com/valkey-io/valkey-search/commit/eec38de7fb0423fb659b451b79a8e3420299e936
+# TODO: update this to use a release tag when available
+    git clone https://github.com/valkey-io/valkey-search.git; \
+    cd valkey-search; \
+    git reset --hard eec38de7fb0423fb659b451b79a8e3420299e936;
 
 # Build JSON module
 WORKDIR /opt/valkey-json
 RUN set -eux; \
-    ./build.sh --release
+    mkdir -p build; \
+    cd ./build; \
+    cmake .. -DVALKEY_VERSION=${SERVER_VERSION}; \
+    make;
 
 # Build Bloom module
 WORKDIR /opt/valkey-bloom
@@ -53,14 +59,15 @@ RUN RUSTFLAGS="-C target-feature=-crt-static" cargo build --all --all-targets --
 
 # Build Search module
 WORKDIR /opt/valkey-search
-RUN set -eux; \
-    ./build.sh
+# on alpine, the first build fails due to this issue: https://github.com/grpc/grpc/issues/38438
+# we just replace mutable int32_t with mutable int in .build-release/.deps/grpc/third_party/re2/util/pcre.h
+# based on this upstream change https://github.com/google/re2/commit/b025c6a3ae05995660e3b882eb3277f4399ced1a
+RUN set -eux;       \
+    ./build.sh || true; \
+    sed -i 's|^  mutable int32_t |  mutable int     |' .build-release/.deps/grpc/third_party/re2/util/pcre.h; \
+    ./build.sh;
 
-# Build LDAP module
-WORKDIR /opt/valkey-ldap
-RUN RUSTFLAGS="-C target-feature=-crt-static" cargo build --all --all-targets --release;
-
-FROM docker.io/valkey/valkey:8.1.1-alpine
+FROM docker.io/valkey/valkey:8.1.0-alpine
 
 RUN set -eux; \
     apk add --no-cache libstdc++; \
@@ -70,10 +77,9 @@ RUN set -eux; \
 COPY --from=build /opt/valkey-json/build/src/libjson.so /usr/lib/valkey/libjson.so
 COPY --from=build /opt/valkey-bloom/target/release/libvalkey_bloom.so /usr/lib/valkey/libvalkey_bloom.so
 COPY --from=build /opt/valkey-search/.build-release/libsearch.so /usr/lib/valkey/libsearch.so
-COPY --from=build /opt/valkey-ldap/target/release/libvalkey_ldap.so /usr/lib/valkey/libvalkey_ldap.so
 
-COPY bundle-docker-entrypoint.sh /usr/local/bin/
-ENTRYPOINT ["bundle-docker-entrypoint.sh"]
-
-EXPOSE 6379
-CMD ["valkey-server"]
+CMD ["valkey-server",                                               \
+            "--loadmodule", "/usr/lib/valkey/libjson.so",           \
+            "--loadmodule", "/usr/lib/valkey/libvalkey_bloom.so",   \
+            "--loadmodule", "/usr/lib/valkey/libsearch.so"          \
+    ]

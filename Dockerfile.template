@@ -60,7 +60,7 @@ WORKDIR /opt
 
 # Clone repositories
 RUN set -eux; \
-    git clone --depth 1 --branch {{ ."modules"."valkey-json".version }} https://github.com/roshkhatri/valkey-json.git; \
+    git clone --depth 1 --branch {{ ."modules"."valkey-json".version }} https://github.com/valkey-io/valkey-json.git; \
     git clone --depth 1 --branch {{ ."modules"."valkey-bloom".version }} https://github.com/valkey-io/valkey-bloom.git; \
     git clone --depth 1 --branch {{ ."modules"."valkey-search".version }} https://github.com/valkey-io/valkey-search.git; \
     git clone --depth 1 --branch {{ ."modules"."valkey-ldap".version }} https://github.com/valkey-io/valkey-ldap.git;
