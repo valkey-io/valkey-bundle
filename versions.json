@@ -1,12 +1,12 @@
 {
   "8.1": {
-    "version": "8.1.1-rc1",
+    "version": "8.1.1-rc2",
     "valkey-server": {
         "version": "8.1.1"
       },
     "modules": {
       "valkey-json": {
-        "version": "1.0.0"
+        "version": "build-script"
       },
       "valkey-bloom": {
         "version": "1.0.0"

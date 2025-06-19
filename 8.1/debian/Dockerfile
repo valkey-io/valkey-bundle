@@ -4,9 +4,9 @@
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
 
-FROM docker.io/valkey/valkey:8.1.0-bookworm AS build
+FROM docker.io/valkey/valkey:8.1.1-bookworm AS build
 
-ARG SERVER_VERSION=8.1.0
+ARG SERVER_VERSION=8.1.1
 
 RUN set -eux;   \
                 \
@@ -26,6 +26,7 @@ RUN set -eux;   \
                         clang-tidy              \
                         clang-format            \
                         libsystemd-dev          \
+                        pkg-config              \
                     ;\
     apt-get clean && rm -rf /var/lib/apt/lists/* ;
 
@@ -37,17 +38,15 @@ WORKDIR /opt
 
 # Clone repositories
 RUN set -eux; \
-    git clone --depth 1 --branch 1.0.0  https://github.com/valkey-io/valkey-json.git; \
+    git clone --depth 1 --branch build-script https://github.com/roshkhatri/valkey-json.git; \
     git clone --depth 1 --branch 1.0.0 https://github.com/valkey-io/valkey-bloom.git; \
-    git clone --depth 1 --branch 1.0.0-rc1 https://github.com/valkey-io/valkey-search.git;
+    git clone --depth 1 --branch 1.0.1 https://github.com/valkey-io/valkey-search.git; \
+    git clone --depth 1 --branch 1.0.0 https://github.com/valkey-io/valkey-ldap.git;
 
 # Build JSON module
 WORKDIR /opt/valkey-json
 RUN set -eux; \
-    mkdir -p build; \
-    cd ./build; \
-    cmake .. -DVALKEY_VERSION=${SERVER_VERSION}; \
-    make;
+    ./build.sh --release
 
 # Build Bloom module
 WORKDIR /opt/valkey-bloom
@@ -55,10 +54,17 @@ RUN cargo build --all --all-targets --release;
 
 # Build Search module
 WORKDIR /opt/valkey-search
-RUN set -eux;       \
-    ./build.sh;
+# on alpine, the first build fails due to this issue: https://github.com/grpc/grpc/issues/38438
+# we just replace mutable int32_t with mutable int in .build-release/.deps/grpc/third_party/re2/util/pcre.h
+# based on this upstream change https://github.com/google/re2/commit/b025c6a3ae05995660e3b882eb3277f4399ced1a
+RUN set -eux; \
+    ./build.sh
 
-FROM docker.io/valkey/valkey:8.1.0-bookworm
+# Build LDAP module
+WORKDIR /opt/valkey-ldap
+RUN cargo build --all --all-targets --release;
+
+FROM docker.io/valkey/valkey:8.1.1-bookworm
 
 RUN mkdir -p /usr/lib/valkey;
 
@@ -66,9 +72,10 @@ RUN mkdir -p /usr/lib/valkey;
 COPY --from=build /opt/valkey-json/build/src/libjson.so /usr/lib/valkey/libjson.so
 COPY --from=build /opt/valkey-bloom/target/release/libvalkey_bloom.so /usr/lib/valkey/libvalkey_bloom.so
 COPY --from=build /opt/valkey-search/.build-release/libsearch.so /usr/lib/valkey/libsearch.so
+COPY --from=build /opt/valkey-ldap/target/release/libvalkey_ldap.so /usr/lib/valkey/libvalkey_ldap.so
 
-CMD ["valkey-server",                                               \
-            "--loadmodule", "/usr/lib/valkey/libjson.so",           \
-            "--loadmodule", "/usr/lib/valkey/libvalkey_bloom.so",   \
-            "--loadmodule", "/usr/lib/valkey/libsearch.so"          \
-    ]
+COPY docker-entrypoint.sh /usr/local/bin/
+ENTRYPOINT ["docker-entrypoint.sh"]
+
+EXPOSE 6379
+CMD ["valkey-server"]
