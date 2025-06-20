@@ -1,1 +1,0 @@
-../valkey-basics/run.sh
