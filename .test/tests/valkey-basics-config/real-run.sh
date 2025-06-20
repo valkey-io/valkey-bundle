@@ -1,0 +1,1 @@
+.test/tests/valkey-basics/run.sh
