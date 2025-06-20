@@ -30,7 +30,7 @@ def format_tag_line(entry: dict) -> str:
         formatted_tags = [f'`{clean_tag(tag)}`' for tag in raw_tags]
         tags = ", ".join(formatted_tags)
 
-        return f"- [{tags}](https://github.com/valkey-io/valkey-extensions/blob/mainline/{directory}/Dockerfile)"
+        return f"- [{tags}](https://github.com/valkey-io/valkey-bundle/blob/mainline/{directory}/Dockerfile)"
     
     except KeyError as e:
         logging.error(f"JSON structure error: {e}")
@@ -91,7 +91,7 @@ def update_docker_description(json_file: str, template_file: str, output_file: s
         else:
             rc_section = ""
 
-        # Get module versions
+        # Get component versions
         versions = get_component_versions()
 
         content = template.format(
