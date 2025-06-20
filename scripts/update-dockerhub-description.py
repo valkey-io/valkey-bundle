@@ -40,15 +40,16 @@ def format_tag_line(entry: dict) -> str:
         logging.error(f"Unexpected error in format_tag_line: {e}")
         raise
 
-def get_module_versions() -> dict:
-    """Get current module versions from versions.json"""
+def get_component_versions() -> dict:
+    """Get current component versions from versions.json"""
     try:
         with open('versions.json', 'r') as f:
             data = json.load(f)
             latest_version = max(data.keys(), key=lambda x: [int(i) for i in x.split('.')])
 
             versions = {
-                'extension_version': data[latest_version]['version']
+                'bundle_version': data[latest_version]['version'],
+                'valkey_version': data[latest_version]['valkey-server']['version']
             }
 
             if 'modules' in data[latest_version]:
@@ -91,7 +92,7 @@ def update_docker_description(json_file: str, template_file: str, output_file: s
             rc_section = ""
 
         # Get module versions
-        versions = get_module_versions()
+        versions = get_component_versions()
 
         content = template.format(
             update_date=datetime.now().strftime("%Y-%m-%d"),
