@@ -137,9 +137,7 @@ jobs:
 
       - name: Test ${{ matrix.version.name }}
         run: |
-          tags="${{ steps.prep_tags.outputs.modified_tags }}"
-          single_tag="${tags%%,*}"
-          set -- "$single_tag"
+          set -- "${{ env.DOCKER_REPO_NAME }}"
           if [ -s ./.test/config.sh ]; then
             set -- --config ~/oi/test/config.sh --config ./.test/config.sh "$@";
           fi
