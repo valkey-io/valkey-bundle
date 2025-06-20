@@ -66,6 +66,7 @@ jobs:
     runs-on: ${{ matrix.platform == 'linux/arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
 
     steps:
+      - uses: docker-library/bashbrew@v0.1.12
       - name: Checkout Repository
         uses: actions/checkout@v4
 
@@ -132,7 +133,14 @@ jobs:
           pull: true
       
       - name: Test ${{ matrix.version.name }}
-        run: ${{ matrix.version.runs.test }}
+        run: |
+          tags="${{ steps.prep_tags.outputs.modified_tags }}"
+          single_tag="${tags%%,*}"
+          set -- "$single_tag"
+          if [ -s ./.test/config.sh ]; then
+            set -- --config ~/oi/test/config.sh --config ./.test/config.sh "$@";
+          fi
+          ~/oi/test/run.sh "$@"
 
       # Export digest to a file to reference it later in merging manifests
       - name: Export digest
