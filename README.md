@@ -102,10 +102,11 @@ Upon releasing a new version of Valkey or any of its supported modules, a pull r
 
 3. Set up your module repository so the Valkey-Bundle repository can be automatically updated.
 
-  - Create a trigger in your `.github/workflows` folder called `trigger-{module-name}-release`
+  - Create a trigger in your modules `.github/workflows` folder called `trigger-{module-name}-release`
   - Use the [code](https://github.com/valkey-io/valkey-search/blob/main/.github/workflows/trigger-search-release.yml) in the valkey-search repository as a template for your trigger. You can directly copy and paste this code into your file with only some minor changes: 
     - Update the top level name and replace "search" with the name of your module. Then update the description in the `workflow_dispatch` section and replace "search" with the name of your module.
     - In the `Trigger extension update` step, look at the `event-type` field. Modify the field to be `{module-name}-release`. Then in the same step, look at the `client-payload` field. Update the module parameter with the name of your module.
+  - After creating this trigger, head over to the [`.github/workflows/update-files.yml`](https://github.com/Nikhil-Manglore/valkey-bundle/blob/mainline/.github/workflows/update-files.yml) in this repository. In the `repository_dispatch` section, add the name of the event type you created in the previous step to the end of the `types` array.
   - Finally create a secret in your repository with the name `EXTENSION_PAT` and secret value as your GitHub personal access token which you can create in your accounts developer settings.
 
 3. Rebuild and Publish
