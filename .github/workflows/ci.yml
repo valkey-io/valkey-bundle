@@ -132,6 +132,9 @@ jobs:
           cache-to: type=gha,mode=max
           pull: true
       
+      - name: Prepare Environment
+        run: ${{ matrix.version.runs.prepare }}
+
       - name: Test ${{ matrix.version.name }}
         run: |
           tags="${{ steps.prep_tags.outputs.modified_tags }}"
