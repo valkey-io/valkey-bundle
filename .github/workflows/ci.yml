@@ -79,9 +79,9 @@ jobs:
       - name: Set DOCKER_REPO_NAME dynamically
         run: |
           if [[ "${{ env.IS_PULL }}" == "true" ]]; then
-            echo "DOCKER_REPO_NAME=${{ github.actor }}/valkey-extensions" >> $GITHUB_ENV
+            echo "DOCKER_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
           else
-            echo "DOCKER_REPO_NAME=${{ secrets.DOCKERHUB_ACCOUNT }}/valkey-extensions" >> $GITHUB_ENV
+            echo "DOCKER_REPO_NAME=${{ secrets.DOCKERHUB_ACCOUNT }}/valkey-bundle" >> $GITHUB_ENV
           fi
 
       - name: Set up QEMU
@@ -103,7 +103,7 @@ jobs:
         id: prep_tags
         run: |
           original_tags="${{ toJson(matrix.version.meta.entries[0].tags) }}"
-          tags=$(echo $original_tags | sed "s|valkey-extensions|${{ env.DOCKER_REPO_NAME }}|g" \
+          tags=$(echo $original_tags | sed "s|valkey-bundle|${{ env.DOCKER_REPO_NAME }}|g" \
           | sed 's/\[ *//; s/ *\]//; s/ //g' | tr -d '\n')  
           echo "modified_tags=$tags" >> "$GITHUB_OUTPUT"
           echo "$tags" > tags.txt
@@ -175,9 +175,9 @@ jobs:
       - name: Set DOCKER_REPO_NAME dynamically
         run: |
           if [[ "${{ env.IS_PULL }}" == "true" ]]; then
-            echo "DOCKER_REPO_NAME=${{ github.actor }}/valkey-extensions" >> $GITHUB_ENV
+            echo "DOCKER_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
           else
-            echo "DOCKER_REPO_NAME=${{ secrets.DOCKERHUB_ACCOUNT }}/valkey-extensions" >> $GITHUB_ENV
+            echo "DOCKER_REPO_NAME=${{ secrets.DOCKERHUB_ACCOUNT }}/valkey-bundle" >> $GITHUB_ENV
           fi
 
       - name: Download Bookworm Digests
@@ -199,7 +199,7 @@ jobs:
         with:
           path: ${{ runner.temp }}/tags
           pattern: tags-*
-          merge-multiple: true
+          merge-multiple: false
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -216,12 +216,13 @@ jobs:
       - name: Create Multi-Arch Manifest and Push
         working-directory: ${{ runner.temp }}/digests
         run: |
-          bookworm_exists=$([ -n "$(sed 's/,/ /g' ${{ runner.temp }}/tags/*.txt | grep -v "alpine")" ] && echo "true" || echo "false")
+          cat ${{ runner.temp }}/tags/*/tags.txt
+          bookworm_exists=$([ -n "$(sed 's/,/ /g' ${{ runner.temp }}/tags/*/tags.txt | grep -v "alpine")" ] && echo "true" || echo "false")
 
           # Check if bookworm_exists is true
           if [[ $bookworm_exists == "true" ]]; then
             # Prepare tags and digest references argument for BOOKWORM from downloaded tags artifact
-            TAGS_bookworm=$(sed 's/,/ /g' ${{ runner.temp }}/tags/*.txt | grep -v "alpine" | xargs -n1 echo "-t" | tr '\n' ' ')
+            TAGS_bookworm=$(sed 's/,/ /g' ${{ runner.temp }}/tags/*/tags.txt | grep -v "alpine" | xargs -n1 echo "-t" | tr '\n' ' ')
             DIGESTS_bookworm=$(printf '${{ env.DOCKER_REPO_NAME }}@sha256:%s ' ./bookworm/* | sed 's|./bookworm/||g')
 
             # Create and push the multi-architecture manifest for BOOKWORM only for push events
@@ -234,12 +235,12 @@ jobs:
             echo "No valid bookworm tags found, skipping bookworm manifest creation."
           fi
 
-          alpine_exists=$([ -n "$(sed 's/,/ /g' ${{ runner.temp }}/tags/*.txt | grep "alpine")" ] && echo "true" || echo "false")
+          alpine_exists=$([ -n "$(sed 's/,/ /g' ${{ runner.temp }}/tags/*/tags.txt | grep "alpine")" ] && echo "true" || echo "false")
           
           # Check if TAGS_alpine and DIGESTS_alpine are not empty
           if [[ $alpine_exists == "true" ]]; then
             # Prepare tags and digest references argument for ALPINE from downloaded tags artifact
-            TAGS_alpine=$(sed 's/,/ /g' ${{ runner.temp }}/tags/*.txt | grep "alpine" | xargs -n1 echo "-t" | tr '\n' ' ')
+            TAGS_alpine=$(sed 's/,/ /g' ${{ runner.temp }}/tags/*/tags.txt | grep "alpine" | xargs -n1 echo "-t" | tr '\n' ' ')
             DIGESTS_alpine=$(printf '${{ env.DOCKER_REPO_NAME }}@sha256:%s ' ./alpine/* | sed 's|./alpine/||g')
 
             # Create and push the multi-architecture manifest for ALPINE only for push events

@@ -46,10 +46,10 @@ dirCommit() {
 }
 
 cat <<-EOH
-# this file is generated via https://github.com/valkey-io/valkey-extensions/blob/$(fileCommit "$self")/$self
+# this file is generated via https://github.com/valkey-io/valkey-bundle/blob/$(fileCommit "$self")/$self
 
 Maintainers: Roshan Khatri <rvkhatri@amazon.com> (@roshkhatri)
-GitRepo: https://github.com/valkey-io/valkey-extensions.git
+GitRepo: https://github.com/valkey-io/valkey-bundle.git
 EOH
 
 # prints "$2$1$3$1...$N"

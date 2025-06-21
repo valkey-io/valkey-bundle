@@ -26,4 +26,4 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           repository: ${{ secrets.DOCKERHUB_REPOSITORY }}
           readme-filepath: ./dockerhub-description.md
-          short-description: 'valkey-extensions installs valkey-server and loads all the valkey modules.'
+          short-description: 'valkey-bundle installs valkey-server and loads all the valkey modules.'

@@ -60,7 +60,7 @@ WORKDIR /opt
 
 # Clone repositories
 RUN set -eux; \
-    git clone --depth 1 --branch {{ ."modules"."valkey-json".version }}  https://github.com/valkey-io/valkey-json.git; \
+    git clone --depth 1 --branch {{ ."modules"."valkey-json".version }} https://github.com/valkey-io/valkey-json.git; \
     git clone --depth 1 --branch {{ ."modules"."valkey-bloom".version }} https://github.com/valkey-io/valkey-bloom.git; \
     git clone --depth 1 --branch {{ ."modules"."valkey-search".version }} https://github.com/valkey-io/valkey-search.git; \
     git clone --depth 1 --branch {{ ."modules"."valkey-ldap".version }} https://github.com/valkey-io/valkey-ldap.git;
@@ -68,10 +68,7 @@ RUN set -eux; \
 # Build JSON module
 WORKDIR /opt/valkey-json
 RUN set -eux; \
-    mkdir -p build; \
-    cd ./build; \
-    cmake .. -DVALKEY_VERSION=${SERVER_VERSION}; \
-    make;
+    ./build.sh --release
 
 # Build Bloom module
 WORKDIR /opt/valkey-bloom
@@ -83,9 +80,6 @@ RUN cargo build --all --all-targets --release;
 
 # Build Search module
 WORKDIR /opt/valkey-search
-# on alpine, the first build fails due to this issue: https://github.com/grpc/grpc/issues/38438
-# we just replace mutable int32_t with mutable int in .build-release/.deps/grpc/third_party/re2/util/pcre.h
-# based on this upstream change https://github.com/google/re2/commit/b025c6a3ae05995660e3b882eb3277f4399ced1a
 RUN set -eux; \
     ./build.sh
 
@@ -117,9 +111,8 @@ COPY --from=build /opt/valkey-bloom/target/release/libvalkey_bloom.so /usr/lib/v
 COPY --from=build /opt/valkey-search/.build-release/libsearch.so /usr/lib/valkey/libsearch.so
 COPY --from=build /opt/valkey-ldap/target/release/libvalkey_ldap.so /usr/lib/valkey/libvalkey_ldap.so
 
-CMD ["valkey-server",                                               \
-            "--loadmodule", "/usr/lib/valkey/libjson.so",           \
-            "--loadmodule", "/usr/lib/valkey/libvalkey_bloom.so",   \
-            "--loadmodule", "/usr/lib/valkey/libsearch.so",        \
-            "--loadmodule", "/usr/lib/valkey/libvalkey_ldap.so"    \
-    ]
+COPY bundle-docker-entrypoint.sh /usr/local/bin/
+ENTRYPOINT ["bundle-docker-entrypoint.sh"]
+
+EXPOSE 6379
+CMD ["valkey-server"]

@@ -1,0 +1,159 @@
+name: Automated Valkey Bundle Release
+
+on:
+  repository_dispatch:
+    types: [valkey-release, json-release, bloom-release, search-release, ldap-release]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to be released'
+        required: true
+      component:
+        description: 'Valkey Bundle component to be released'
+        required: true
+        type: choice
+        options: [valkey, json, bloom, search, ldap, bundle]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-files:
+    name: Update Files and Create Pull Request
+    runs-on: ubuntu-latest
+    concurrency:
+      group: valkey-bundle-updates
+      cancel-in-progress: false
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for an existing pull request branch
+        id: check-branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH_NAME="valkey-bundle-update"
+          echo "branch-name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          if git ls-remote --exit-code --heads origin $BRANCH_NAME; then
+            echo "branch-exists=true" >> $GITHUB_OUTPUT
+            echo "Checking out existing branch"
+            git fetch origin $BRANCH_NAME
+            git checkout $BRANCH_NAME
+            git pull origin $BRANCH_NAME
+          else
+            echo "branch-exists=false" >> $GITHUB_OUTPUT
+            echo "Staying on mainline for new branch creation"
+          fi
+
+      - name: Process inputs
+        id: process-inputs
+        run: |
+          if [[ "${{ github.event_name }}" == "repository_dispatch" ]]; then
+            # From "repository_dispatch" trigger
+            echo "version=${{ github.event.client_payload.version }}" >> $GITHUB_OUTPUT
+            echo "component=${{ github.event.client_payload.component }}" >> $GITHUB_OUTPUT
+          else
+            # From "workflow_dispatch" trigger
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+            echo "component=${{ github.event.inputs.component }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Guard against unsupported Valkey versions
+        if: ${{ steps.process-inputs.outputs.component == 'valkey' }}
+        run: |
+          VERSION="${{ steps.process-inputs.outputs.version }}"
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
+          MINOR=$(echo "$VERSION" | cut -d. -f2)
+
+          if [ "$MAJOR" -lt 8 ] || { [ "$MAJOR" -eq 8 ] && [ "$MINOR" -lt 1 ]; }; then
+            echo "Valkey version must be >= 8.1. Current: $VERSION"
+            exit 1
+          fi
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Update versions.json
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python scripts/update-versions.py versions.json \
+            "${{ steps.process-inputs.outputs.component }}" \
+            "${{ steps.process-inputs.outputs.version }}"
+
+      - name: Update Dockerfiles
+        run: |
+          # Download the scripts for bashbrew in local
+          jqt='.jq-template.awk'
+          wget -qO "$jqt" 'https://github.com/docker-library/bashbrew/raw/9f6a35772ac863a0241f147c820354e4008edf38/scripts/jq-template.awk'
+          jqf='.template-helper-functions.jq'
+          wget -qO "$jqf" 'https://github.com/docker-library/bashbrew/raw/08c926140ad0af22de58c2a2656afda58082ba3e/scripts/template-helper-functions.jq'
+
+          # Run update script
+          chmod +x apply-templates.sh
+          ./apply-templates.sh
+
+          # Commit the changes
+          git add .
+          git commit -m "Update versions.json and Dockerfiles for ${{ steps.process-inputs.outputs.component }} ${{ steps.process-inputs.outputs.version }}" || echo "No changes to commit"
+
+      - name: Set up bashbrew
+        uses: docker-library/bashbrew@v0.1.12
+
+      - name: Generate Jobs Strategy
+        id: generate-jobs
+        run: |
+          BASHBREW_SCRIPTS=/home/runner/work/_actions/docker-library/bashbrew/v0.1.12/scripts
+          strategy="$("$BASHBREW_SCRIPTS/github-actions/generate.sh")"
+          echo "strategy=$strategy" >> $GITHUB_OUTPUT
+
+      - name: Update DockerHub description
+        run: |
+          echo '${{ steps.generate-jobs.outputs.strategy }}' > strategy.json
+          python scripts/update-dockerhub-description.py strategy.json dockerhub-description-template.md dockerhub-description.md
+          rm strategy.json
+          git add dockerhub-description.md
+          git commit -m "Update DockerHub description for ${{ steps.process-inputs.outputs.component }} ${{ steps.process-inputs.outputs.version }}" || echo "No changes to commit"
+      
+      - name: Push changes and update existing PR
+        if: steps.check-branch.outputs.branch-exists == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH_NAME="${{ steps.check-branch.outputs.branch-name }}"
+          git push origin $BRANCH_NAME
+        
+      - name: Create Pull Request
+        if: steps.check-branch.outputs.branch-exists == 'false'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ steps.check-branch.outputs.branch-name }}
+          delete-branch: false
+          title: "Automated Updates for Valkey Bundle"
+          body: |
+            This PR contains automated updates for the valkey bundle release.
+            
+            See commit history for details of the repositories and versions that were updated.
+            
+            Changes include:
+            - Updated versions.json
+            - Updated Dockerfiles  
+            - Updated DockerHub description
+
+      - name: Comment on Pull Request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH_NAME="${{ steps.check-branch.outputs.branch-name }}"
+          gh pr comment "$BRANCH_NAME" --body "**Updated ${{ steps.process-inputs.outputs.component }} to version ${{ steps.process-inputs.outputs.version }}.**"
