@@ -14,16 +14,29 @@ done
 # Optional: Add extra flags via env var (e.g., logging, maxmemory, etc.)
 EXTRA_ARGS="${VALKEY_EXTRA_FLAGS:-}"
 
-# If first argument starts with a dash, prepend valkey-server
-if [ "${1#-}" != "$1" ]; then
-    set -- valkey-server $MODULE_ARGS $EXTRA_ARGS "$@"
+# If explicitly calling valkey-server and running as root, drop privileges
+if [ "$1" = 'valkey-server' ] && [ "$(id -u)" = '0' ]; then
+    find . \! -user valkey -exec chown valkey '{}' +
+    exec setpriv --reuid=valkey --regid=valkey --clear-groups -- "$0" "$@"
 fi
 
-# If explicitly calling valkey-server, append modules
+# Set a restrictive umask if not already set
+um="$(umask)"
+if [ "$um" = '0022' ]; then
+    umask 0077
+fi
+
+# first arg is `-f` or `--some-option`
+# or first arg is `something.conf`
+if [ "${1#-}" != "$1" ] || [ "${1%.conf}" != "$1" ]; then
+    set -- valkey-server "$@"
+fi
+
+# If explicitly calling valkey-server, append modules and extra args
 if [ "$1" = "valkey-server" ]; then
-    shift # remove valkey-server from $1
-    exec valkey-server $MODULE_ARGS $EXTRA_ARGS "$@"
+    shift
+    exec valkey-server "$@" $MODULE_ARGS $EXTRA_ARGS
 fi
 
-# Else, run whatever is passed (e.g., bash)
-exec "$@"
+# Else, run the provided command (e.g., bash)
+exec "$@" $VALKEY_EXTRA_FLAGS
