@@ -38,7 +38,9 @@ if [[ "$testName" == *tls* ]]; then
 		FROM $image
 		COPY --from=certs --chown=valkey:valkey /certs /certs
 		CMD [ \
-			"--tls-port", "6379", "--port", "0", \
+			"valkey-server", \
+			"--tls-port", "6379", \
+			"--port", "0", \
 			"--tls-cert-file", "/certs/cert.crt", \
 			"--tls-key-file", "/certs/private.key", \
 			"--tls-ca-cert-file", "/certs/ca.crt" \
