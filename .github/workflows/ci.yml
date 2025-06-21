@@ -127,7 +127,7 @@ jobs:
           outputs: type=image,push-by-digest=true,name-canonical=true
           tags: ${{ env.DOCKER_REPO_NAME }}
           provenance: false
-          load: false
+          load: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
           pull: true
@@ -137,6 +137,7 @@ jobs:
 
       - name: Test ${{ matrix.version.name }}
         run: |
+          docker images
           set -- "${{ env.DOCKER_REPO_NAME }}"
           if [ -s ./.test/config.sh ]; then
             set -- --config ~/oi/test/config.sh --config ./.test/config.sh "$@";
