@@ -86,9 +86,9 @@ echo "Testing Bloom..."
 [ "$(valkey-cli BF.ADD test_bloom item1)" = "1" ]
 [ "$(valkey-cli BF.EXISTS test_bloom item1)" = "1" ]
 
-# # Test Search module
-echo "Testing Search Pending..." 
-# [ "$(valkey-cli HSET doc:1 title 'Hello World')" = "1" ]
-# [ "$(valkey-cli FT.CREATE idx ON HASH SCHEMA title TEXT)" = "OK" ]
+# Test Search module
+echo "Testing Search" 
+[ "$(valkey-cli FT.CREATE myIndex SCHEMA vector VECTOR HNSW 6 TYPE FLOAT32 DIM 3 DISTANCE_METRIC COSINE)" = "OK" ]
+[ "$(valkey-cli FT._LIST)" = "myIndex" ]
 
 echo "All tests passed!"

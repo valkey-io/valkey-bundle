@@ -40,13 +40,13 @@ echo "Testing Bloom..."
 [ "$(valkey-cli BF.ADD emails bob@example.com)" = "1" ]
 [ "$(valkey-cli BF.EXISTS emails alice@example.com)" = "1" ]
 
-# # Test Search module
-echo "Testing Search Pending..." 
-# [ "$(valkey-cli HSET doc:1 title 'Hello World')" = "1" ]
-# [ "$(valkey-cli FT.CREATE idx ON HASH SCHEMA title TEXT)" = "OK" ]
+# Test Search module
+echo "Testing Search" 
+[ "$(valkey-cli FT.CREATE myIndex SCHEMA vector VECTOR HNSW 6 TYPE FLOAT32 DIM 3 DISTANCE_METRIC COSINE)" = "OK" ]
+[ "$(valkey-cli FT._LIST)" = "myIndex" ]
 
 # Restart container
-docker stop "$cname" >/dev/null
+docker stop "$cname" >/dev/null 
 docker start "$cname" >/dev/null
 
 . "$dir/../../retry.sh" --tries 20 '[ "$(valkey-cli ping)" = "PONG" ]'
@@ -65,7 +65,7 @@ echo "Testing Bloom..."
 [ "$(valkey-cli BF.EXISTS emails nonexistent@example.com)" = "0" ]
 
 # Verify hash data persisted (search index will rebuild automatically)
-echo "Testing Search Pending..."
-# [ "$(valkey-cli HGET doc:1 title)" = "Test Document" ]
+echo "Testing Search"
+[ "$(valkey-cli FT._LIST)" = "myIndex" ]
 
 echo "All persistence tests passed!"
