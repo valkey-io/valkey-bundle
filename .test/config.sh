@@ -1,7 +1,7 @@
 #!/bin/bash
 
 imageTests+=(
-	[valkey-extensions]='
+	[valkey-bundle]='
 		valkey-basics
 		valkey-basics-tls
 		valkey-basics-config
