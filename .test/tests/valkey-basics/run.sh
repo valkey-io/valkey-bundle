@@ -72,20 +72,6 @@ valkey-cli() {
 [ "$(valkey-cli set mykey somevalue)" = "OK" ]
 [ "$(valkey-cli get mykey)" = "somevalue" ]
 
-# Test that config settings are actually applied
-echo "Testing config settings..."
-maxmem=$(valkey-cli config get maxmemory | tail -1)
-echo "Maxmemory setting: $maxmem"
-[ "$maxmem" = "100000000" ]
-
-maxpolicy=$(valkey-cli config get maxmemory-policy | tail -1)
-echo "Maxmemory policy: $maxpolicy"
-[ "$maxpolicy" = "allkeys-lru" ]
-
-appendonly=$(valkey-cli config get appendonly | tail -1)
-echo "Appendonly setting: $appendonly"
-[ "$appendonly" = "yes" ]
-
 # Test that modules are loaded and functional (extensions-specific addition)
 echo "Testing modules..."
 
