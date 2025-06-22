@@ -1,1 +1,3 @@
-These test files have been forked from the tests at https://github.com/docker-library/official-images. They were then modified to handle three seperate modules when bundled with Valkey.
+These test files have been forked from the tests at https://github.com/docker-library/official-images. 
+
+New tests are added to test the modules and the usage of the image as stated on the dockerhub description.
