@@ -86,7 +86,7 @@ appendonly=$(valkey-cli config get appendonly | tail -1)
 echo "Appendonly setting: $appendonly"
 [ "$appendonly" = "yes" ]
 
-# Test that modules are loaded and functional (extensions-specific addition)
+# Test that modules are loaded and functional (bundle-specific addition)
 echo "Testing modules..."
 
 # Test JSON module

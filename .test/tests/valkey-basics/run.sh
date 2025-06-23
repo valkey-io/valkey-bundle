@@ -72,7 +72,7 @@ valkey-cli() {
 [ "$(valkey-cli set mykey somevalue)" = "OK" ]
 [ "$(valkey-cli get mykey)" = "somevalue" ]
 
-# Test that modules are loaded and functional (extensions-specific addition)
+# Test that modules are loaded and functional (bundle-specific addition)
 echo "Testing modules..."
 
 # Test JSON module

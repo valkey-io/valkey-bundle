@@ -1,8 +1,8 @@
-Valkey Extension 8.1.0-rc1 release notes
+Valkey Bundle 8.1.0 Release Notes
 ================================================================================
 
 ================================================================================
-Valkey Extension 8.1.0-rc1 - Released Tue 1 April 2025
+Valkey Bundle 8.1.0 - Released Mon 23 June 2025
 ================================================================================
 Overview
 ===========================
@@ -11,24 +11,33 @@ Overview
 
 Core Components
 ===========================
-* Base Image: valkey/valkey:8.1.0-bookworm
-* valkey - 8.1.0
-* valkey-json - 1.0.0
+* Base Debian Image: valkey/valkey:8.1.2-bookworm
+* Base Alpine Image: valkey/valkey:8.1.2-alpine
+* valkey - 8.1.2
+* valkey-json - 1.0.1
 * valkey-bloom - 1.0.0  
-* valkey-search - 1.0.0-rc1
+* valkey-search - 1.0.1
+* valkey-ldap - 1.0.0
 
 Supported Tags and Platforms
 ===========================
-Supported Tags:
-* 8.1.0-rc1
+Supported Debian Tags:
+* 8.1.0
 * 8.1
 * 8
 * latest
-* 8.1.0-rc1-bookworm
+* 8.1.0-bookworm
 * 8.1-bookworm
 * 8-bookworm
 
+Supported Alpine Tags:
+* 8.1.0-alpine
+* 8.1-alpine
+* 8-alpine
+* alpine⁠
+
 Platform Support:
+===========================
 * linux/amd64
 * linux/arm64
 
@@ -45,5 +54,9 @@ Features:
 * Connecting via `valkey-cli`
 
 We appreciate the efforts of all who contributed to this Docker image release!
-
-Contributors: Roshan Khatri (roshkhatri)
+Contributors:
+* Roshan Khatri (roshkhatri)
+* Nikhil Manglore (Nikhil-Manglore)
+* Ricardo Dias (rjd15372)
+* Katie Holly (Fusl)
+* Roberto Luna Rojas (rlunar)

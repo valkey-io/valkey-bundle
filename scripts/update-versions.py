@@ -71,10 +71,10 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
             try:
                 subprocess.check_output(
                     ["git", "ls-remote", "--exit-code", "--heads", "origin", "valkey-bundle-update"], stderr=subprocess.DEVNULL)
-                logging.info("PR exists — skipping extension version bump.")
+                logging.info("PR exists — skipping bundle version bump.")
             except subprocess.CalledProcessError:
                 versions_data[new_major_minor_release]["version"] = f"{major}.{minor}.{patch + 1}"
-                logging.info("No PR — bumped extension version.")
+                logging.info("No PR — bumped bundle version.")
         else:
             # New major/minor version
             known_modules = get_known_modules_from_versions(versions_data)
