@@ -111,11 +111,26 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           pull: true
+
+      # Build test image for comprehensive testing (not pushed to registry)
+      - name: Build test image for integration tests
+        if: matrix.platform == 'linux/amd64'
+        uses: docker/build-push-action@v6
+        with:
+          file: ./${{ matrix.version.meta.entries[0].directory }}/Dockerfile
+          platforms: linux/amd64
+          target: test
+          push: false   
+          load: true
+          tags: valkey-test:${{ matrix.version.name }}
+          cache-from: type=gha,scope=test-${{ matrix.version.name }}
+          cache-to: type=gha,mode=max,scope=test-${{ matrix.version.name }}
       
       - name: Prepare Environment
         run: ${{ matrix.version.runs.prepare }}
-
-      - name: Test ${{ matrix.version.name }}
+      
+        # Validation Tests
+      - name: Validation Tests - ${{ matrix.version.name }}
         run: |
           docker images
           set -- "${{ env.DOCKER_REPO_NAME }}"
@@ -123,6 +138,13 @@ jobs:
             set -- --config ~/oi/test/config.sh --config ./.test/config.sh "$@";
           fi
           ~/oi/test/run.sh "$@"
+
+      # Core + Module Comprehensive Tests 
+      - name: All Core + Module Tests - ${{ matrix.version.name }}
+        if: matrix.platform == 'linux/amd64' 
+        run: |
+          chmod +x ./.test/tests/valkey-integration-tests/run.sh
+          ./.test/tests/valkey-integration-tests/run.sh "valkey-test:${{ matrix.version.name }}"
 
       # Export digest to a file to reference it later in merging manifests
       - name: Export digest
