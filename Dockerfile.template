@@ -27,7 +27,7 @@ RUN set -eux; \
             pkgconfig             \           
         ;\
     update-ca-certificates; \
-    ln -s /usr/lib/ninja-build/bin/ninja /usr/bin/ninja-build; 
+    ln -s /usr/lib/ninja-build/bin/ninja /usr/bin/ninja-build;
 {{ ) else ( -}}
 RUN set -eux;   \
                 \
@@ -55,14 +55,6 @@ RUN set -eux;   \
 # Install Rust
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y;
 ENV PATH="/root/.cargo/bin:${PATH}"
-
-{{ if env.variant == "alpine" then ( -}}
-ENV LIBCLANG_PATH=/usr/lib/llvm19/lib
-ENV BINDGEN_EXTRA_CLANG_ARGS="-I/usr/include/clang/19/include"
-ENV LLVM_CONFIG_PATH="/usr/bin/llvm19-config"
-{{ ) else ( -}}
-# No bindgen fixes needed for Debian
-{{ ) end -}}
 
 WORKDIR /opt
 
@@ -116,10 +108,7 @@ RUN set -eux; \
         gcc            \               
         musl-dev       \               
         cmake          \  
-        openssl-dev;
-ENV LIBCLANG_PATH=/usr/lib/llvm19/lib
-ENV BINDGEN_EXTRA_CLANG_ARGS="-I/usr/include/clang/19/include"
-ENV LLVM_CONFIG_PATH="/usr/bin/llvm19-config"                   
+        openssl-dev;                  
 {{ ) else ( -}}
 RUN set -eux; \
     apt-get update;                            \

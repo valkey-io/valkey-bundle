@@ -22,7 +22,6 @@ cleanup_test() {
 }
 trap 'cleanup_bundle; cleanup_test' EXIT
 
-echo "Testing connection from test container to bundle"
 if ! docker exec "$test_cname" valkey-cli -h valkey-bundle -p 6379 ping >/dev/null 2>&1; then
     echo "Test container cannot connect to bundle"
     exit 1
@@ -45,19 +44,15 @@ run_test_against_bundle() {
     local modified_commands=$(cat <<EOF
 set -e
 
-valkey-cli -h valkey-bundle -p 6379 ping || { echo "Cannot connect to bundle container"; exit 1; }
-
 $test_commands
-EOF
-)
-    
+EOF )
     if docker exec "$test_cname" bash -c "$modified_commands"; then
         local end_time=$(date +%s)
         local duration=$((end_time - start_time))
         echo "$section_name passed successfully in ${duration}s"
         return 0
     else
-        echo "$section_name failed"
+        echo "$section_name tests failed"
         return 1
     fi
 }
@@ -66,7 +61,6 @@ run_test_against_bundle "Valkey Core Tests" "
 cd /opt/valkey
 echo 'Running Valkey core tests'
 make test
-echo 'Valkey core tests completed'
 "
 
 run_test_against_bundle "JSON Module Tests" "
