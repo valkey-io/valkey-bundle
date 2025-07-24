@@ -24,8 +24,8 @@ RUN set -eux; \
 	        clang19-extra-tools   \
 	        linux-headers         \
 	        bash                  \
-            pkgconfig             \           
-        ;\
+                pkgconfig             \
+	;\
     update-ca-certificates; \
     ln -s /usr/lib/ninja-build/bin/ninja /usr/bin/ninja-build;
 
@@ -59,40 +59,6 @@ RUN set -eux; \
 # Build LDAP module
 WORKDIR /opt/valkey-ldap
 RUN RUSTFLAGS="-C target-feature=-crt-static" cargo build --all --all-targets --release;
-
-# Test stage - extends build stage with test capabilities
-FROM build AS test
-
-RUN set -eux; \
-    apk add --no-cache \
-        tcl            \   
-        python3        \               
-        py3-pip        \              
-        clang-libs     \              
-        llvm19-dev     \
-        procps         \
-        py3-redis      \
-        make           \               
-        gcc            \               
-        musl-dev       \               
-        cmake          \  
-        openssl-dev;                  
-
-WORKDIR /opt
-RUN git clone --depth 1 --branch 8.1.2 https://github.com/valkey-io/valkey.git;
-
-RUN mkdir -p /usr/lib/valkey && \
-    cp /opt/valkey-json/build/src/libjson.so /usr/lib/valkey/libjson.so && \
-    cp /opt/valkey-bloom/target/release/libvalkey_bloom.so /usr/lib/valkey/libvalkey_bloom.so && \
-    cp /opt/valkey-search/.build-release/libsearch.so /usr/lib/valkey/libsearch.so && \
-    cp /opt/valkey-ldap/target/release/libvalkey_ldap.so /usr/lib/valkey/libvalkey_ldap.so
-
-COPY bundle-docker-entrypoint.sh /usr/local/bin/
-ENTRYPOINT ["bundle-docker-entrypoint.sh"]
-CMD ["valkey-server"]
-
-# Production Stage
-WORKDIR /opt
 
 FROM docker.io/valkey/valkey:8.1.2-alpine
 

@@ -27,7 +27,7 @@ RUN set -eux;   \
                         clang-format            \
                         libsystemd-dev          \
                         pkg-config              \
-                ;\
+                    ;\
     apt-get clean && rm -rf /var/lib/apt/lists/* ;
 
 # Install Rust
@@ -60,39 +60,6 @@ RUN set -eux; \
 # Build LDAP module
 WORKDIR /opt/valkey-ldap
 RUN cargo build --all --all-targets --release;
-
-# Test stage - extends build stage with test capabilities
-FROM build AS test
-
-RUN set -eux; \
-    apt-get update;                            \
-    apt-get install -y --no-install-recommends \
-        tcl                                    \   
-        python3                                \               
-        python3-pip                            \    
-        python3-venv                           \
-        procps                                 \
-        python3-redis                          \
-        make                                   \               
-        gcc                                    \ 
-        python3-pytest;                        \   
-    apt-get clean && rm -rf /var/lib/apt/lists/*;
-
-WORKDIR /opt
-RUN git clone --depth 1 --branch 8.1.2 https://github.com/valkey-io/valkey.git;
-
-RUN mkdir -p /usr/lib/valkey && \
-    cp /opt/valkey-json/build/src/libjson.so /usr/lib/valkey/libjson.so && \
-    cp /opt/valkey-bloom/target/release/libvalkey_bloom.so /usr/lib/valkey/libvalkey_bloom.so && \
-    cp /opt/valkey-search/.build-release/libsearch.so /usr/lib/valkey/libsearch.so && \
-    cp /opt/valkey-ldap/target/release/libvalkey_ldap.so /usr/lib/valkey/libvalkey_ldap.so
-
-COPY bundle-docker-entrypoint.sh /usr/local/bin/
-ENTRYPOINT ["bundle-docker-entrypoint.sh"]
-CMD ["valkey-server"]
-
-# Production Stage
-WORKDIR /opt
 
 FROM docker.io/valkey/valkey:8.1.2-bookworm
 
