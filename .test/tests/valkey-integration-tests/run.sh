@@ -1,98 +1,107 @@
-#!/usr/bin/env bash
+#!/bin/bash
 set -euo pipefail
 
 image="$1"
+container_name="valkey-test-$(date +%s)-$$"
+test_results=()
 
-bundle_cname="valkey-bundle-test-$(date +%s)-$RANDOM"
-bundle_cid="$(docker run -dt --user 1000 --name "$bundle_cname" "$image" valkey-server)"
-
-cleanup_bundle() {
-    docker logs "$bundle_cname" 2>&1 | tail -20 || true
-    docker rm -vf "$bundle_cid" >/dev/null 2>&1 || true
-}
-trap cleanup_bundle EXIT
-
-sleep 5
-
-test_cname="valkey-test-runner-$(date +%s)-$RANDOM"
-test_cid="$(docker run -dt --name "$test_cname" --link "$bundle_cname":valkey-bundle "$image" tail -f /dev/null)"
-
-cleanup_test() {
-    docker rm -vf "$test_cid" >/dev/null 2>&1 || true
-}
-trap 'cleanup_bundle; cleanup_test' EXIT
-
-if ! docker exec "$test_cname" valkey-cli -h valkey-bundle -p 6379 ping >/dev/null 2>&1; then
-    echo "Test container cannot connect to bundle"
-    exit 1
-fi
-echo "Test container connected to bundle"
-
-if docker exec "$test_cname" cat /etc/os-release | grep -q "Alpine"; then
-    VARIANT="alpine"
-else
-    VARIANT="debian" 
-fi
-
-run_test_against_bundle() {
-    local section_name="$1"
-    local test_commands="$2"
+cleanup() {
+    local exit_code=$?
+    if docker ps -q -f name="$container_name" | grep -q .; then
+        docker stop "$container_name" >/dev/null 2>&1 || true
+        docker rm "$container_name" >/dev/null 2>&1 || true
+    fi
     
-    echo "=== $section_name ==="
-    local start_time=$(date +%s)
+    if [ ${#test_results[@]} -gt 0 ]; then
+        echo "=== Test Results Summary ==="
+        printf '%s\n' "${test_results[@]}"
+    fi
     
-    local modified_commands=$(cat <<EOF
-set -e
+    exit $exit_code
+}
 
-$test_commands
-EOF )
-    if docker exec "$test_cname" bash -c "$modified_commands"; then
-        local end_time=$(date +%s)
-        local duration=$((end_time - start_time))
-        echo "$section_name passed successfully in ${duration}s"
+trap cleanup EXIT INT TERM
+
+docker run -d -p 6379:6379 --name "$container_name" "$image" valkey-server --enable-debug-command yes
+
+for i in {1..60}; do
+    if docker exec "$container_name" valkey-cli ping > /dev/null 2>&1; then
+        break
+    fi
+    if [ $i -eq 60 ]; then
+        echo "Valkey failed to start"
+        exit 1
+    fi
+    sleep 1
+done
+
+for repo in "valkey" "valkey-json" "valkey-bloom" "valkey-search" "valkey-ldap"; do
+    if [ ! -d "./$repo" ]; then
+        if [ "$repo" = "valkey-search" ] || [ "$repo" = "valkey-ldap" ]; then
+            git clone -b main --depth=1 "https://github.com/valkey-io/$repo.git" "./$repo"
+        else
+            git clone -b unstable --depth=1 "https://github.com/valkey-io/$repo.git" "./$repo"
+        fi
+    fi
+done
+
+run_tests() {
+    local module=$1
+    local module_dir=$2
+    
+    echo "=== Running $module Integration Tests ==="
+    
+    export SERVER_VERSION="unstable"
+    export VALKEY_HOST="localhost"
+    export VALKEY_PORT="6379"
+    
+    cd "$module_dir"
+    
+    case $module in
+        "Valkey")
+            make test
+            ;;
+        "JSON")
+            ./build.sh --unit
+            ./build.sh --integration
+            ;;
+        "Bloom")
+            cargo test --release --verbose --features enable-system-alloc -- --test-threads=1
+            ;;
+        "Search")       
+            ./build.sh --run-tests
+            ;;
+        "LDAP")
+            cargo test --release --features enable-system-alloc -- --test-threads=1
+            ;;
+    esac
+
+    local exit_code=$?
+    cd ..
+    
+    if [ $exit_code -eq 0 ]; then
+        echo "$module tests passed successfully"
+        test_results+=("$module: passed")
         return 0
     else
-        echo "$section_name tests failed"
+        echo "$module tests failed"
+        test_results+=("$module: failed")
         return 1
     fi
 }
 
-run_test_against_bundle "Valkey Core Tests" "
-cd /opt/valkey
-echo 'Running Valkey core tests'
-make test
-"
+overall_success=true
 
-run_test_against_bundle "JSON Module Tests" "
-cd /opt/valkey-json
-echo 'Running JSON tests'
-./build.sh --unit
-"
+run_tests "Valkey" "./valkey" || overall_success=false
+run_tests "JSON" "./valkey-json" || overall_success=false
+run_tests "Bloom" "./valkey-bloom" || overall_success=false
+run_tests "Search" "./valkey-search" || overall_success=false
+run_tests "LDAP" "./valkey-ldap" || overall_success=false
 
-if [ "$VARIANT" = "debian" ]; then
-    run_test_against_bundle "Bloom Module Tests" "
-    cd /opt/valkey-bloom
-    echo 'Running Bloom tests'
-    cargo test --release --verbose --features enable-system-alloc -- --test-threads=1 
-    "
+echo "=== Integration Tests Complete ==="
+if [ "$overall_success" = false ]; then
+    echo "Some tests failed, check the logs to see the exact test that failed."
+    exit 1
 else
-    echo "Skipping Bloom tests on Alpine variant (known compatibility issues)"
+    echo "All core + module tests passed."
 fi
-
-run_test_against_bundle "Search Module Tests" "
-cd /opt/valkey-search
-echo 'Running Search tests'
-./build.sh --run-tests 
-"
-
-if [ "$VARIANT" = "debian" ]; then
-    run_test_against_bundle "LDAP Module Tests" "
-    cd /opt/valkey-ldap
-    echo 'Running LDAP tests'
-    cargo test --release --verbose --features enable-system-alloc -- --test-threads=1
-    "
-else
-    echo "Skipping LDAP tests on Alpine variant (known compatibility issues)"
-fi
-
-echo 'All tests passed successfully'
