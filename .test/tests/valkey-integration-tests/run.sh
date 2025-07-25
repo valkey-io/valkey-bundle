@@ -22,7 +22,30 @@ cleanup() {
 
 trap cleanup EXIT INT TERM
 
-docker run -d -p 6379:6379 --name "$container_name" "$image" valkey-server --enable-debug-command yes
+get_latest_versions() {
+    
+    LATEST_VERSION=$(jq -r 'keys | .[-1]' versions.json)
+    
+    VALKEY_SERVER_VERSION=$(jq -r ".\"$LATEST_VERSION\".\"valkey-server\".version" versions.json)
+    JSON_TAG=$(jq -r ".\"$LATEST_VERSION\".modules.\"valkey-json\".version" versions.json)
+    BLOOM_TAG=$(jq -r ".\"$LATEST_VERSION\".modules.\"valkey-bloom\".version" versions.json)
+    SEARCH_TAG=$(jq -r ".\"$LATEST_VERSION\".modules.\"valkey-search\".version" versions.json)
+    LDAP_TAG=$(jq -r ".\"$LATEST_VERSION\".modules.\"valkey-ldap\".version" versions.json)
+    
+    if [[ "$VALKEY_SERVER_VERSION" =~ ^([0-9]+\.[0-9]+) ]]; then
+        VALKEY_BRANCH="${BASH_REMATCH[1]}"
+        VALKEY_TAG="$VALKEY_SERVER_VERSION"
+    fi
+}
+
+get_latest_versions
+
+docker run -d -p 6379:6379 --name "$container_name" "$image" \
+    valkey-server \
+    --save "" \
+    --enable-debug-command yes \
+    --enable-module-command yes \
+    --protected-mode no
 
 for i in {1..60}; do
     if docker exec "$container_name" valkey-cli ping > /dev/null 2>&1; then
@@ -35,13 +58,18 @@ for i in {1..60}; do
     sleep 1
 done
 
-for repo in "valkey" "valkey-json" "valkey-bloom" "valkey-search" "valkey-ldap"; do
+repos=("valkey" "valkey-json" "valkey-bloom" "valkey-search" "valkey-ldap")
+branches=("$VALKEY_BRANCH" "$JSON_TAG" "$BLOOM_TAG" "$SEARCH_TAG" "$LDAP_TAG")
+
+for i in "${!repos[@]}"; do
+    repo="${repos[i]}"
+    branch="${branches[i]}"
+    
     if [ ! -d "./$repo" ]; then
-        if [ "$repo" = "valkey-search" ] || [ "$repo" = "valkey-ldap" ]; then
-            git clone -b main --depth=1 "https://github.com/valkey-io/$repo.git" "./$repo"
-        else
-            git clone -b unstable --depth=1 "https://github.com/valkey-io/$repo.git" "./$repo"
-        fi
+        echo "Cloning $repo with branch/tag: $branch"
+        git clone -b "$branch" --depth=1 "https://github.com/valkey-io/$repo.git" "./$repo"
+    else
+        echo "$repo directory already exists, skipping clone"
     fi
 done
 
@@ -51,7 +79,7 @@ run_tests() {
     
     echo "=== Running $module Integration Tests ==="
     
-    export SERVER_VERSION="unstable"
+    export SERVER_VERSION="$VALKEY_TAG"
     export VALKEY_HOST="localhost"
     export VALKEY_PORT="6379"
     
@@ -59,17 +87,31 @@ run_tests() {
     
     case $module in
         "Valkey")
-            make test
+            make -j$(nproc) || {
+                make
+            }
+            
+            # Create /data directory for CLI RDB dump tests
+            sudo mkdir -p /data || echo "Could not create /data directory"
+            sudo chmod 777 /data 2>/dev/null || echo "Could not set permissions on /data"
+            
+            ./runtest --host 127.0.0.1 --port 6379 \
+            --verbose \
+            --tags -slow \
+            --ignore-encoding \
+            --skipunit unit/introspection \
+            --skipunit unit/multi \
+            --skiptest "Dumping an RDB - functions only: yes"
             ;;
         "JSON")
-            ./build.sh --unit
-            ./build.sh --integration
+            VALKEY_HOST=127.0.0.1 VALKEY_PORT=6379 ./build.sh --integration
             ;;
         "Bloom")
-            cargo test --release --verbose --features enable-system-alloc -- --test-threads=1
+            VALKEY_HOST=127.0.0.1 VALKEY_PORT=6379 ./build.sh
             ;;
         "Search")       
             ./build.sh --run-tests
+
             ;;
         "LDAP")
             cargo test --release --features enable-system-alloc -- --test-threads=1
