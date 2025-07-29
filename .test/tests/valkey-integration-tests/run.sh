@@ -107,11 +107,10 @@ run_tests() {
             VALKEY_HOST=127.0.0.1 VALKEY_PORT=6379 ./build.sh --integration
             ;;
         "Bloom")
-            VALKEY_HOST=127.0.0.1 VALKEY_PORT=6379 ./build.sh
+            cargo test --release --verbose --features enable-system-alloc -- --test-threads=1
             ;;
         "Search")       
             ./build.sh --run-tests
-
             ;;
         "LDAP")
             cargo test --release --features enable-system-alloc -- --test-threads=1

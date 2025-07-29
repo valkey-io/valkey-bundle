@@ -129,14 +129,6 @@ jobs:
         with:
           python-version: '3.8'
 
-      - name: Install memtier_benchmark
-        run: |
-          # Add Redis repository and install memtier-benchmark
-          curl -fsSL https://packages.redis.io/gpg | sudo gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
-          echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list
-          sudo apt-get update
-          sudo apt-get install -y memtier-benchmark
-
       # Core + Module Integration Tests 
       - name: All Core + Module Tests
         run: |
