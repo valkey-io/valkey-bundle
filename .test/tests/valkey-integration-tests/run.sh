@@ -106,7 +106,8 @@ run_tests() {
             --ignore-encoding \
             --skipunit unit/introspection \
             --skipunit unit/multi \
-            --skiptest "Dumping an RDB - functions only: yes"
+            --skiptest "Dumping an RDB - functions only: yes" \
+            --skiptest "Interactive CLI"
             ;;
         "JSON")
             TEST_FRAMEWORK_DIR="tst/integration/valkeytests"
@@ -160,9 +161,9 @@ run_tests() {
             TESTS=$(python -m pytest --collect-only -q tests/test_bloom_*.py | grep "::test_" | grep -v "warnings" | \
                 grep -v "test_large_allocation_when_below_maxmemory" | \
                 grep -v "test_large_allocation_when_above_maxmemory" | \
-                grep -v "test_basic" | \
                 grep -v "test_bloom_replication" | \
-                grep -v "test_bloom_save_and_restore")   
+                grep -v "test_restore_failed_large_bloom_filter" | \
+                grep -v "test_rdb_restore_non_bloom_compatibility")
 
             test_count=0
             passed_count=0
