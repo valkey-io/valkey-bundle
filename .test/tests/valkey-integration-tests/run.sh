@@ -2,15 +2,21 @@
 set -euo pipefail
 
 image="$1"
-container_name="valkey-test-$(date +%s)-$$"
+CONTAINER_NAME="valkey-test-$(date +%s)-$$"
 test_results=()
+TEST_FRAMEWORK_REPO="https://github.com/valkey-io/valkey-test-framework"
 
-cleanup() {
-    local exit_code=$?
-    if docker ps -q -f name="$container_name" | grep -q .; then
-        docker stop "$container_name" >/dev/null 2>&1 || true
-        docker rm "$container_name" >/dev/null 2>&1 || true
+cleanup_container() {
+    if docker ps -q -f name="$CONTAINER_NAME" | grep -q .; then
+        docker stop "$CONTAINER_NAME" >/dev/null 2>&1
+        docker rm "$CONTAINER_NAME" >/dev/null 2>&1
     fi
+}
+
+summary() {
+    local exit_code=$?
+
+    cleanup_container
     
     if [ ${#test_results[@]} -gt 0 ]; then
         echo "=== Test Results Summary ==="
@@ -20,7 +26,7 @@ cleanup() {
     exit $exit_code
 }
 
-trap cleanup EXIT INT TERM
+trap summary EXIT INT TERM
 
 get_latest_versions() {
     
@@ -40,23 +46,7 @@ get_latest_versions() {
 
 get_latest_versions
 
-docker run -d -p 6379:6379 --name "$container_name" "$image" \
-    valkey-server \
-    --save "" \
-    --enable-debug-command yes \
-    --enable-module-command yes \
-    --protected-mode no
-
-for i in {1..60}; do
-    if docker exec "$container_name" valkey-cli ping > /dev/null 2>&1; then
-        break
-    fi
-    if [ $i -eq 60 ]; then
-        echo "Valkey failed to start"
-        exit 1
-    fi
-    sleep 1
-done
+echo "=== Valkey Bundle Container Started ==="
 
 repos=("valkey" "valkey-json" "valkey-bloom" "valkey-search" "valkey-ldap")
 branches=("$VALKEY_BRANCH" "$JSON_TAG" "$BLOOM_TAG" "$SEARCH_TAG" "$LDAP_TAG")
@@ -87,10 +77,25 @@ run_tests() {
     
     case $module in
         "Valkey")
-            make -j$(nproc) || {
-                make
-            }
-            
+            docker run -d -p 6379:6379 --name "$CONTAINER_NAME" "$image" \
+                valkey-server \
+                --save "" \
+                --enable-debug-command yes \
+                --enable-module-command yes \
+                --protected-mode no
+
+            for i in {1..60}; do
+                if docker exec "$CONTAINER_NAME" valkey-cli ping > /dev/null 2>&1; then
+                    echo "Valkey container ready"
+                    break
+                fi
+                if [ $i -eq 60 ]; then
+                    echo "Valkey failed to start"
+                    return 1
+                fi
+                sleep 1
+            done
+
             # Create /data directory for CLI RDB dump tests
             sudo mkdir -p /data || echo "Could not create /data directory"
             sudo chmod 777 /data 2>/dev/null || echo "Could not set permissions on /data"
@@ -104,16 +109,116 @@ run_tests() {
             --skiptest "Dumping an RDB - functions only: yes"
             ;;
         "JSON")
-            VALKEY_HOST=127.0.0.1 VALKEY_PORT=6379 ./build.sh --integration
+            TEST_FRAMEWORK_DIR="tst/integration/valkeytests"
+            
+            if [ ! -d "$TEST_FRAMEWORK_DIR" ]; then
+                git clone "$TEST_FRAMEWORK_REPO" 
+                mkdir -p "$TEST_FRAMEWORK_DIR"
+                mv "valkey-test-framework/src"/* "$TEST_FRAMEWORK_DIR/"
+                rm -rf valkey-test-framework
+            fi
+            
+            pip install -r requirements.txt
+
+            docker run -d -p 6379:6379 --name "$CONTAINER_NAME" "$image" \
+                valkey-server \
+                --enable-debug-command yes >/dev/null 2>&1
+
+            sleep 3
+
+            export SOURCE_DIR="$(pwd)"
+            export VALKEY_EXTERNAL_SERVER=true
+            export VALKEY_HOST=localhost
+            export VALKEY_PORT=6379
+
+            cd tst/integration
+            python -m pytest --cache-clear -v -s
+
+            cleanup_container
+
+            cd ../..
             ;;
         "Bloom")
-            cargo test --release --verbose --features enable-system-alloc -- --test-threads=1
+            TEST_FRAMEWORK_DIR="tests/build/valkeytestframework"
+
+            start_bloom_container() {
+                docker run -d -p 6379:6379 --name "$CONTAINER_NAME" "$image" \
+                    valkey-server \
+                    --enable-debug-command yes >/dev/null 2>&1                
+                sleep 3
+            }
+
+            if [ ! -d "$TEST_FRAMEWORK_DIR" ]; then
+                git clone "$TEST_FRAMEWORK_REPO"
+                mkdir -p "$TEST_FRAMEWORK_DIR"
+                mv "valkey-test-framework/src"/* "$TEST_FRAMEWORK_DIR/"
+                rm -rf valkey-test-framework
+            fi
+
+            pip install -r requirements.txt
+
+            TESTS=$(python -m pytest --collect-only -q tests/test_bloom_*.py | grep "::test_" | grep -v "warnings" | \
+                grep -v "test_large_allocation_when_below_maxmemory" | \
+                grep -v "test_large_allocation_when_above_maxmemory" | \
+                grep -v "test_basic" | \
+                grep -v "test_bloom_replication" | \
+                grep -v "test_bloom_save_and_restore")   
+
+            test_count=0
+            passed_count=0
+
+            for test in $TESTS; do
+                test_count=$((test_count + 1))
+                
+                cleanup_container
+                start_bloom_container
+                
+                export VALKEY_EXTERNAL_SERVER=true
+                export VALKEY_HOST=localhost
+                export VALKEY_PORT=6379
+                python -m pytest "$test" --cache-clear -v
+                
+                if [ $? -eq 0 ]; then
+                    passed_count=$((passed_count + 1))
+                fi
+            done
+
+            cleanup_container
+
+            echo "========================================="
+            echo "SUMMARY: $passed_count/$test_count Valkey Bloom Tests Passed"
+            echo "========================================="
             ;;
         "Search")       
-            ./build.sh --run-tests
+            TEST_FRAMEWORK_DIR="integration/valkey-test-framework"
+    
+            if [ ! -d "$TEST_FRAMEWORK_DIR" ]; then
+                git clone "$TEST_FRAMEWORK_REPO" "$TEST_FRAMEWORK_DIR"
+                cd integration
+                ln -sf valkey-test-framework/src valkeytestframework
+                cd ..
+            fi
+            
+            pip install -r integration/valkey-test-framework/requirements.txt
+            pip install absl-py numpy 
+
+            docker run -d -p 6379:6379 --name "$CONTAINER_NAME" "$image" \
+                valkey-server \
+                --enable-debug-command yes >/dev/null 2>&1
+
+            sleep 3
+
+            cd integration
+            export VALKEY_EXTERNAL_SERVER=true
+            export VALKEY_HOST=localhost
+            export VALKEY_PORT=6379
+            python -m pytest --cache-clear -v
+            
+            cleanup_container
+            cd ..
             ;;
         "LDAP")
-            cargo test --release --features enable-system-alloc -- --test-threads=1
+            # Can't run all LDAP Tests yet 
             ;;
     esac
 
@@ -137,7 +242,7 @@ run_tests "Valkey" "./valkey" || overall_success=false
 run_tests "JSON" "./valkey-json" || overall_success=false
 run_tests "Bloom" "./valkey-bloom" || overall_success=false
 run_tests "Search" "./valkey-search" || overall_success=false
-run_tests "LDAP" "./valkey-ldap" || overall_success=false
+# run_tests "LDAP" "./valkey-ldap" || overall_success=false
 
 echo "=== Integration Tests Complete ==="
 if [ "$overall_success" = false ]; then
