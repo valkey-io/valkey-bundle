@@ -124,6 +124,11 @@ jobs:
           fi
           ~/oi/test/run.sh "$@"
 
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'
+
       # Core + Module Integration Tests 
       - name: All Core + Module Tests
         run: |
