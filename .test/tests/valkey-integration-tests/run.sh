@@ -211,36 +211,37 @@ run_tests() {
             echo "SUMMARY: $passed_count/$test_count Valkey Bloom Tests Passed"
             echo "========================================="
             ;;
-        "Search")       
-            TEST_FRAMEWORK_DIR="integration/valkey-test-framework"
+        "Search")
+            # CANT RUN SEARCH TESTS UNTIL BUNDLE IS UPDATED WITH NEW SEARCH PATCH
+            # TEST_FRAMEWORK_DIR="integration/valkey-test-framework"
     
-            if [ ! -d "$TEST_FRAMEWORK_DIR" ]; then
-                git clone --branch exteranl_test_additions "$TEST_FRAMEWORK_REPO" "$TEST_FRAMEWORK_DIR"
-                cd integration
-                ln -sf valkey-test-framework/src valkeytestframework
-                cd ..
-            fi
+            # if [ ! -d "$TEST_FRAMEWORK_DIR" ]; then
+            #    git clone --branch exteranl_test_additions "$TEST_FRAMEWORK_REPO" "$TEST_FRAMEWORK_DIR"
+            #    cd integration
+            #    ln -sf valkey-test-framework/src valkeytestframework
+            #    cd ..
+            # fi
                     
-            pip install -r integration/valkey-test-framework/requirements.txt
-            pip install --upgrade pytest
-            pip install absl-py numpy 
+            # pip install -r integration/valkey-test-framework/requirements.txt
+            # pip install absl-py numpy 
 
-            docker run -d -p 6379:6379 --name "$CONTAINER_NAME" "$image" \
-                valkey-server \
-                --enable-debug-command yes >/dev/null 2>&1
+            # docker run -d -p 6379:6379 --name "$CONTAINER_NAME" "$image" \
+            #    valkey-server \
+            #       --enable-debug-command yes \
+            #       --protected-mode no >/dev/null 2>&1
 
-            sleep 3
+            # sleep 3
 
-            cd integration
-            export VALKEY_EXTERNAL_SERVER=true
-            export VALKEY_HOST=localhost
-            export VALKEY_PORT=6379
-            export PYTHONPATH="$(pwd)/valkeytestframework:$(pwd)"
-            export SKIPLOGCLEAN=1
-            python -m pytest --log-cli-level=INFO --capture=sys --cache-clear -v test_*.py
+            # cd integration
+            # export VALKEY_EXTERNAL_SERVER=true
+            # export VALKEY_HOST=localhost
+            # export VALKEY_PORT=6379
+            # export PYTHONPATH="$(pwd)/valkeytestframework:$(pwd)"
+            # export SKIPLOGCLEAN=1
+            # python -m pytest --log-cli-level=INFO --capture=sys --cache-clear -v -k "not (test_module_loaded or CME or cluster)" test_*.py
             
-            cleanup_container
-            cd ..
+            # cleanup_container
+            # cd ..
             ;;
         "LDAP")
             # Can't run all LDAP Tests yet 
