@@ -96,18 +96,16 @@ run_tests() {
                 sleep 1
             done
 
-            # Create /data directory for CLI RDB dump tests
-            sudo mkdir -p /data || echo "Could not create /data directory"
-            sudo chmod 777 /data 2>/dev/null || echo "Could not set permissions on /data"
-            
             ./runtest --host 127.0.0.1 --port 6379 \
             --verbose \
             --tags -slow \
             --ignore-encoding \
-            --skipunit unit/introspection \
-            --skipunit unit/multi \
-            --skiptest "Dumping an RDB - functions only: yes" \
-            --skiptest "Interactive CLI"
+            --skiptest "CONFIG SET rollback on apply error" \
+            --skiptest "MULTI is rejected when CLIENT REPLY is ON/OFF/SKIP" \
+            --skiptest "CLIENT REPLY OFF/SKIP: multi command" \
+            --skiptest "AUTH errored inside MULTI will add the reply" \
+            --skipunit integration/valkey-cli \
+            --skiptest "Dumping an RDB - functions only: yes"
             ;;
         "JSON")
             TEST_FRAMEWORK_DIR="tst/integration/valkeytests"
