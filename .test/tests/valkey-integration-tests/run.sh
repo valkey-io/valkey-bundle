@@ -57,7 +57,20 @@ for i in "${!repos[@]}"; do
     
     if [ ! -d "./$repo" ]; then
         echo "Cloning $repo with branch/tag: $branch"
-        git clone -b "$branch" --depth=1 "https://github.com/valkey-io/$repo.git" "./$repo"
+        case $repo in
+            "valkey-json")
+                git clone --depth=1 "https://github.com/Nikhil-Manglore/valkey-json.git" "./$repo"
+                ;;
+            "valkey-bloom")
+                git clone -b "external_bloom_test" --depth=1 "https://github.com/Nikhil-Manglore/valkey-bloom.git" "./$repo"
+                ;;
+            "valkey-search")
+                git clone -b "external_search_test" --depth=1 "https://github.com/Nikhil-Manglore/valkey-search.git" "./$repo"
+                ;;
+            *)
+                git clone -b "$branch" --depth=1 "https://github.com/valkey-io/$repo.git" "./$repo"
+                ;;
+        esac
     else
         echo "$repo directory already exists, skipping clone"
     fi
