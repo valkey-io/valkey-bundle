@@ -220,8 +220,9 @@ run_tests() {
                 ln -sf valkey-test-framework/src valkeytestframework
                 cd ..
             fi
-            
+                    
             pip install -r integration/valkey-test-framework/requirements.txt
+            pip install --upgrade pytest
             pip install absl-py numpy 
 
             docker run -d -p 6379:6379 --name "$CONTAINER_NAME" "$image" \
@@ -234,7 +235,9 @@ run_tests() {
             export VALKEY_EXTERNAL_SERVER=true
             export VALKEY_HOST=localhost
             export VALKEY_PORT=6379
-            python -m pytest --cache-clear -v
+            export PYTHONPATH="$(pwd)/valkeytestframework:$(pwd)"
+            export SKIPLOGCLEAN=1
+            python -m pytest --log-cli-level=INFO --capture=sys --cache-clear -v test_*.py
             
             cleanup_container
             cd ..
