@@ -157,10 +157,10 @@ run_tests() {
                 docker network create valkey-net >/dev/null 2>&1 || true
                 docker run -d --name "${CONTAINER_NAME}-master" --network valkey-net -p 6379:6379 "$image" \
                     valkey-server --enable-debug-command yes >/dev/null 2>&1
-                sleep 3
+                sleep 10
                 docker run -d --name "${CONTAINER_NAME}-replica" --network valkey-net -p 6380:6379 "$image" \
                     valkey-server --enable-debug-command yes --replicaof "${CONTAINER_NAME}-master" 6379 >/dev/null 2>&1
-                sleep 5
+                sleep 20
             }
 
             cleanup_bloom_containers() {
