@@ -29,7 +29,7 @@ summary() {
 setup_test_framework() {
     local dir="$1"
     if [ ! -d "$dir" ]; then
-        git clone --branch exteranl_test_additions "$TEST_FRAMEWORK_REPO" 
+        git clone "$TEST_FRAMEWORK_REPO"
         mkdir -p "$dir"
         mv "valkey-test-framework/src"/* "$dir/"
         rm -rf valkey-test-framework
@@ -67,20 +67,7 @@ for i in "${!repos[@]}"; do
     
     if [ ! -d "./$repo" ]; then
         echo "Cloning $repo with branch/tag: $branch"
-        case $repo in
-            "valkey-json")
-                git clone --depth=1 "https://github.com/Nikhil-Manglore/valkey-json.git" "./$repo"
-                ;;
-            "valkey-bloom")
-                git clone -b "external_bloom_test" --depth=1 "https://github.com/Nikhil-Manglore/valkey-bloom.git" "./$repo"
-                ;;
-            "valkey-search")
-                git clone -b "external_search_test" --depth=1 "https://github.com/Nikhil-Manglore/valkey-search.git" "./$repo"
-                ;;
-            *)
-                git clone -b "$branch" --depth=1 "https://github.com/valkey-io/$repo.git" "./$repo"
-                ;;
-        esac
+        git clone -b "$branch" --depth=1 "https://github.com/valkey-io/$repo.git" "./$repo"
     fi
 done
 
@@ -99,6 +86,8 @@ run_tests() {
     
     case $module in
         "Valkey")
+
+            echo "Starting Valkey Bundle Container"
             docker run -d -p 6379:6379 --name "$CONTAINER_NAME" "$image" \
                 valkey-server \
                 --save "" \
