@@ -225,12 +225,12 @@ run_tests() {
     if [ $exit_code -eq 0 ]; then
         echo "$module tests passed successfully"
         test_results+=("$module: passed")
-        return 0
     else
         echo "$module tests failed"
         test_results+=("$module: failed")
-        return 1
     fi
+    
+    return $exit_code
 }
 
 overall_success=true
