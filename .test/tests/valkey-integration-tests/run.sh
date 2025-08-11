@@ -131,8 +131,10 @@ run_tests() {
             export SOURCE_DIR="$(pwd)"
             cd tst/integration
             python -m pytest --cache-clear -v -s
+            local pytest_exit_code=$?
             cleanup_container
             cd ../..
+            return $pytest_exit_code
             ;;
         "Bloom")
             start_bloom_containers() {
@@ -176,14 +178,19 @@ run_tests() {
                 export VALKEY_REPLICA_HOST=localhost
                 export VALKEY_REPLICA_PORT=6380
                 python -m pytest "$test" --cache-clear -v
+                local test_exit_code=$?
                 
-                if [ $? -eq 0 ]; then
+                if [ $test_exit_code -eq 0 ]; then
                     passed_count=$((passed_count + 1))
                 fi
             done
 
             cleanup_bloom_containers
             echo "SUMMARY: $passed_count/$test_count Valkey Bloom Tests Passed"
+            
+            if [ $passed_count -ne $test_count ]; then
+                return 1
+            fi
             ;;
         "Search")
             echo "CANT RUN SEARCH TESTS UNTIL BUNDLE IS UPDATED WITH NEW SEARCH PATCH"
@@ -203,7 +210,9 @@ run_tests() {
             # export PYTHONPATH="$(pwd)/valkeytestframework:$(pwd)"
             # export SKIPLOGCLEAN=1
             # python -m pytest --log-cli-level=INFO --capture=sys --cache-clear -v -k "not (test_module_loaded or CME or cluster)" test_*.py
+            # local pytest_exit_code=$?
             # cleanup_container
+            # return $pytest_exit_code
             ;;
         "LDAP")
             echo "VALKEY LDAP DOESN'T USE VALKEY TEST FRAMEWORK"
