@@ -171,8 +171,7 @@ run_tests() {
                 grep -v "test_restore_failed_large_bloom_filter" | \
                 grep -v "test_rdb_restore_non_bloom_compatibility")
             
-            # Skip defrag test on ARM64
-            if [[ $(uname -m) == "aarch64" ]]; then
+            if docker image inspect "$image" --format '{{.Architecture}}' | grep -q "arm64"; then
                 TESTS=$(echo "$TESTS" | grep -v "test_bloom_defrag")
             fi
 
