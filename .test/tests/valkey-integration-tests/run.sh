@@ -59,15 +59,10 @@ get_latest_versions
 echo "=== Valkey Bundle Container Started ==="
 
 repos=("valkey" "valkey-json" "valkey-bloom" "valkey-search" "valkey-ldap")
-branches=("$VALKEY_BRANCH" "$JSON_TAG" "$BLOOM_TAG" "$SEARCH_TAG" "$LDAP_TAG")
 
-for i in "${!repos[@]}"; do
-    repo="${repos[i]}"
-    branch="${branches[i]}"
-    
+for repo in "${repos[@]}"; do
     if [ ! -d "./$repo" ]; then
-        echo "Cloning $repo with branch/tag: $branch"
-        git clone -b "$branch" --depth=1 "https://github.com/valkey-io/$repo.git" "./$repo"
+        git clone --quiet --depth=1 "https://github.com/valkey-io/$repo.git" "./$repo"
     fi
 done
 
