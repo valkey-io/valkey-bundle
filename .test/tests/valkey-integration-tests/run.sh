@@ -4,7 +4,7 @@ set -euo pipefail
 image="$1"
 CONTAINER_NAME="valkey-test-$(date +%s)-$$"
 test_results=()
-TEST_FRAMEWORK_REPO="https://github.com/Nikhil-Manglore/valkey-test-framework.git"
+TEST_FRAMEWORK_REPO="https://github.com/valkey-io/valkey-test-framework.git"
 
 cleanup_container() {
     if docker ps -q -f name="$CONTAINER_NAME" | grep -q .; then
@@ -132,7 +132,6 @@ run_tests() {
             cd tst/integration
             python -m pytest --cache-clear -v -s
             local pytest_exit_code=$?
-            echo "DEBUG: JSON pytest exit code: $pytest_exit_code"
             cleanup_container
             cd ../..
             return $pytest_exit_code
@@ -221,7 +220,6 @@ run_tests() {
     esac
 
     local exit_code=$?
-    echo "DEBUG: $module exit code: $exit_code"
     cd ..
     
     if [ $exit_code -eq 0 ]; then
