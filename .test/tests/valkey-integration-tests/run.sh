@@ -67,7 +67,12 @@ for repo in "${repos[@]}"; do
             git clone -b "$VALKEY_TAG" --depth=1 "https://github.com/valkey-io/$repo.git" "./$repo"
         else
             echo "Cloning $repo from default branch"
-            git clone --depth=1 "https://github.com/valkey-io/$repo.git" "./$repo"
+            if git clone --depth=1 "https://github.com/valkey-io/$repo.git" "./$repo"; then
+                echo "Successfully cloned $repo"
+            else
+                echo "Failed to clone $repo"
+                exit 1
+            fi
         fi
     fi
 done
@@ -83,6 +88,12 @@ run_tests() {
     export VALKEY_PORT=6379
     export SERVER_VERSION="$VALKEY_TAG"
     
+    if [ ! -d "$module_dir" ]; then
+        echo "ERROR: Directory $module_dir does not exist"
+        echo "Current working directory: $(pwd)"
+        ls -la
+        return 1
+    fi
     cd "$module_dir"
     
     case $module in
@@ -134,7 +145,6 @@ run_tests() {
             python -m pytest --cache-clear -v -s
             local pytest_exit_code=$?
             cleanup_container
-            cd ../..
             return $pytest_exit_code
             ;;
         "Bloom")
