@@ -62,7 +62,13 @@ repos=("valkey" "valkey-json" "valkey-bloom" "valkey-search" "valkey-ldap")
 
 for repo in "${repos[@]}"; do
     if [ ! -d "./$repo" ]; then
-        git clone --quiet --depth=1 "https://github.com/valkey-io/$repo.git" "./$repo"
+        if [[ "$repo" == "valkey" ]]; then
+            echo "Cloning $repo from tag $VALKEY_TAG"
+            git clone -b "$VALKEY_TAG" --depth=1 "https://github.com/valkey-io/$repo.git" "./$repo"
+        else
+            echo "Cloning $repo from default branch"
+            git clone --depth=1 "https://github.com/valkey-io/$repo.git" "./$repo"
+        fi
     fi
 done
 
