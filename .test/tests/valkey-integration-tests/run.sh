@@ -145,7 +145,7 @@ run_tests() {
             python -m pytest --cache-clear -v -s
             local pytest_exit_code=$?
             cleanup_container
-            cd ../..
+            cd ../../..
             return $pytest_exit_code
             ;;
         "Bloom")
