@@ -142,11 +142,14 @@ run_tests() {
 
             export SOURCE_DIR="$(pwd)"
             cd tst/integration
+            echo "DEBUG: In tst/integration: $(pwd)"
             python -m pytest --cache-clear -v -s
             local pytest_exit_code=$?
             cleanup_container
-            cd ../../..
-            return $pytest_exit_code
+            cd ../..
+            if [ $pytest_exit_code -ne 0 ]; then
+                false
+            fi
             ;;
         "Bloom")
             start_bloom_containers() {
@@ -201,7 +204,7 @@ run_tests() {
             echo "SUMMARY: $passed_count/$test_count Valkey Bloom Tests Passed"
             
             if [ $passed_count -ne $test_count ]; then
-                return 1
+                false
             fi
             ;;
         "Search")
