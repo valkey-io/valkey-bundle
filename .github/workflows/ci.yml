@@ -132,7 +132,6 @@ jobs:
       # Core + Module Integration Tests 
       - name: All Core + Module Tests
         run: |
-          chmod +x ./.test/tests/valkey-integration-tests/run.sh
           ./.test/tests/valkey-integration-tests/run.sh "${{ env.DOCKER_REPO_NAME }}"
           
       # Export digest to a file to reference it later in merging manifests

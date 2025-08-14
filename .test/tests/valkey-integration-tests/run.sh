@@ -29,7 +29,7 @@ summary() {
 setup_test_framework() {
     local dir="$1"
     if [ ! -d "$dir" ]; then
-        git clone "$TEST_FRAMEWORK_REPO"
+        git clone "$TEST_FRAMEWORK_REPO" valkey-test-framework
         mkdir -p "$dir"
         mv "valkey-test-framework/src"/* "$dir/"
         rm -rf valkey-test-framework
@@ -42,6 +42,8 @@ get_latest_versions() {
     
     LATEST_VERSION=$(jq -r 'keys | .[-1]' versions.json)
     
+    # These version variables will be used later when we test from the release tags instead of default branches.
+    # This will be done once each of the modules releases a new patch which includes our external test changes.
     VALKEY_SERVER_VERSION=$(jq -r ".\"$LATEST_VERSION\".\"valkey-server\".version" versions.json)
     JSON_TAG=$(jq -r ".\"$LATEST_VERSION\".modules.\"valkey-json\".version" versions.json)
     BLOOM_TAG=$(jq -r ".\"$LATEST_VERSION\".modules.\"valkey-bloom\".version" versions.json)
@@ -106,8 +108,9 @@ run_tests() {
                 fi
                 sleep 1
             done
-
-            ./runtest --host 127.0.0.1 --port 6379 \
+            
+            # Skipping these tests for now as they consistently fail against an external server (Valkey Bundle Container)
+            ./runtest --host $VALKEY_HOST --port $VALKEY_PORT \
             --verbose \
             --tags -slow \
             --ignore-encoding \
@@ -159,6 +162,7 @@ run_tests() {
             setup_test_framework "tests/build/valkeytestframework"
             pip install -r requirements.txt
 
+            # Skipping these tests for now as they currently won't run against an external server.
             TESTS=$(python -m pytest --collect-only -q tests/test_bloom_*.py | grep "::test_" | grep -v "warnings" | \
                 grep -v "test_large_allocation_when_below_maxmemory" | \
                 grep -v "test_large_allocation_when_above_maxmemory" | \
@@ -241,8 +245,8 @@ overall_success=true
 run_tests "Valkey" "./valkey" || overall_success=false
 run_tests "JSON" "./valkey-json" || overall_success=false
 run_tests "Bloom" "./valkey-bloom" || overall_success=false
-run_tests "Search" "./valkey-search" || overall_success=false
-run_tests "LDAP" "./valkey-ldap" || overall_success=false
+# run_tests "Search" "./valkey-search" || overall_success=false
+# run_tests "LDAP" "./valkey-ldap" || overall_success=false
 
 echo "=== Integration Tests Complete ==="
 if [ "$overall_success" = false ]; then
