@@ -1,10 +1,16 @@
 #!/bin/bash
 set -euo pipefail
 
+if [ $# -lt 2 ]; then
+    echo "Invalid Parameters"
+    exit 1
+fi
+
 image="$1"
+version_key="$2"
 CONTAINER_NAME="valkey-test-$(date +%s)-$$"
-test_results=()
 TEST_FRAMEWORK_REPO="https://github.com/valkey-io/valkey-test-framework.git"
+test_results=()
 
 cleanup_container() {
     if docker ps -q -f name="$CONTAINER_NAME" | grep -q .; then
@@ -38,17 +44,16 @@ setup_test_framework() {
 
 trap summary EXIT INT TERM
 
-get_latest_versions() {
-    
-    LATEST_VERSION=$(jq -r 'keys | .[-1]' versions.json)
+get_versions() {
+    local version_key="$1"
     
     # These version variables will be used later when we test from the release tags instead of default branches.
     # This will be done once each of the modules releases a new patch which includes our external test changes.
-    VALKEY_SERVER_VERSION=$(jq -r ".\"$LATEST_VERSION\".\"valkey-server\".version" versions.json)
-    JSON_TAG=$(jq -r ".\"$LATEST_VERSION\".modules.\"valkey-json\".version" versions.json)
-    BLOOM_TAG=$(jq -r ".\"$LATEST_VERSION\".modules.\"valkey-bloom\".version" versions.json)
-    SEARCH_TAG=$(jq -r ".\"$LATEST_VERSION\".modules.\"valkey-search\".version" versions.json)
-    LDAP_TAG=$(jq -r ".\"$LATEST_VERSION\".modules.\"valkey-ldap\".version" versions.json)
+    VALKEY_SERVER_VERSION=$(jq -r ".\"$version_key\".\"valkey-server\".version" versions.json)
+    JSON_TAG=$(jq -r ".\"$version_key\".modules.\"valkey-json\".version" versions.json)
+    BLOOM_TAG=$(jq -r ".\"$version_key\".modules.\"valkey-bloom\".version" versions.json)
+    SEARCH_TAG=$(jq -r ".\"$version_key\".modules.\"valkey-search\".version" versions.json)
+    LDAP_TAG=$(jq -r ".\"$version_key\".modules.\"valkey-ldap\".version" versions.json)
     
     if [[ "$VALKEY_SERVER_VERSION" =~ ^([0-9]+\.[0-9]+) ]]; then
         VALKEY_BRANCH="${BASH_REMATCH[1]}"
@@ -56,7 +61,7 @@ get_latest_versions() {
     fi
 }
 
-get_latest_versions
+get_versions "$version_key"
 
 echo "=== Valkey Bundle Container Started ==="
 
