@@ -146,6 +146,10 @@ jobs:
             ./.test/tests/valkey-integration-tests/run.sh "${{ env.DOCKER_REPO_NAME }}" "$bundle_version"
           fi
           
+          if [[ -f ".changed-bundles" ]]; then
+            rm .changed-bundles
+          fi
+          
       # Export digest to a file to reference it later in merging manifests
       - name: Export digest
         id: export-digest

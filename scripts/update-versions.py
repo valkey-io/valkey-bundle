@@ -97,6 +97,7 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
             }
             
             versions_data[new_major_minor_release] = new_entry
+            changed_bundles.append(new_major_minor_release)
 
         return versions_data, changed_bundles
 
@@ -127,8 +128,8 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
             logging.info("Branch valkey-bundle-update exists — skipping bundle version patch bump.")
         except subprocess.CalledProcessError:
             current_version = versions_data[latest]["version"]
-            major, minor, patch, rc = parse_version(current_version)
-            versions_data[latest]["version"] = f"{major}.{minor}.{patch + 1}"
+            bundle_major, bundle_minor, bundle_patch, bundle_rc = parse_version(current_version)
+            versions_data[latest]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch + 1}"
             changed_bundles.append(latest)
             logging.info("Branch valkey-bundle-update not found — bumping patch version.")
         
@@ -163,9 +164,9 @@ if __name__ == "__main__":
     
     # Write changed bundle versions to file for CI
     if changed_bundles:
-        with open('.changed-bundles', 'w') as f:
+        with open('.changed-bundles', 'a') as f:
             for bundle in changed_bundles:
                 f.write(f"{bundle}\n")
-        logging.info(f"Changed bundles written to .changed-bundles: {changed_bundles}")
+        logging.info(f"Bundle Version updates written to .changed-bundles: {changed_bundles}")
 
     logging.info(f"Updated {component_name} to {new_version}")
