@@ -153,7 +153,7 @@ run_tests() {
                 docker run -d --name "${CONTAINER_NAME}-master" --network valkey-net -p $VALKEY_PORT:6379 "$image" \
                     valkey-server --enable-debug-command yes >/dev/null 2>&1
                 sleep 10
-                docker run -d --name "${CONTAINER_NAME}-replica" --network valkey-net -p 6380:6379 "$image" \
+                docker run -d --name "${CONTAINER_NAME}-replica" --network valkey-net -p $VALKEY_REPLICA_PORT:6379 "$image" \
                     valkey-server --enable-debug-command yes --replicaof "${CONTAINER_NAME}-master" 6379 >/dev/null 2>&1
                 sleep 20
             }
@@ -187,8 +187,8 @@ run_tests() {
                 cleanup_bloom_containers
                 start_bloom_containers
                 
-                export VALKEY_REPLICA_HOST=localhost
-                export VALKEY_REPLICA_PORT=6380
+                export VALKEY_REPLICA_HOST=$VALKEY_HOST
+                export VALKEY_REPLICA_PORT=$((VALKEY_PORT + 1))
                 python -m pytest "$test" --cache-clear -v
                 local test_exit_code=$?
                 
