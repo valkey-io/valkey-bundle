@@ -132,23 +132,13 @@ jobs:
       # Core + Module Integration Tests 
       - name: All Core + Module Tests
         run: |
-          if [[ -f ".changed-bundles" ]]; then
-            cat .changed-bundles
-            
-            while IFS= read -r bundle_version; do
-              if [[ -n "$bundle_version" ]]; then
-                echo "Testing bundle version: $bundle_version"
-                ./.test/tests/valkey-integration-tests/run.sh "${{ env.DOCKER_REPO_NAME }}" "$bundle_version"
-              fi
-            done < .changed-bundles
-          else
-            bundle_version=$(jq -r 'keys | .[-1]' versions.json)
-            ./.test/tests/valkey-integration-tests/run.sh "${{ env.DOCKER_REPO_NAME }}" "$bundle_version"
-          fi
+          matrix_version="${{ matrix.version.name }}"
+          bundle_version=$(echo "$matrix_version" | cut -d'.' -f1-2)
           
-          if [[ -f ".changed-bundles" ]]; then
-            rm .changed-bundles
-          fi
+          echo "Matrix version: $matrix_version"
+          echo "Extracted bundle version: $bundle_version"
+          
+          ./.test/tests/valkey-integration-tests/run.sh "${{ env.DOCKER_REPO_NAME }}" "$bundle_version"
           
       # Export digest to a file to reference it later in merging manifests
       - name: Export digest

@@ -95,7 +95,7 @@ run_tests() {
     case $module in
         "Valkey")
             echo "Starting Valkey Bundle Container"
-            docker run -d -p 6379:6379 --name "$CONTAINER_NAME" "$image" \
+            docker run -d -p $VALKEY_PORT:6379 --name "$CONTAINER_NAME" "$image" \
                 valkey-server \
                 --save "" \
                 --enable-debug-command yes \
@@ -131,7 +131,7 @@ run_tests() {
             
             pip install -r requirements.txt
 
-            docker run -d -p 6379:6379 --name "$CONTAINER_NAME" "$image" \
+            docker run -d -p $VALKEY_PORT:6379 --name "$CONTAINER_NAME" "$image" \
                 valkey-server \
                 --enable-debug-command yes >/dev/null 2>&1
             sleep 3
@@ -150,7 +150,7 @@ run_tests() {
         "Bloom")
             start_bloom_containers() {
                 docker network create valkey-net >/dev/null 2>&1 || true
-                docker run -d --name "${CONTAINER_NAME}-master" --network valkey-net -p 6379:6379 "$image" \
+                docker run -d --name "${CONTAINER_NAME}-master" --network valkey-net -p $VALKEY_PORT:6379 "$image" \
                     valkey-server --enable-debug-command yes >/dev/null 2>&1
                 sleep 10
                 docker run -d --name "${CONTAINER_NAME}-replica" --network valkey-net -p 6380:6379 "$image" \
@@ -212,7 +212,7 @@ run_tests() {
             # pip install -r integration/valkey-test-framework/requirements.txt
             # pip install absl-py numpy 
 
-            # docker run -d -p 6379:6379 --name "$CONTAINER_NAME" "$image" \
+            # docker run -d -p $VALKEY_PORT:6379 --name "$CONTAINER_NAME" "$image" \
             #    valkey-server \
             #       --enable-debug-command yes \
             #       --protected-mode no >/dev/null 2>&1

@@ -45,22 +45,20 @@ def get_latest_stable_module_release(repository: str) -> str:
     except subprocess.CalledProcessError as e:
         raise RuntimeError(f"Failed to get release list for {repository}: {e}")
 
-def update_versions(versions_data: Dict[str, Any], component_name: str, new_version: str) -> tuple[Dict[str, Any], list]:
+def update_versions(versions_data: Dict[str, Any], component_name: str, new_version: str) -> Dict[str, Any]:
     """Update versions.json according to Valkey and module versioning strategy."""
-    changed_bundles = []
     major, minor, patch, rc = parse_version(new_version)
     new_major_minor_release = f"{major}.{minor}"
     latest = get_latest_major_minor(versions_data)
 
     if component_name == "bundle":
         versions_data[latest]["version"] = new_version
-        changed_bundles.append(latest)
         versions_data[latest]["valkey-server"]["version"] = get_latest_stable_module_release("valkey-io/valkey")
 
         for module_key in versions_data[latest]["modules"].keys():
             repo = f"valkey-io/{module_key}"
             versions_data[latest]["modules"][module_key]["version"] = get_latest_stable_module_release(repo)
-        return versions_data, changed_bundles
+        return versions_data
 
     if component_name == 'valkey':
         existing_entry = new_major_minor_release in versions_data
@@ -77,7 +75,6 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
             except subprocess.CalledProcessError:
                 bundle_major, bundle_minor, bundle_patch, bundle_rc = parse_version(existing_bundle_version)
                 versions_data[new_major_minor_release]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch + 1}"
-                changed_bundles.append(new_major_minor_release)
                 logging.info("No PR — bumped bundle version.")
         else:
             # New major/minor version
@@ -97,9 +94,8 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
             }
             
             versions_data[new_major_minor_release] = new_entry
-            changed_bundles.append(new_major_minor_release)
 
-        return versions_data, changed_bundles
+        return versions_data
 
     else:
         # Handle module update
@@ -130,10 +126,9 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
             current_version = versions_data[latest]["version"]
             bundle_major, bundle_minor, bundle_patch, bundle_rc = parse_version(current_version)
             versions_data[latest]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch + 1}"
-            changed_bundles.append(latest)
             logging.info("Branch valkey-bundle-update not found — bumping patch version.")
         
-        return versions_data, changed_bundles
+        return versions_data
 
 if __name__ == "__main__":
     if len(sys.argv) != 4:
@@ -156,17 +151,10 @@ if __name__ == "__main__":
         logging.error(version_error)
         sys.exit(1)
 
-    updated_file, changed_bundles = update_versions(versions_data, component_name, new_version)
+    updated_file = update_versions(versions_data, component_name, new_version)
 
     with open(json_file, 'w') as f:
         json.dump(updated_file, f, indent=2)
         f.write('\n')
-    
-    # Write changed bundle versions to file for CI
-    if changed_bundles:
-        with open('.changed-bundles', 'a') as f:
-            for bundle in changed_bundles:
-                f.write(f"{bundle}\n")
-        logging.info(f"Bundle Version updates written to .changed-bundles: {changed_bundles}")
 
     logging.info(f"Updated {component_name} to {new_version}")
