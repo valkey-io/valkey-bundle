@@ -148,6 +148,9 @@ run_tests() {
             fi
             ;;
         "Bloom")
+            export VALKEY_REPLICA_PORT=6380
+            export VALKEY_REPLICA_HOST=$VALKEY_HOST
+            
             start_bloom_containers() {
                 docker network create valkey-net >/dev/null 2>&1 || true
                 docker run -d --name "${CONTAINER_NAME}-master" --network valkey-net -p $VALKEY_PORT:6379 "$image" \
@@ -186,9 +189,7 @@ run_tests() {
                 
                 cleanup_bloom_containers
                 start_bloom_containers
-                
-                export VALKEY_REPLICA_HOST=$VALKEY_HOST
-                export VALKEY_REPLICA_PORT=$((VALKEY_PORT + 1))
+
                 python -m pytest "$test" --cache-clear -v
                 local test_exit_code=$?
                 
