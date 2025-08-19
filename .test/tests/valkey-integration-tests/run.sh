@@ -45,8 +45,6 @@ setup_test_framework() {
 trap summary EXIT INT TERM
 
 get_versions() {
-    local version_key="$1"
-    
     # These version variables will be used later when we test from the release tags instead of default branches.
     # This will be done once each of the modules releases a new patch which includes our external test changes.
     VALKEY_SERVER_VERSION=$(jq -r ".\"$version_key\".\"valkey-server\".version" versions.json)
@@ -61,7 +59,7 @@ get_versions() {
     fi
 }
 
-get_versions "$version_key"
+get_versions
 
 echo "=== Valkey Bundle Container Started ==="
 
