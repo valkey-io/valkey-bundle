@@ -4,19 +4,15 @@ This Project is the Git repo of the [Valkey Bundle "Official Image"](https://hub
 
 The Project is maintained by [the Valkey Community](https://github.com/valkey-io/)
 
-## When should a new image built and publish new Docker Image?
+## When should a new Docker image be built and published to Docker Hub?
 
 A new Docker Image should be built and published after a new major, minor or patch version of Valkey or any Valkey module releases.
 
 ## How do you build and publish new version of a Docker Image?
 
-*Pre-requisites: [Fork](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo) this repo, create a private Docker Hub repo, and setup your GitHub secrets to access the private Docker Hub repo.*
+*Prerequisites: [Fork](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo) this repo, create a private Docker Hub repo, and setup your GitHub secrets to access the private Docker Hub repo.*
 
-1. Bump up the respective versions in `versions.json`. (will be automated by implementing `versions.sh`)
-2. Run `apply-templates.sh`
-3. Update the `dockerhub-description.md` with the updated tags.
-4. Open a new PR for the new changes.
-5. Once the PR is merged, sit back, relax and enjoy looking at your creation getting published to the official `valkey-bundle` Docker Hub page.
+Upon releasing a new version of Valkey or any of its supported modules, a pull request will automatically be created with version specific dockerfiles. Additionally, `versions.json` will be updated with the most up to date versions and `dockerhub-description.md` will be updated with the tags. Once the pull request is merged, sit back, relax, and enjoy looking at your creation getting published to the official `valkey-bundle` Docker Hub page.
 
 ## How to add a New Module?
 1. Update [versions.json](https://github.com/valkey-io/valkey-bundle/blob/mainline/versions.json):
@@ -104,10 +100,17 @@ A new Docker Image should be built and published after a new major, minor or pat
     ]
     ```
 
+3. Set up your module repository so the Valkey-Bundle repository can be automatically updated.
+
+  - Create a trigger in your modules `.github/workflows` folder called `trigger-{module-name}-release`
+  - Use the [code](https://github.com/valkey-io/valkey-search/blob/main/.github/workflows/trigger-search-release.yml) in the valkey-search repository as a template for your trigger. You can directly copy and paste this code into your file with only some minor changes: 
+    - Update the top level name and replace "search" with the name of your module. Then update the description in the `workflow_dispatch` section and replace "search" with the name of your module.
+    - In the `Trigger extension update` step, look at the `event-type` field. Modify the field to be `{module-name}-release`. Then in the same step, look at the `client-payload` field. Update the module parameter with the name of your module.
+  - After creating this trigger, head over to the [`.github/workflows/update-files.yml`](https://github.com/Nikhil-Manglore/valkey-bundle/blob/mainline/.github/workflows/update-files.yml) in this repository. In the `repository_dispatch` section, add the name of the event type you created in the previous step to the end of the `types` array.
+  - Finally create a secret in your repository with the name `EXTENSION_PAT` and secret value as your GitHub personal access token which you can create in your accounts developer settings.
+
 3. Rebuild and Publish
    Now follow the [Build and Publish](#how-do-you-build-and-publish-new-version-of-a-docker-image) steps above.
-   - Run [./apply-templates.sh](https://github.com/valkey-io/valkey-bundle/blob/mainline/apply-templates.sh)
-   - Test the build
-   - Open a pull request
+   - Release a version of your module and that will trigger the automation which will complete all the required steps to build the new Docker images.
 
 You're now ready to contribute a new Valkey module 🎉

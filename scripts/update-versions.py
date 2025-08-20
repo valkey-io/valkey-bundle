@@ -83,7 +83,8 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
                     ["git", "ls-remote", "--exit-code", "--heads", "origin", "valkey-bundle-update"], stderr=subprocess.DEVNULL)
                 logging.info("PR exists — skipping bundle version bump.")
             except subprocess.CalledProcessError:
-                versions_data[new_major_minor_release]["version"] = f"{major}.{minor}.{patch + 1}"
+                bundle_major, bundle_minor, bundle_patch, bundle_rc = parse_version(existing_bundle_version)
+                versions_data[new_major_minor_release]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch + 1}"
                 logging.info("No PR Exists — bumped bundle version.")
         else:
             # New major/minor version
@@ -136,8 +137,8 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
             logging.info("Branch valkey-bundle-update exists — skipping bundle version patch bump.")
         except subprocess.CalledProcessError:
             current_version = versions_data[latest]["version"]
-            major, minor, patch, rc = parse_version(current_version)
-            versions_data[latest]["version"] = f"{major}.{minor}.{patch + 1}"
+            bundle_major, bundle_minor, bundle_patch, bundle_rc = parse_version(current_version)
+            versions_data[latest]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch + 1}"
             logging.info("Branch valkey-bundle-update not found — bumping patch version.")
         
         return versions_data
