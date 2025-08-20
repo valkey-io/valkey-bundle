@@ -33,7 +33,7 @@ def get_known_modules_from_versions(versions_data: Dict[str, Any]) -> Dict[str, 
     logging.info(f"Found modules in versions.json: {list(modules.keys())}")
     return modules
 
-def get_debian_version_for_valkey(valkey_version: str) -> str:
+def get_debian_version(valkey_version: str) -> str:
     """Gets the most up to date Debian version from the container."""
     major, minor, _, _ = parse_version(valkey_version)
     version_key = f"{major}.{minor}"
@@ -101,7 +101,7 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
                 },
                 "modules": module_versions,
                 "debian": {
-                    "version": get_debian_version_for_valkey(new_version)
+                    "version": get_debian_version(new_version)
                 }
             }
             
