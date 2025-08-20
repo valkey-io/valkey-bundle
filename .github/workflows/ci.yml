@@ -115,7 +115,7 @@ jobs:
       - name: Prepare Environment
         run: ${{ matrix.version.runs.prepare }}
 
-      - name: Test ${{ matrix.version.name }}
+      - name: Validation Tests ${{ matrix.version.name }}
         run: |
           docker images
           set -- "${{ env.DOCKER_REPO_NAME }}"
@@ -124,6 +124,19 @@ jobs:
           fi
           ~/oi/test/run.sh "$@"
 
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'
+
+      # Core + Module Integration Tests 
+      - name: All Core + Module Tests
+        run: |
+          matrix_version="${{ matrix.version.name }}"
+          bundle_version=$(echo "$matrix_version" | cut -d'.' -f1-2)
+          
+          ./.test/tests/valkey-integration-tests/run.sh "${{ env.DOCKER_REPO_NAME }}" "$bundle_version"
+          
       # Export digest to a file to reference it later in merging manifests
       - name: Export digest
         id: export-digest
