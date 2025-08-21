@@ -25,11 +25,35 @@ jobs:
     concurrency:
       group: valkey-bundle-updates
       cancel-in-progress: false
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: ./valkey-bundle
+
     steps:
-      - name: Checkout repository
+      - name: Checkout Valkey-Bundle 
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          path: valkey-bundle
+
+      - name: Configure Git For Valkey-Bundle
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+      - name: Checkout valkey-container
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/valkey-container
+          path: valkey-container
+          clean: false
+
+      - name: Exclude valkey-container in bundle repo
+        run: |
+          echo "/valkey-container" >> .git/info/exclude
+          git status --porcelain
 
       - name: Check for an existing pull request branch
         id: check-branch
@@ -38,16 +62,13 @@ jobs:
         run: |
           BRANCH_NAME="valkey-bundle-update"
           echo "branch-name=$BRANCH_NAME" >> $GITHUB_OUTPUT
-          
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          
-          if git ls-remote --exit-code --heads origin $BRANCH_NAME; then
+
+          if git ls-remote --exit-code --heads origin "$BRANCH_NAME"; then
             echo "branch-exists=true" >> $GITHUB_OUTPUT
             echo "Checking out existing branch"
-            git fetch origin $BRANCH_NAME
-            git checkout $BRANCH_NAME
-            git pull origin $BRANCH_NAME
+            git fetch origin "$BRANCH_NAME"
+            git checkout "$BRANCH_NAME"
+            git pull --ff-only origin "$BRANCH_NAME"
           else
             echo "branch-exists=false" >> $GITHUB_OUTPUT
             echo "Staying on mainline for new branch creation"
@@ -83,13 +104,6 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Checkout valkey-container
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository_owner }}/valkey-container
-          path: valkey-container
-          clean: false
-
       - name: Update versions.json
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -97,21 +111,26 @@ jobs:
           python scripts/update-versions.py versions.json \
             "${{ steps.process-inputs.outputs.component }}" \
             "${{ steps.process-inputs.outputs.version }}"
+          git add versions.json
+          git commit -m "Update versions.json for ${{ steps.process-inputs.outputs.component }} ${{ steps.process-inputs.outputs.version }}" || echo "No changes to commit"
 
       - name: Update Dockerfiles
         run: |
-          # Download the scripts for bashbrew in local
+          # Fetch template helpers into bundle/
           jqt='.jq-template.awk'
           wget -qO "$jqt" 'https://github.com/docker-library/bashbrew/raw/9f6a35772ac863a0241f147c820354e4008edf38/scripts/jq-template.awk'
           jqf='.template-helper-functions.jq'
           wget -qO "$jqf" 'https://github.com/docker-library/bashbrew/raw/08c926140ad0af22de58c2a2656afda58082ba3e/scripts/template-helper-functions.jq'
 
-          # Run update script
           ./apply-templates.sh
 
-          # Commit the changes
+          # Stage all changes from apply-templates.sh
           git add .
-          git commit -m "Update versions.json and Dockerfiles for ${{ steps.process-inputs.outputs.component }} ${{ steps.process-inputs.outputs.version }}" || echo "No changes to commit"
+          if git diff --staged --quiet; then
+            echo "No Dockerfile changes to commit"
+          else
+            git commit -m "Update Dockerfiles for ${{ steps.process-inputs.outputs.component }} ${{ steps.process-inputs.outputs.version }}"
+          fi
 
       - name: Set up bashbrew
         uses: docker-library/bashbrew@v0.1.12
@@ -119,9 +138,8 @@ jobs:
       - name: Generate Jobs Strategy
         id: generate-jobs
         run: |
-          BASHBREW_SCRIPTS=/home/runner/work/_actions/docker-library/bashbrew/v0.1.12/scripts
           strategy="$("$BASHBREW_SCRIPTS/github-actions/generate.sh")"
-          echo "strategy=$strategy" >> $GITHUB_OUTPUT
+          echo "strategy=$(echo "$strategy" | jq -c '.')" >> $GITHUB_OUTPUT
 
       - name: Update DockerHub description
         run: |
@@ -130,31 +148,30 @@ jobs:
           rm strategy.json
           git add dockerhub-description.md
           git commit -m "Update DockerHub description for ${{ steps.process-inputs.outputs.component }} ${{ steps.process-inputs.outputs.version }}" || echo "No changes to commit"
-      
+
       - name: Push changes and update existing PR
         if: steps.check-branch.outputs.branch-exists == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           BRANCH_NAME="${{ steps.check-branch.outputs.branch-name }}"
-          git push origin $BRANCH_NAME
-        
+          git push origin HEAD:"$BRANCH_NAME"
+
       - name: Create Pull Request
         if: steps.check-branch.outputs.branch-exists == 'false'
         uses: peter-evans/create-pull-request@v5
         with:
+          path: valkey-bundle
           token: ${{ secrets.VALKEY_BUNDLE_PAT_FOR_PR }}
           branch: ${{ steps.check-branch.outputs.branch-name }}
           delete-branch: false
           title: "Automated Updates for Valkey Bundle"
           body: |
             This PR contains automated updates for the valkey bundle release.
-            
-            See commit history for details of the repositories and versions that were updated.
-            
+
             Changes include:
             - Updated versions.json
-            - Updated Dockerfiles  
+            - Updated Dockerfiles
             - Updated DockerHub description
 
       - name: Comment on Pull Request
