@@ -210,123 +210,85 @@ jobs:
       # Use imagetools to combine the arch-specific digests into respective multi-arch manifest
       - name: Create Multi-Arch Manifest and Push
         working-directory: ${{ runner.temp }}
-        run: |          
-          declare -A version_distro_combinations          
-          ls -la all-digests/
+        run: |
+          echo "Starting manifest creation process..."
+          echo "Available artifacts:"
+          ls -la all-digests/ all-tags/
           
-          for artifact_dir in all-digests/digests-*; do
-            if [ -d "$artifact_dir" ]; then
-              artifact_name=$(basename "$artifact_dir")
-              echo "Processing artifact: $artifact_name"
-              
-              # Parse artifact name: digests-{version}-{distro}-{platform}
-              if [[ "$artifact_name" =~ digests-([^-]+)-([^-]+)-(.+) ]]; then
-                version="${BASH_REMATCH[1]}"
-                distro="${BASH_REMATCH[2]}"
-                platform="${BASH_REMATCH[3]}"
-                
-                version_and_distro="${version}-${distro}"
-                version_distro_combinations["$version_and_distro"]=1
-                
-                echo "Found combination: $version_and_distro (version: $version, distro: $distro, platform: $platform)"
-              fi
+          # Discover version-distro combinations
+          echo "Discovering version-distro combinations..."
+          declare -A combinations
+          for digest_artifact_dir in all-digests/digests-*; do
+            [[ -d "$digest_artifact_dir" ]] || continue
+            artifact_name=$(basename "$digest_artifact_dir")
+            echo "  Processing: $artifact_name"
+            if [[ "$artifact_name" =~ digests-([^-]+)-([^-]+)-.+ ]]; then
+              version="${BASH_REMATCH[1]}"
+              distro="${BASH_REMATCH[2]}"
+              combo="${version}-${distro}"
+              combinations["$combo"]=1
+              echo "    Found combination: $combo (version=$version, distro=$distro)"
             fi
           done
           
-          echo "Discovered version-distro combinations:"
-          for combination in "${!version_distro_combinations[@]}"; do
-            echo "  - $combination"
+          echo "Discovered combinations:"
+          for combo in "${!combinations[@]}"; do
+            echo "  - $combo"
           done
           
-          # Create manifest for each version-distro combination
-          for combination in "${!version_distro_combinations[@]}"; do
-            echo "Creating manifest for combination: $combination"
+          # Create manifest for each combination
+          echo "Creating manifests..."
+          for combo in "${!combinations[@]}"; do
+            echo "--- Processing $combo ---"
+            version=${combo%-*}
+            distro=${combo#*-}
+            echo "  Version: $version, Distro: $distro"
             
-            # Extract version and distro from combination key
-            version=$(echo "$combination" | cut -d'-' -f1)
-            distro=$(echo "$combination" | cut -d'-' -f2)
+            # Collect digests
+            echo "  Collecting digests..."
+            mkdir -p "digests/$combo"
+            find all-digests/ -name "digests-${combo}-*" -exec cp {}/* "digests/$combo/" \; 2>/dev/null
+            digest_count=$(ls -1 "digests/$combo" 2>/dev/null | wc -l)
+            echo "    Found $digest_count digest files"
+            [[ $digest_count -gt 0 ]] || { echo "    No digests for $combo, skipping"; continue; }
             
-            echo "Processing version: $version, distro: $distro"
-            
-            # Create directory for this combination and collect digests
-            mkdir -p "digests/$combination"
-            
-            # Find and copy all digests for this version-distro combination
-            find all-digests/ -name "digests-${version}-${distro}-*" -exec sh -c '
-              artifact_dir="$1"
-              combination="$2"
-              echo "  Copying digests from: $artifact_dir"
-              if [ -d "$artifact_dir" ]; then
-                cp "$artifact_dir"/* "digests/$combination/" 2>/dev/null || true
-              fi
-            ' _ {} "$combination" \;
-            
-            # Check if we have digests for this combination
-            if [ ! -d "digests/$combination" ] || [ -z "$(ls -A "digests/$combination" 2>/dev/null)" ]; then
-              echo "  No digests found for $combination, skipping"
-              continue
-            fi
-            
-            # Find tags for this version
+            # Get and filter tags
+            echo "  Processing tags..."
             tag_file="all-tags/tags-${version}/tags.txt"
-            if [ ! -f "$tag_file" ]; then
-              echo "  No tags file found for version $version, skipping"
-              continue
-            fi
+            [[ -f "$tag_file" ]] || { echo "    No tags file for $version, skipping"; continue; }
             
-            # Read and filter tags for this distro
-            all_tags_for_version=$(cat "$tag_file" | sed 's/,/ /g')
+            all_tags=$(cat "$tag_file" | sed 's/,/ /g')
+            echo "    All tags for $version: $all_tags"
             
-            if [ "$distro" = "alpine" ]; then
-              distro_tags=$(echo $all_tags_for_version | tr ' ' '\n' | grep "alpine" | tr '\n' ' ')
+            if [[ "$distro" == "alpine" ]]; then
+              tags=$(echo "$all_tags" | tr ' ' '\n' | grep alpine | tr '\n' ' ')
+              echo "    Filtered alpine tags: $tags"
             else
-              # For debian variants - tags without "alpine"
-              distro_tags=$(echo $all_tags_for_version | tr ' ' '\n' | grep -v "alpine" | tr '\n' ' ')
+              tags=$(echo "$all_tags" | tr ' ' '\n' | grep -v alpine | tr '\n' ' ')
+              echo "    Filtered debian tags: $tags"
             fi
+            [[ -n "$tags" ]] || { echo "    No tags for $combo, skipping"; continue; }
             
-            if [ -z "$distro_tags" ]; then
-              echo "  No tags found for $combination, skipping"
-              continue
-            fi
+            # Build arguments
+            echo "  Building manifest arguments..."
+            tag_args=$(printf -- "-t %s " $tags)
+            digest_args=$(printf "${{ env.DOCKER_REPO_NAME }}@sha256:%s " digests/$combo/*)
+            digest_args=${digest_args//digests\/$combo\//}
             
-            echo "  Tags for $combination: $distro_tags"
+            echo "    Tag args: $tag_args"
+            echo "    Digest args: $digest_args"
             
-            # Prepare tag arguments
-            tag_args=""
-            for tag in $distro_tags; do
-              tag_args="$tag_args -t $tag"
-            done
-            
-            # Prepare digest arguments
-            digest_args=""
-            digest_count=0
-            for digest_file in "digests/$combination"/*; do
-              if [ -f "$digest_file" ]; then
-                digest=$(basename "$digest_file")
-                digest_args="$digest_args ${{ env.DOCKER_REPO_NAME }}@sha256:$digest"
-                digest_count=$((digest_count + 1))
-              fi
-            done
-            
-            if [ $digest_count -eq 0 ]; then
-              echo "  No valid digests found for $combination, skipping"
-              continue
-            fi
-            
-            echo "  Creating manifest for $combination"
-            echo "  Tags: $tag_args"
-            echo "  Digests ($digest_count): $digest_args"
-            
-            # Create and push the version-distro specific manifest
+            # Create manifest
+            echo "  Creating manifest for $combo..."
             if [[ "${{ env.IS_PULL }}" == "true" ]]; then
-              echo "  Dry run: docker buildx imagetools create $tag_args $digest_args"
+              echo "    Dry run: docker buildx imagetools create $tag_args $digest_args"
             else
               docker buildx imagetools create $tag_args $digest_args
-              echo "Created manifest for $combination"
+              echo "    Created $combo manifest"
             fi
           done
           
-          echo "Successfully created all version-distro specific manifests"
+          echo "Manifest creation process completed!"
 
   update-dockerhub-description:
     if: github.event_name == 'push' && github.ref == 'refs/heads/mainline'
