@@ -38,8 +38,7 @@ jobs:
           fetch-depth: 0
           path: valkey-bundle
 
-      # Configure git once in the bundle repo
-      - name: Git config (bundle)
+      - name: Configure Git For Valkey-Bundle
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -50,13 +49,12 @@ jobs:
           path: valkey-container
           clean: false
 
-      # Safety: ensure bundle repo ignores the valkey-container folder even if referenced
       - name: Exclude valkey-container in bundle repo
         run: |
           echo "/valkey-container" >> .git/info/exclude
           git status --porcelain
 
-      - name: Check or create work branch
+      - name: Check for an existing pull request branch
         id: check-branch
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -66,21 +64,24 @@ jobs:
 
           if git ls-remote --exit-code --heads origin "$BRANCH_NAME"; then
             echo "branch-exists=true" >> $GITHUB_OUTPUT
+            echo "Checking out existing branch"
             git fetch origin "$BRANCH_NAME"
             git checkout "$BRANCH_NAME"
             git pull --ff-only origin "$BRANCH_NAME"
           else
             echo "branch-exists=false" >> $GITHUB_OUTPUT
-            # stay on current default branch; we'll create the branch on first commit/push
+            echo "Staying on mainline for new branch creation"
           fi
 
       - name: Process inputs
         id: process-inputs
         run: |
           if [[ "${{ github.event_name }}" == "repository_dispatch" ]]; then
+            # From "repository_dispatch" trigger
             echo "version=${{ github.event.client_payload.version }}" >> $GITHUB_OUTPUT
             echo "component=${{ github.event.client_payload.component }}" >> $GITHUB_OUTPUT
           else
+            # From "workflow_dispatch" trigger
             echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
             echo "component=${{ github.event.inputs.component }}" >> $GITHUB_OUTPUT
           fi
@@ -91,6 +92,7 @@ jobs:
           VERSION="${{ steps.process-inputs.outputs.version }}"
           MAJOR=$(echo "$VERSION" | cut -d. -f1)
           MINOR=$(echo "$VERSION" | cut -d. -f2)
+          
           if [ "$MAJOR" -lt 8 ] || { [ "$MAJOR" -eq 8 ] && [ "$MINOR" -lt 1 ]; }; then
             echo "Valkey version must be >= 8.1. Current: $VERSION"
             exit 1
@@ -146,7 +148,7 @@ jobs:
           git add dockerhub-description.md
           git commit -m "Update DockerHub description for ${{ steps.process-inputs.outputs.component }} ${{ steps.process-inputs.outputs.version }}" || echo "No changes to commit"
 
-      - name: Push changes (existing branch)
+      - name: Push changes and update existing PR
         if: steps.check-branch.outputs.branch-exists == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -175,10 +177,5 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Find the PR for the branch and comment on it
-          PR_NUMBER="$(gh pr list --head ${{ steps.check-branch.outputs.branch-name }} --json number -q '.[0].number')"
-          if [[ -n "$PR_NUMBER" ]]; then
-            gh pr comment "$PR_NUMBER" --body "**Updated ${{ steps.process-inputs.outputs.component }} to version ${{ steps.process-inputs.outputs.version }}.**"
-          else
-            echo "No PR found to comment on."
-          fi
+          BRANCH_NAME="${{ steps.check-branch.outputs.branch-name }}"
+          gh pr comment "$BRANCH_NAME" --body "**Updated ${{ steps.process-inputs.outputs.component }} to version ${{ steps.process-inputs.outputs.version }}.**"
