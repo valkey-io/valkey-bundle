@@ -143,7 +143,7 @@ jobs:
         if: steps.check-branch.outputs.branch-exists == 'false'
         uses: peter-evans/create-pull-request@v5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.VALKEY_BUNDLE_PAT_FOR_PR }}
           branch: ${{ steps.check-branch.outputs.branch-name }}
           delete-branch: false
           title: "Automated Updates for Valkey Bundle"
