@@ -131,7 +131,6 @@ jobs:
       - name: Generate Jobs Strategy
         id: generate-jobs
         run: |
-          BASHBREW_SCRIPTS="../_actions/docker-library/bashbrew/v0.1.12/scripts"
           strategy="$("$BASHBREW_SCRIPTS/github-actions/generate.sh")"
           echo "strategy=$(echo "$strategy" | jq -c '.')" >> $GITHUB_OUTPUT
 
