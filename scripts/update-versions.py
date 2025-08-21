@@ -38,7 +38,7 @@ def get_debian_version(valkey_version: str) -> str:
     major, minor, _, _ = parse_version(valkey_version)
     version_key = f"{major}.{minor}"
     
-    with open('/tmp/valkey-container/versions.json', 'r') as f:
+    with open('.tmp/valkey-container/versions.json', 'r') as f:
         container_versions = json.load(f)
     
     return container_versions[version_key]["debian"]["version"]
