@@ -257,13 +257,14 @@ jobs:
             
             # Get and filter tags
             echo "  Processing tags..."
-            # Find the actual tag file (could be tags-8.1.0, tags-8.1.0-alpine, etc.)
-            tag_file=$(find all-tags/ -name "tags-${version}*" -type d | head -1)
-            if [[ -n "$tag_file" ]]; then
-                tag_file="$tag_file/tags.txt"
+            if [[ "$distro" == "alpine" ]]; then
+                # Look for tags-X.Y.Z-alpine
+                tag_dir=$(find all-tags/ -name "tags-${version}*-alpine" -type d | head -1)
             else
-                tag_file="all-tags/tags-${version}/tags.txt"
+                # Look for tags-X.Y.Z (without alpine suffix)
+                tag_dir=$(find all-tags/ -name "tags-${version}*" -type d | grep -v "\-alpine$" | head -1)
             fi
+            tag_file="$tag_dir/tags.txt"
             [[ -f "$tag_file" ]] || { echo "    No tags file for $version, skipping"; continue; }
             
             all_tags=$(cat "$tag_file" | sed 's/,/ /g')
