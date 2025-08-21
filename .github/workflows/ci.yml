@@ -219,7 +219,7 @@ jobs:
             [[ -d "$digest_artifact_dir" ]] || continue
             artifact_name=$(basename "$digest_artifact_dir")
             echo "  Processing: $artifact_name"
-            if [[ "$artifact_name" =~ digests-([^-]+)-([^-]+)-.+ ]]; then
+            if [[ "$artifact_name" =~ digests-(.+)-(alpine|debian|bookworm|trixie)-linux-.+ ]]; then
               version="${BASH_REMATCH[1]}"
               distro="${BASH_REMATCH[2]}"
               combo="${version}-${distro}"
@@ -237,14 +237,20 @@ jobs:
           echo "Creating manifests..."
           for combo in "${!combinations[@]}"; do
             echo "--- Processing $combo ---"
-            version=${combo%-*}
-            distro=${combo#*-}
+            # Extract version and distro by finding the last occurrence of known distros
+            if [[ "$combo" =~ (.+)-(alpine|debian|bookworm|trixie)$ ]]; then
+              version="${BASH_REMATCH[1]}"
+              distro="${BASH_REMATCH[2]}"
+            else
+              echo "    Error: Could not parse combo $combo"
+              continue
+            fi
             echo "  Version: $version, Distro: $distro"
             
             # Collect digests
             echo "  Collecting digests..."
             mkdir -p "digests/$combo"
-            find all-digests/ -name "digests-${combo}-*" -exec cp {}/* "digests/$combo/" \; 2>/dev/null
+            find all-digests/ -name "digests-${combo}-*" -exec sh -c 'cp "$1"/* "$2"/' _ {} "digests/$combo/" \; 2>/dev/null
             digest_count=$(ls -1 "digests/$combo" 2>/dev/null | wc -l)
             echo "    Found $digest_count digest files"
             [[ $digest_count -gt 0 ]] || { echo "    No digests for $combo, skipping"; continue; }
