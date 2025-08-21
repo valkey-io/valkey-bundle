@@ -144,18 +144,27 @@ jobs:
           mkdir -p ${{ runner.temp }}/digests
           digest="${{ steps.build.outputs.digest }}"
           touch "${{ runner.temp }}/digests/${digest#sha256:}"
-      
-          # Check if the version directory contains 'debian'
-          if [[ "${{ matrix.version.meta.entries[0].directory }}" == *"debian"* ]]; then
-            echo "linux_distro=bookworm" >> "$GITHUB_OUTPUT"
-          else
-            echo "linux_distro=alpine" >> "$GITHUB_OUTPUT"
+          
+          version="${{ matrix.version.name }}"
+          major_minor=$(echo "$version" | cut -d'.' -f1-2)
+          
+          # Determine the distro from the directory path
+          directory="${{ matrix.version.meta.entries[0].directory }}"
+          if [[ "$directory" == *"alpine"* ]]; then
+            distro="alpine"
+          elif [[ "$directory" == *"bookworm"* ]]; then
+            distro="debian"
+          elif [[ "$directory" == *"trixie"* ]]; then
+            distro="debian"
           fi
+          
+          echo "linux_distro=$distro" >> "$GITHUB_OUTPUT"
+          echo "version_major_minor=$major_minor" >> "$GITHUB_OUTPUT"
     
-      - name: Upload digest
+      - name: Upload digest for version-distro combination
         uses: actions/upload-artifact@v4
         with:
-          name: digests-${{ steps.export-digest.outputs.linux_distro }}-${{ env.PLATFORM_PAIR }}-${{ matrix.version.name }}
+          name: digests-${{ steps.export-digest.outputs.version_major_minor }}-${{ steps.export-digest.outputs.linux_distro }}-${{ env.PLATFORM_PAIR }}
           path: ${{ runner.temp }}/digests/*
           if-no-files-found: error
           retention-days: 1
@@ -163,7 +172,7 @@ jobs:
   # Job to merge architecture-specific images into a single multi-arch manifest
   merge-manifest:
     runs-on: ubuntu-latest
-    needs: build_and_push
+    needs: [generate-jobs, build_and_push]
     steps:
       - name: Set DOCKER_REPO_NAME dynamically
         run: |
@@ -173,24 +182,17 @@ jobs:
             echo "DOCKER_REPO_NAME=${{ secrets.DOCKERHUB_ACCOUNT }}/valkey-bundle" >> $GITHUB_ENV
           fi
 
-      - name: Download Bookworm Digests
+      - name: Download All Digests
         uses: actions/download-artifact@v4
         with:
-          path: ${{ runner.temp }}/digests/bookworm
-          pattern: digests-bookworm-*
-          merge-multiple: true
+          path: ${{ runner.temp }}/all-digests
+          pattern: digests-*
+          merge-multiple: false
 
-      - name: Download Alpine Digests
+      - name: Download All Tags
         uses: actions/download-artifact@v4
         with:
-          path: ${{ runner.temp }}/digests/alpine
-          pattern: digests-alpine-*
-          merge-multiple: true
-
-      - name: Download Tags
-        uses: actions/download-artifact@v4
-        with:
-          path: ${{ runner.temp }}/tags
+          path: ${{ runner.temp }}/all-tags
           pattern: tags-*
           merge-multiple: false
 
@@ -207,44 +209,124 @@ jobs:
 
       # Use imagetools to combine the arch-specific digests into respective multi-arch manifest
       - name: Create Multi-Arch Manifest and Push
-        working-directory: ${{ runner.temp }}/digests
-        run: |
-          cat ${{ runner.temp }}/tags/*/tags.txt
-          bookworm_exists=$([ -n "$(sed 's/,/ /g' ${{ runner.temp }}/tags/*/tags.txt | grep -v "alpine")" ] && echo "true" || echo "false")
-
-          # Check if bookworm_exists is true
-          if [[ $bookworm_exists == "true" ]]; then
-            # Prepare tags and digest references argument for BOOKWORM from downloaded tags artifact
-            TAGS_bookworm=$(sed 's/,/ /g' ${{ runner.temp }}/tags/*/tags.txt | grep -v "alpine" | xargs -n1 echo "-t" | tr '\n' ' ')
-            DIGESTS_bookworm=$(printf '${{ env.DOCKER_REPO_NAME }}@sha256:%s ' ./bookworm/* | sed 's|./bookworm/||g')
-
-            # Create and push the multi-architecture manifest for BOOKWORM only for push events
-            if [[ "${{ env.IS_PULL }}" == "true" ]]; then
-              echo "Dry run: docker buildx imagetools create $TAGS_bookworm $DIGESTS_bookworm"
-            else
-              docker buildx imagetools create $TAGS_bookworm $DIGESTS_bookworm
-            fi
-          else
-            echo "No valid bookworm tags found, skipping bookworm manifest creation."
-          fi
-
-          alpine_exists=$([ -n "$(sed 's/,/ /g' ${{ runner.temp }}/tags/*/tags.txt | grep "alpine")" ] && echo "true" || echo "false")
+        working-directory: ${{ runner.temp }}
+        run: |          
+          declare -A version_distro_combinations          
+          ls -la all-digests/
           
-          # Check if TAGS_alpine and DIGESTS_alpine are not empty
-          if [[ $alpine_exists == "true" ]]; then
-            # Prepare tags and digest references argument for ALPINE from downloaded tags artifact
-            TAGS_alpine=$(sed 's/,/ /g' ${{ runner.temp }}/tags/*/tags.txt | grep "alpine" | xargs -n1 echo "-t" | tr '\n' ' ')
-            DIGESTS_alpine=$(printf '${{ env.DOCKER_REPO_NAME }}@sha256:%s ' ./alpine/* | sed 's|./alpine/||g')
-
-            # Create and push the multi-architecture manifest for ALPINE only for push events
-            if [[ "${{ env.IS_PULL }}" == "true" ]]; then
-              echo "Dry run: docker buildx imagetools create $TAGS_alpine $DIGESTS_alpine"
-            else
-              docker buildx imagetools create $TAGS_alpine $DIGESTS_alpine
+          for artifact_dir in all-digests/digests-*; do
+            if [ -d "$artifact_dir" ]; then
+              artifact_name=$(basename "$artifact_dir")
+              echo "Processing artifact: $artifact_name"
+              
+              # Parse artifact name: digests-{version}-{distro}-{platform}
+              if [[ "$artifact_name" =~ digests-([^-]+)-([^-]+)-(.+) ]]; then
+                version="${BASH_REMATCH[1]}"
+                distro="${BASH_REMATCH[2]}"
+                platform="${BASH_REMATCH[3]}"
+                
+                version_and_distro="${version}-${distro}"
+                version_distro_combinations["$version_and_distro"]=1
+                
+                echo "Found combination: $version_and_distro (version: $version, distro: $distro, platform: $platform)"
+              fi
             fi
-          else
-            echo "No valid alpine tags found, skipping alpine manifest creation."
-          fi
+          done
+          
+          echo "Discovered version-distro combinations:"
+          for combination in "${!version_distro_combinations[@]}"; do
+            echo "  - $combination"
+          done
+          
+          # Create manifest for each version-distro combination
+          for combination in "${!version_distro_combinations[@]}"; do
+            echo "Creating manifest for combination: $combination"
+            
+            # Extract version and distro from combination key
+            version=$(echo "$combination" | cut -d'-' -f1)
+            distro=$(echo "$combination" | cut -d'-' -f2)
+            
+            echo "Processing version: $version, distro: $distro"
+            
+            # Create directory for this combination and collect digests
+            mkdir -p "digests/$combination"
+            
+            # Find and copy all digests for this version-distro combination
+            find all-digests/ -name "digests-${version}-${distro}-*" -exec sh -c '
+              artifact_dir="$1"
+              combination="$2"
+              echo "  Copying digests from: $artifact_dir"
+              if [ -d "$artifact_dir" ]; then
+                cp "$artifact_dir"/* "digests/$combination/" 2>/dev/null || true
+              fi
+            ' _ {} "$combination" \;
+            
+            # Check if we have digests for this combination
+            if [ ! -d "digests/$combination" ] || [ -z "$(ls -A "digests/$combination" 2>/dev/null)" ]; then
+              echo "  No digests found for $combination, skipping"
+              continue
+            fi
+            
+            # Find tags for this version
+            tag_file="all-tags/tags-${version}/tags.txt"
+            if [ ! -f "$tag_file" ]; then
+              echo "  No tags file found for version $version, skipping"
+              continue
+            fi
+            
+            # Read and filter tags for this distro
+            all_tags_for_version=$(cat "$tag_file" | sed 's/,/ /g')
+            
+            if [ "$distro" = "alpine" ]; then
+              distro_tags=$(echo $all_tags_for_version | tr ' ' '\n' | grep "alpine" | tr '\n' ' ')
+            else
+              # For debian variants - tags without "alpine"
+              distro_tags=$(echo $all_tags_for_version | tr ' ' '\n' | grep -v "alpine" | tr '\n' ' ')
+            fi
+            
+            if [ -z "$distro_tags" ]; then
+              echo "  No tags found for $combination, skipping"
+              continue
+            fi
+            
+            echo "  Tags for $combination: $distro_tags"
+            
+            # Prepare tag arguments
+            tag_args=""
+            for tag in $distro_tags; do
+              tag_args="$tag_args -t $tag"
+            done
+            
+            # Prepare digest arguments
+            digest_args=""
+            digest_count=0
+            for digest_file in "digests/$combination"/*; do
+              if [ -f "$digest_file" ]; then
+                digest=$(basename "$digest_file")
+                digest_args="$digest_args ${{ env.DOCKER_REPO_NAME }}@sha256:$digest"
+                digest_count=$((digest_count + 1))
+              fi
+            done
+            
+            if [ $digest_count -eq 0 ]; then
+              echo "  No valid digests found for $combination, skipping"
+              continue
+            fi
+            
+            echo "  Creating manifest for $combination"
+            echo "  Tags: $tag_args"
+            echo "  Digests ($digest_count): $digest_args"
+            
+            # Create and push the version-distro specific manifest
+            if [[ "${{ env.IS_PULL }}" == "true" ]]; then
+              echo "  Dry run: docker buildx imagetools create $tag_args $digest_args"
+            else
+              docker buildx imagetools create $tag_args $digest_args
+              echo "Created manifest for $combination"
+            fi
+          done
+          
+          echo "Successfully created all version-distro specific manifests"
 
   update-dockerhub-description:
     if: github.event_name == 'push' && github.ref == 'refs/heads/mainline'
