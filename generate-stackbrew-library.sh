@@ -65,14 +65,39 @@ for version; do
 	fullVersion="$(jq -r '.[env.version].version' versions.json)"
 
 	versionAliases=()
-	while [ "$fullVersion" != "$version" ] && [ "${fullVersion%.*}" != "$fullVersion" ]; do
-		versionAliases+=( $fullVersion )
-		fullVersion="${fullVersion%.*}"
+
+	rcSuffix=""
+	baseVersion="$fullVersion"
+	if [[ "$fullVersion" =~ -rc[0-9]+$ ]]; then
+		rcSuffix="${fullVersion##*-}"
+		baseVersion="${fullVersion%-*}"
+	fi
+
+	versionAliases+=( "$fullVersion" )
+
+	currentVersion="$baseVersion"
+	while [ "$currentVersion" != "$version" ] && [ "${currentVersion%.*}" != "$currentVersion" ]; do
+		currentVersion="${currentVersion%.*}"
+		if [ -n "$rcSuffix" ]; then
+			versionAliases+=( "$currentVersion-$rcSuffix" )
+		else
+			versionAliases+=( "$currentVersion" )
+		fi
 	done
-	versionAliases+=(
-		$version
-		${aliases[$version]:-}
-	)
+
+	if [ -z "$rcSuffix" ] && [[ ! " ${versionAliases[*]} " =~ " $version " ]]; then
+		versionAliases+=( "$version" )
+	fi
+
+	if [ -n "${aliases[$version]:-}" ]; then
+		for alias in ${aliases[$version]}; do
+			if [ -n "$rcSuffix" ]; then
+				versionAliases+=( "$alias-$rcSuffix" )
+			else
+				versionAliases+=( "$alias" )
+			fi
+		done
+	fi
 
 	for variant in debian alpine; do
 		export variant
