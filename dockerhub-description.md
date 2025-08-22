@@ -30,6 +30,7 @@ This image is built on top of the official Valkey base image and simplifies depl
 | valkey-bundle | valkey | valkey-json | valkey-bloom | valkey-search | valkey-ldap |
 |-------------------------|-------------|-------------|--------------|---------------|---------------|
 | [9.0.0-rc1](https://github.com/valkey-io/valkey-bundle/releases/tag/9.0.0-rc1) |[9.0.0-rc1](https://github.com/valkey-io/valkey/releases/tag/9.0.0-rc1) | [1.0.1](https://github.com/valkey-io/valkey-json/releases/tag/1.0.1)| [1.0.0](https://github.com/valkey-io/valkey-bloom/releases/tag/1.0.0)| [1.0.1](https://github.com/valkey-io/valkey-search/releases/tag/1.0.1) | [1.0.0](https://github.com/valkey-io/valkey-ldap/releases/tag/1.0.0) |
+| [8.1.1](https://github.com/valkey-io/valkey-bundle/releases/tag/8.1.1) |[8.1.3](https://github.com/valkey-io/valkey/releases/tag/8.1.3) | [1.0.1](https://github.com/valkey-io/valkey-json/releases/tag/1.0.1)| [1.0.0](https://github.com/valkey-io/valkey-bloom/releases/tag/1.0.0)| [1.0.1](https://github.com/valkey-io/valkey-search/releases/tag/1.0.1) | [1.0.0](https://github.com/valkey-io/valkey-ldap/releases/tag/1.0.0) |
 
 
 # Security
