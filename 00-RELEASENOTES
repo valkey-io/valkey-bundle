@@ -1,10 +1,45 @@
-Valkey Bundle 8.1 Release Notes
+Valkey Bundle Release Notes
 ================================================================================
 
 Overview
 ===========================
 * valkey-bundle is a containerized version of valkey, enhanced with popular modules for advanced data structures and additional search capabilities.
 * This image is built on top of the official valkey base image and includes pre-installed modules for simplified deployment.
+
+================================================================================
+Valkey Bundle 9.0.0-rc1 - Released Fri 22 Aug 2025
+================================================================================
+
+Core Components
+===========================
+* Base Debian Image: valkey/valkey:9.0.0-rc1-bookworm
+* Base Alpine Image: valkey/valkey:9.0.0-rc1-alpine
+* valkey - 9.0.0-rc1
+* valkey-json - 1.0.1
+* valkey-bloom - 1.0.0  
+* valkey-search - 1.0.1
+* valkey-ldap - 1.0.0
+
+Supported Tags and Platforms
+===========================
+Supported Debian Tags:
+* 9.0.0-rc1
+* 9.0-rc1
+* 9.0.0-rc1-trixie
+* 9.0-rc1-trixie
+
+Supported Alpine Tags:
+* 9.0.0-rc1-alpine
+* 9.0-rc1-alpine
+
+Platform Support:
+===========================
+* linux/amd64
+* linux/arm64
+
+Key Changes
+===========================
+Check the [Valkey 9.0.0](https://github.com/valkey-io/valkey/blob/9.0/00-RELEASENOTES) release notes to see all the changes for Valkey Bundle 9.0.0-rc1
 
 ================================================================================
 Valkey Bundle 8.1.1 - Released Thu 21 Aug 2025
