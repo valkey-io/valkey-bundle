@@ -210,61 +210,75 @@ jobs:
       - name: Create Multi-Arch Manifest and Push
         working-directory: ${{ runner.temp }}
         run: |
+          echo "=== Available artifacts ==="
+          ls -la all-digests/ all-tags/
+          
           declare -A combinations
           for digest_artifact_dir in all-digests/digests-*; do
             [[ -d "$digest_artifact_dir" ]] || continue
             artifact_name=$(basename "$digest_artifact_dir")
+            echo "Processing artifact: $artifact_name"
             if [[ "$artifact_name" =~ digests-(.+)-(alpine|debian|bookworm|trixie)-linux-.+ ]]; then
               version="${BASH_REMATCH[1]}"
               distro="${BASH_REMATCH[2]}"
               combo="${version}-${distro}"
               combinations["$combo"]=1
+              echo "  Found combo: $combo (v=$version, d=$distro)"
             fi
+          done
+          
+          echo "=== All combinations ==="
+          for combo in "${!combinations[@]}"; do
+            echo "  $combo"
           done
 
           for combo in "${!combinations[@]}"; do
-            # Extract version and distro by finding the last occurrence of known distros
+            echo "\n=== Processing $combo ==="
             if [[ "$combo" =~ (.+)-(alpine|debian|bookworm|trixie)$ ]]; then
               version="${BASH_REMATCH[1]}"
               distro="${BASH_REMATCH[2]}"
+              echo "  Parsed: version=$version, distro=$distro"
             else
+              echo "  ERROR: Could not parse $combo"
               continue
             fi
 
-            # Collect digests
             mkdir -p "digests/$combo"
             find all-digests/ -name "digests-${combo}-*" -exec sh -c 'cp "$1"/* "$2"/' _ {} "digests/$combo/" \; 2>/dev/null
             digest_count=$(ls -1 "digests/$combo" 2>/dev/null | wc -l)
+            echo "  Found $digest_count digests: $(ls -1 digests/$combo 2>/dev/null | tr '\n' ' ')"
             [[ $digest_count -gt 0 ]] || continue
             
-            # Get and filter tags
             if [[ "$distro" == "alpine" ]]; then
                 tag_dir=$(find all-tags/ -name "tags-${version}*-alpine" -type d | head -1)
             else
                 tag_dir=$(find all-tags/ -name "tags-${version}*" -type d | grep -v "\-alpine$" | head -1)
             fi
+            echo "  Tag dir: $tag_dir"
 
             tag_file="$tag_dir/tags.txt"
             [[ -f "$tag_file" ]] || continue
             
             all_tags=$(cat "$tag_file" | sed 's/,/ /g')
+            echo "  All tags: $all_tags"
 
             if [[ "$distro" == "alpine" ]]; then
               tags=$(echo "$all_tags" | tr ' ' '\n' | grep alpine | tr '\n' ' ')
             else
               tags=$(echo "$all_tags" | tr ' ' '\n' | grep -v alpine | tr '\n' ' ')
             fi
-            
+            echo "  Filtered tags: $tags"
             [[ -n "$tags" ]] || continue
             
-            # Build arguments
             tag_args=$(printf -- "-t %s " $tags)
             digest_args=$(printf "${{ env.DOCKER_REPO_NAME }}@sha256:%s " digests/$combo/*)
             digest_args=${digest_args//digests\/$combo\//}
             
-            # Create manifest
+            echo "  Tag args: $tag_args"
+            echo "  Digest args: $digest_args"
+            
             if [[ "${{ env.IS_PULL }}" == "true" ]]; then
-              echo "    Dry run: docker buildx imagetools create $tag_args $digest_args"
+              echo "  Dry run: docker buildx imagetools create $tag_args $digest_args"
             else
               docker buildx imagetools create $tag_args $digest_args
             fi
