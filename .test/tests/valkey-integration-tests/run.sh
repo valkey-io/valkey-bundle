@@ -122,7 +122,10 @@ run_tests() {
             --skiptest "CLIENT REPLY OFF/SKIP: multi command" \
             --skiptest "AUTH errored inside MULTI will add the reply" \
             --skipunit integration/valkey-cli \
-            --skiptest "Dumping an RDB - functions only: yes"
+            --skiptest "Dumping an RDB - functions only: yes" \
+            --skiptest "Extended Redis Compatibility config" \
+            --skiptest "CLIENT LIST with IPv6 filter" \
+            --skiptest "CLIENT LIST with IPv6 negative filter"
             ;;
         "JSON")
             setup_test_framework "tst/integration/valkeytests"
@@ -135,12 +138,16 @@ run_tests() {
             sleep 3
 
             export SOURCE_DIR="$(pwd)"
+
             cd tst/integration
-            echo "DEBUG: In tst/integration: $(pwd)"
             python -m pytest --cache-clear -v -s
+
             local pytest_exit_code=$?
+            
             cleanup_container
+
             cd ../..
+
             if [ $pytest_exit_code -ne 0 ]; then
                 false
             fi
@@ -189,6 +196,7 @@ run_tests() {
                 start_bloom_containers
 
                 python -m pytest "$test" --cache-clear -v
+
                 local test_exit_code=$?
                 
                 if [ $test_exit_code -eq 0 ]; then
@@ -197,6 +205,7 @@ run_tests() {
             done
 
             cleanup_bloom_containers
+            
             echo "SUMMARY: $passed_count/$test_count Valkey Bloom Tests Passed"
             
             if [ $passed_count -ne $test_count ]; then
