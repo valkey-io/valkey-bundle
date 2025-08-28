@@ -87,18 +87,6 @@ jobs:
             echo "component=${{ github.event.inputs.component }}" >> $GITHUB_OUTPUT
           fi
 
-      - name: Guard against unsupported Valkey versions
-        if: ${{ steps.process-inputs.outputs.component == 'valkey' }}
-        run: |
-          VERSION="${{ steps.process-inputs.outputs.version }}"
-          MAJOR=$(echo "$VERSION" | cut -d. -f1)
-          MINOR=$(echo "$VERSION" | cut -d. -f2)
-
-          if [ "$MAJOR" -lt 8 ] || { [ "$MAJOR" -eq 8 ] && [ "$MINOR" -lt 1 ]; }; then
-            echo "Valkey version must be >= 8.1. Current: $VERSION"
-            exit 1
-          fi
-
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
@@ -148,6 +136,15 @@ jobs:
           rm strategy.json
           git add dockerhub-description.md
           git commit -m "Update DockerHub description for ${{ steps.process-inputs.outputs.component }} ${{ steps.process-inputs.outputs.version }}" || echo "No changes to commit"
+
+      - name: Update Bundle Aliases
+        if: steps.process-inputs.outputs.component == 'valkey'
+        run: |
+          # Download the alias update script
+          wget https://raw.githubusercontent.com/${{ github.repository_owner }}/valkey-release-automation/main/scripts/automate_alias_update.py
+          python automate_alias_update.py generate-stackbrew-library.sh "${{ steps.process-inputs.outputs.version }}"
+          git add generate-stackbrew-library.sh
+          git commit -m "Update alias for valkey ${{ steps.process-inputs.outputs.version }}" || echo "No changes to commit"
 
       - name: Push changes and update existing PR
         if: steps.check-branch.outputs.branch-exists == 'true'
