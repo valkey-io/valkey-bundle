@@ -141,7 +141,7 @@ jobs:
         if: steps.process-inputs.outputs.component == 'valkey'
         run: |
           # Download the alias update script
-          wget https://raw.githubusercontent.com/${{ github.repository_owner }}/valkey-release-automation/main/scripts/automate_alias_update.py
+          wget https://raw.githubusercontent.com/${{ github.repository_owner }}/valkey-release-automation/fix_docker_issue/scripts/automate_alias_update.py
           python automate_alias_update.py generate-stackbrew-library.sh "${{ steps.process-inputs.outputs.version }}"
           git add generate-stackbrew-library.sh
           git commit -m "Update alias for valkey ${{ steps.process-inputs.outputs.version }}" || echo "No changes to commit"
