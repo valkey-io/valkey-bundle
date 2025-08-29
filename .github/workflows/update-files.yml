@@ -151,15 +151,6 @@ jobs:
           git add generate-stackbrew-library.sh
           git commit -m "Update alias for valkey version ${{ steps.process-inputs.outputs.version }}" || echo "No changes to commit"
 
-      - name: Update Bundle Alias
-        if: steps.process-inputs.outputs.component == 'valkey'
-        run: |
-          # Download the alias update script from valkey-container
-          wget https://raw.githubusercontent.com/${{ github.repository_owner }}/valkey-release-automation/fix_docker_issue/scripts/automate_alias_update.py
-          python automate_alias_update.py generate-stackbrew-library.sh "${{ steps.process-inputs.outputs.version }}"
-          git add generate-stackbrew-library.sh
-          git commit -m "Update alias for valkey version ${{ steps.process-inputs.outputs.version }}" || echo "No changes to commit"
-
       - name: Push changes and update existing PR
         if: steps.check-branch.outputs.branch-exists == 'true'
         env:
