@@ -83,9 +83,12 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
                     ["git", "ls-remote", "--exit-code", "--heads", "origin", "valkey-bundle-update"], stderr=subprocess.DEVNULL)
                 logging.info("PR exists — skipping bundle version bump.")
             except subprocess.CalledProcessError:
-                bundle_major, bundle_minor, bundle_patch, bundle_rc = parse_version(existing_bundle_version)
-                versions_data[new_major_minor_release]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch + 1}"
-                logging.info("No PR Exists — bumped bundle version.")
+                if rc is not None or '-rc' in existing_bundle_version:
+                    versions_data[new_major_minor_release]["version"] = new_version
+                else:
+                    bundle_major, bundle_minor, bundle_patch, bundle_rc = parse_version(existing_bundle_version)
+                    versions_data[new_major_minor_release]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch + 1}"
+                    logging.info("No PR Exists — bumped bundle version.")
         else:
             # New major/minor version
             known_modules = get_known_modules_from_versions(versions_data)
