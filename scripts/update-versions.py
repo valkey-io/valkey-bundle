@@ -87,7 +87,7 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
                 
                 if rc is not None or bundle_rc is not None:
                     if rc is not None:
-                        versions_data[new_major_minor_release]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch + 1}-rc{rc}"
+                        versions_data[new_major_minor_release]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch}-rc{bundle_rc + 1}"
                     else:
                         versions_data[new_major_minor_release]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch}"
                 else:
@@ -147,8 +147,10 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
             bundle_major, bundle_minor, bundle_patch, bundle_rc = parse_version(current_version)
             
             if bundle_rc is not None:
-                versions_data[latest]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch + 1}-rc{bundle_rc}"
+                # For RC versions, increment RC number
+                versions_data[latest]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch}-rc{bundle_rc + 1}"
             else:
+                # For stable versions, increment patch
                 versions_data[latest]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch + 1}"
                 logging.info("Branch valkey-bundle-update not found — bumping patch version.")
         
