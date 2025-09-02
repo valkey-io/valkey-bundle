@@ -84,8 +84,15 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
                 logging.info("PR exists — skipping bundle version bump.")
             except subprocess.CalledProcessError:
                 bundle_major, bundle_minor, bundle_patch, bundle_rc = parse_version(existing_bundle_version)
-                versions_data[new_major_minor_release]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch + 1}"
-                logging.info("No PR Exists — bumped bundle version.")
+                
+                if rc is not None or bundle_rc is not None:
+                    if rc is not None:
+                        versions_data[new_major_minor_release]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch + 1}-rc{rc}"
+                    else:
+                        versions_data[new_major_minor_release]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch}"
+                else:
+                    versions_data[new_major_minor_release]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch + 1}"
+                    logging.info("No PR Exists — bumped bundle version.")
         else:
             # New major/minor version
             known_modules = get_known_modules_from_versions(versions_data)
@@ -138,8 +145,12 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
         except subprocess.CalledProcessError:
             current_version = versions_data[latest]["version"]
             bundle_major, bundle_minor, bundle_patch, bundle_rc = parse_version(current_version)
-            versions_data[latest]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch + 1}"
-            logging.info("Branch valkey-bundle-update not found — bumping patch version.")
+            
+            if bundle_rc is not None:
+                versions_data[latest]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch + 1}-rc{bundle_rc}"
+            else:
+                versions_data[latest]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch + 1}"
+                logging.info("Branch valkey-bundle-update not found — bumping patch version.")
         
         return versions_data
 
