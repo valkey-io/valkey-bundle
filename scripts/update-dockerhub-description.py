@@ -40,27 +40,36 @@ def format_tag_line(entry: dict) -> str:
         logging.error(f"Unexpected error in format_tag_line: {e}")
         raise
 
-def get_component_versions() -> dict:
-    """Get current component versions from versions.json"""
+def get_versions_table() -> str:
+    """Generate versions table from versions.json"""
     try:
         with open('versions.json', 'r') as f:
             data = json.load(f)
-            latest_version = max(data.keys(), key=lambda x: [int(i) for i in x.split('.')])
 
-            versions = {
-                'bundle_version': data[latest_version]['version'],
-                'valkey_version': data[latest_version]['valkey-server']['version']
-            }
-
-            if 'modules' in data[latest_version]:
-                for module_name, module_data in data[latest_version]['modules'].items():
-                    version_key = module_name.replace('valkey-', '') + '_version'
-                    versions[version_key] = module_data['version']
-
-            return versions
+        sorted_versions = sorted(data.keys(), key=lambda x: [int(i) for i in x.split('.')], reverse=True)
+        table_rows = []
+        
+        for version_key in sorted_versions:
+            version_data = data[version_key]
+            
+            bundle_version = version_data['version']
+            valkey_version = version_data['valkey-server']['version']
+            
+            modules = version_data['modules']
+            json_version = modules['valkey-json']['version']
+            bloom_version = modules['valkey-bloom']['version']
+            search_version = modules['valkey-search']['version']
+            ldap_version = modules['valkey-ldap']['version']
+            
+            row = f"| [{bundle_version}](https://github.com/valkey-io/valkey-bundle/releases/tag/{bundle_version}) |[{valkey_version}](https://github.com/valkey-io/valkey/releases/tag/{valkey_version}) | [{json_version}](https://github.com/valkey-io/valkey-json/releases/tag/{json_version})| [{bloom_version}](https://github.com/valkey-io/valkey-bloom/releases/tag/{bloom_version})| [{search_version}](https://github.com/valkey-io/valkey-search/releases/tag/{search_version}) | [{ldap_version}](https://github.com/valkey-io/valkey-ldap/releases/tag/{ldap_version}) |"
+            
+            table_rows.append(row)
+        
+        return "\n".join(table_rows)
 
     except Exception as e:
         logging.error(f"Error reading versions.json: {e}")
+        return "Error loading versions"
     
 def update_docker_description(json_file: str, template_file: str, output_file: str) -> None:
     try:
@@ -91,14 +100,13 @@ def update_docker_description(json_file: str, template_file: str, output_file: s
         else:
             rc_section = ""
 
-        # Get component versions
-        versions = get_component_versions()
+        versions_table = get_versions_table()
 
         content = template.format(
             update_date=datetime.now().strftime("%Y-%m-%d"),
             official_releases=official_releases_section,
             release_candidates_section=rc_section,
-            **versions
+            versions_table=versions_table
         )
 
         with open(output_file, 'w') as f:
