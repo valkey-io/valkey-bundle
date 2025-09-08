@@ -28,15 +28,25 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
+        with:
+          fetch-depth: 2
       - uses: docker-library/bashbrew@v0.1.12
 
       - id: generate-jobs
         name: Generate Jobs
+        name: Generate Jobs
         run: |
           strategy="$("$BASHBREW_SCRIPTS/github-actions/generate.sh")"
           # For pushes to mainline or PRs targeting mainline, only build changed versions
-          if [[ ("${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/mainline")]] ; then
-            changed_files=$(git diff --name-only HEAD~1 HEAD)
+          if [[ ("${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/mainline") || ("${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "mainline") ]]; then
+            # For pushes to mainline or PRs targeting mainline, only build changed versions
+            if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+              # For PRs, compare against the merge base
+              git fetch origin ${{ github.base_ref }}
+              changed_files=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+            else
+              changed_files=$(git diff --name-only HEAD~1 HEAD)
+            fi
             if echo $changed_files | grep -qE "^(versions\.json|[0-9]+\.[0-9]+/|unstable/)"; then
               changed_versions=$(echo $changed_files | grep -oE "[0-9]+\.[0-9]+|unstable" | sort -u | tr '\n' '|' | sed 's/|$//')
               if [[ -n "$changed_versions" ]]; then
@@ -47,8 +57,9 @@ jobs:
             fi
           fi
 
-          echo "strategy=$(jq -c . <<<"$strategy")" >> "$GITHUB_OUTPUT"
-          jq . <<<"$strategy" # debugging aid to visually inspect the generated matrix
+          echo "strategy=$strategy" >> "$GITHUB_OUTPUT"
+          jq . <<<"$strategy" # sanity check / debugging aid
+
   # Job to build and push Docker images individually for each architecture/platform
   build_and_push:
     needs: [generate-jobs]
