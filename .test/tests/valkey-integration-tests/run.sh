@@ -71,8 +71,9 @@ for repo in "${repos[@]}"; do
             echo "Cloning $repo from tag $VALKEY_TAG"
             git clone -b "$VALKEY_TAG" --depth=1 "https://github.com/valkey-io/$repo.git" "./$repo"
         elif [[ "$repo" == "valkey-json" ]]; then
-            echo "Cloning $repo from tag $JSON_TAG"
-            git clone -b "$JSON_TAG" --depth=1 "https://github.com/valkey-io/$repo.git" "./$repo"
+            JSON_BRANCH=$(echo "$JSON_TAG" | cut -d. -f1-2)
+            echo "Cloning $repo from branch $JSON_BRANCH"
+            git clone -b "$JSON_BRANCH" --depth=1 "https://github.com/valkey-io/$repo.git" "./$repo"
         else
             echo "Cloning $repo from default branch"
             git clone --depth=1 "https://github.com/valkey-io/$repo.git" "./$repo"
