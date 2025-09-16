@@ -133,7 +133,7 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
                 sys.exit(1)
         
         if patch > 0:
-            # For patch releases we will update all version entries with the same major.minor version for the module
+            # For patch releases we will update all version entries with the same major.minor version as the module patch we just released
             for version_block in versions_data.keys():
                 current_module_version = versions_data[version_block]["modules"][module_key]["version"]
                 current_major, current_minor, _, _ = parse_version(current_module_version)
@@ -143,7 +143,7 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
                     versions_data[version_block]["modules"][module_key]["version"] = new_version
                     logging.info(f"Patch release: Updated {module_key} to {new_version} in Bundle version {version_block}")
         else:
-            # For major or minor releases we will only update latest block
+            # For major or minor releases we will only update latest version entry
             versions_data[latest]["modules"][module_key] = {"version": new_version}
 
         try:
