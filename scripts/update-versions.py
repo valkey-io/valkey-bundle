@@ -7,6 +7,7 @@ import logging
 import subprocess
 from typing import Dict, Any
 
+logging.basicConfig(level=logging.INFO, format="%(message)s")
 
 def parse_version(version: str) -> tuple:
     """Parse version string into (major, minor, patch, rc)."""
