@@ -131,12 +131,20 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
                     f"The latest Valkey version is '{valkey_version}', which is not a new major version release (X.0.0 or X.0.0-rcY)."
                 )
                 sys.exit(1)
-            
-        if module_key not in versions_data[latest]["modules"]:
-            logging.info(f"Adding new module {module_key} to existing version block")
-            versions_data[latest]["modules"][module_key] = {"version": new_version}
+        
+        if patch > 0:
+            # For patch releases we will update all version entries with the same major.minor version for the module
+            for version_block in versions_data.keys():
+                current_module_version = versions_data[version_block]["modules"][module_key]["version"]
+                current_major, current_minor, _, _ = parse_version(current_module_version)
+                current_major_minor = f"{current_major}.{current_minor}"
+                
+                if current_major_minor == new_major_minor_release:
+                    versions_data[version_block]["modules"][module_key]["version"] = new_version
+                    logging.info(f"Patch release: Updated {module_key} to {new_version} in Bundle version {version_block}")
         else:
-            versions_data[latest]["modules"][module_key]["version"] = new_version
+            # For major or minor releases we will only update latest block
+            versions_data[latest]["modules"][module_key] = {"version": new_version}
 
         try:
             subprocess.check_output(
@@ -183,4 +191,4 @@ if __name__ == "__main__":
         json.dump(updated_file, f, indent=2)
         f.write('\n')
 
-    logging.info(f"Updated {component_name} to {new_version}")
+    logging.info(f"Updated valkey-{component_name} to {new_version}")
