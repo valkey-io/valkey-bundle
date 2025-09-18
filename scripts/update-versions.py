@@ -81,7 +81,7 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
             try:
                 subprocess.check_output(
                     ["git", "ls-remote", "--exit-code", "--heads", "origin", "valkey-bundle-update"], stderr=subprocess.DEVNULL)
-                logging.info("PR exists — skipping bundle version bump.")
+                logging.info("There is an open PR for the branch valkey-bundle-update - bundle patch version won't be bumped.")
             except subprocess.CalledProcessError:
                 bundle_major, bundle_minor, bundle_patch, bundle_rc = parse_version(existing_bundle_version)
                 
@@ -92,7 +92,7 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
                         versions_data[new_major_minor_release]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch}"
                 else:
                     versions_data[new_major_minor_release]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch + 1}"
-                    logging.info("No PR Exists — bumped bundle version.")
+                    logging.info("There is no open PR for the branch valkey-bundle-update — bumping bundle patch version.")
         else:
             # New major/minor version
             known_modules = get_known_modules_from_versions(versions_data)
@@ -149,7 +149,7 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
         try:
             subprocess.check_output(
                 ["git", "ls-remote", "--exit-code", "--heads", "origin", "valkey-bundle-update"], stderr=subprocess.DEVNULL)
-            logging.info("Branch valkey-bundle-update exists — skipping bundle version patch bump.")
+            logging.info("There is an open PR for the branch valkey-bundle-update - bundle patch version won't be bumped.")
         except subprocess.CalledProcessError:
             current_version = versions_data[latest]["version"]
             bundle_major, bundle_minor, bundle_patch, bundle_rc = parse_version(current_version)
@@ -160,13 +160,13 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
             else:
                 # For stable versions, increment patch
                 versions_data[latest]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch + 1}"
-                logging.info("Branch valkey-bundle-update not found — bumping patch version.")
+                logging.info("There is no open PR for the branch valkey-bundle-update — bumping bundle patch version.")
         
         return versions_data
 
 if __name__ == "__main__":
     if len(sys.argv) != 4:
-        logging.error("Usage: update_versions.py <json_file> <component> <new_version>")
+        logging.error("Incorrect parameters. Usage: update_versions.py <json_file> <component [valkey, json, bloom, etc]> <new_version>")
         sys.exit(1)
 
     json_file = sys.argv[1]
@@ -191,4 +191,7 @@ if __name__ == "__main__":
         json.dump(updated_file, f, indent=2)
         f.write('\n')
 
-    logging.info(f"Updated valkey-{component_name} to {new_version}")
+    if component_name == 'valkey':
+        logging.info(f"Updated {component_name} to {new_version}")
+    else:
+        logging.info(f"Updated valkey-{component_name} to {new_version}")
