@@ -61,15 +61,6 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
     new_major_minor_release = f"{major}.{minor}"
     latest = get_latest_major_minor(versions_data)
 
-    if component_name == "bundle":
-        versions_data[latest]["version"] = new_version
-        versions_data[latest]["valkey-server"]["version"] = get_latest_stable_module_release("valkey-io/valkey")
-
-        for module_key in versions_data[latest]["modules"].keys():
-            repo = f"valkey-io/{module_key}"
-            versions_data[latest]["modules"][module_key]["version"] = get_latest_stable_module_release(repo)
-        return versions_data
-
     if component_name == 'valkey':
         existing_entry = new_major_minor_release in versions_data
 
