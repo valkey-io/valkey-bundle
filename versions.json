@@ -25,7 +25,7 @@
   "9.0": {
     "version": "9.0.0-rc2",
     "valkey-server": {
-      "version": "9.0.0-rc1"
+      "version": "9.0.0-rc2"
     },
     "modules": {
       "valkey-json": {
