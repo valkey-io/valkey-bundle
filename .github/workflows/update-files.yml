@@ -152,7 +152,7 @@ jobs:
       - name: Push changes and update existing PR
         if: steps.check-branch.outputs.branch-exists == 'true'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.VALKEY_BUNDLE_PAT_FOR_PR }}
         run: |
           BRANCH_NAME="${{ steps.check-branch.outputs.branch-name }}"
           git push origin HEAD:"$BRANCH_NAME"
