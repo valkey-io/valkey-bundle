@@ -4,9 +4,9 @@
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
 
-FROM docker.io/valkey/valkey:9.0.0-rc1-alpine AS build
+FROM docker.io/valkey/valkey:9.0.0-rc2-alpine AS build
 
-ARG SERVER_VERSION=9.0.0-rc1
+ARG SERVER_VERSION=9.0.0-rc2
 
 RUN set -eux; \
     apk add --no-cache            \
@@ -60,7 +60,7 @@ RUN set -eux; \
 WORKDIR /opt/valkey-ldap
 RUN RUSTFLAGS="-C target-feature=-crt-static" cargo build --all --all-targets --release;
 
-FROM docker.io/valkey/valkey:9.0.0-rc1-alpine
+FROM docker.io/valkey/valkey:9.0.0-rc2-alpine
 
 RUN set -eux; \
     apk add --no-cache libstdc++; \
