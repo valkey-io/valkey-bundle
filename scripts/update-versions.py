@@ -40,7 +40,7 @@ def get_debian_version(valkey_version: str) -> str:
     pr_branch = f"update-{valkey_version}"
     
     try:
-        result = subprocess.check_output(['gh', 'api', f'repos/valkey-io/valkey-container/contents/versions.json?ref={pr_branch}', '-H', 'Accept: application/vnd.github.raw'], text=True)
+        result = subprocess.check_output(['gh', 'api', f'repos/Nikhil-Manglore/valkey-container/contents/versions.json?ref={pr_branch}', '-H', 'Accept: application/vnd.github.raw'], text=True)
         container_versions = json.loads(result)
     except subprocess.CalledProcessError:
         with open('../valkey-container/versions.json', 'r') as f:
