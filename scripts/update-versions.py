@@ -34,12 +34,17 @@ def get_known_modules_from_versions(versions_data: Dict[str, Any]) -> Dict[str, 
     return modules
 
 def get_debian_version(valkey_version: str) -> str:
-    """Gets the most up to date Debian version from the container."""
+    """Get debian version from container PR that is currently open."""
     major, minor, _, _ = parse_version(valkey_version)
     version_key = f"{major}.{minor}"
+    pr_branch = f"update-{valkey_version}"
     
-    with open('../valkey-container/versions.json', 'r') as f:
-        container_versions = json.load(f)
+    try:
+        result = subprocess.check_output(['gh', 'api', f'repos/valkey-io/valkey-container/contents/versions.json?ref={pr_branch}', '-H', 'Accept: application/vnd.github.raw'], text=True)
+        container_versions = json.loads(result)
+    except subprocess.CalledProcessError:
+        with open('../valkey-container/versions.json', 'r') as f:
+            container_versions = json.load(f)
     
     return container_versions[version_key]["debian"]["version"]
 
