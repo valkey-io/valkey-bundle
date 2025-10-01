@@ -289,12 +289,12 @@ jobs:
             fi
           done
 
-  prepare:
+  check-docker-secrets:
     runs-on: ubuntu-latest
     outputs:
-      has-secrets: ${{ steps.check.outputs.has-secrets }}
+      has-secrets: ${{ steps.check_if_secrets_exist.outputs.has-secrets }}
     steps:
-      - id: check
+      - id: check_if_secrets_exist
         run: |
           if [ -n "${{ secrets.DOCKERHUB_USERNAME }}" ] && \
              [ -n "${{ secrets.DOCKERHUB_TOKEN }}" ] && \
@@ -305,8 +305,8 @@ jobs:
           fi
 
   update-dockerhub-description:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/mainline' && needs.prepare.outputs.has-secrets == 'true'
-    needs: [merge-manifest, prepare]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/mainline' && needs.check-docker-secrets.outputs.has-secrets == 'true'
+    needs: [merge-manifest, check-docker-secrets]
     uses: ./.github/workflows/update-dockerhub-docs.yml
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
