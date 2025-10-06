@@ -4,9 +4,9 @@
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
 
-FROM docker.io/valkey/valkey:8.1.3-bookworm AS build
+FROM docker.io/valkey/valkey:8.1.4-bookworm AS build
 
-ARG SERVER_VERSION=8.1.3
+ARG SERVER_VERSION=8.1.4
 
 RUN set -eux;   \
                 \
@@ -61,7 +61,7 @@ RUN set -eux; \
 WORKDIR /opt/valkey-ldap
 RUN cargo build --all --all-targets --release;
 
-FROM docker.io/valkey/valkey:8.1.3-bookworm
+FROM docker.io/valkey/valkey:8.1.4-bookworm
 
 RUN mkdir -p /usr/lib/valkey;
 
