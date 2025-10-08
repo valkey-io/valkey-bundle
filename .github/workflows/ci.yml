@@ -52,8 +52,8 @@ jobs:
             fi
           fi
 
-          echo "strategy=$strategy" >> "$GITHUB_OUTPUT"
-          jq . <<<"$strategy"
+          echo "strategy=$(jq -c . <<<"$strategy")" >> "$GITHUB_OUTPUT"
+          jq . <<<"$strategy" # debugging aid to visually inspect the generated matrix
   # Job to build and push Docker images individually for each architecture/platform
   build_and_push:
     needs: [generate-jobs]
