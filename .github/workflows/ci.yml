@@ -39,7 +39,6 @@ jobs:
           strategy="$("$BASHBREW_SCRIPTS/github-actions/generate.sh")"
           # For pushes to mainline or PRs targeting mainline, only build changed versions
           if [[ ("${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/mainline") || ("${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "mainline") ]]; then
-            # For pushes to mainline or PRs targeting mainline, only build changed versions
             if [[ "${{ github.event_name }}" == "pull_request" ]]; then
               # For PRs, compare against the merge base
               git fetch origin ${{ github.base_ref }}
