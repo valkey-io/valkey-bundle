@@ -65,7 +65,7 @@ FROM docker.io/valkey/valkey:8.1.3-bookworm
 
 RUN mkdir -p /usr/lib/valkey;
 
-# Copy built modules from the build stage test test
+# Copy built modules from the build stage
 COPY --from=build /opt/valkey-json/build/src/libjson.so /usr/lib/valkey/libjson.so
 COPY --from=build /opt/valkey-bloom/target/release/libvalkey_bloom.so /usr/lib/valkey/libvalkey_bloom.so
 COPY --from=build /opt/valkey-search/.build-release/libsearch.so /usr/lib/valkey/libsearch.so
