@@ -113,4 +113,4 @@ Upon releasing a new version of Valkey or any of its supported modules, a pull r
    Now follow the [Build and Publish](#how-do-you-build-and-publish-new-version-of-a-docker-image) steps above.
    - Release a version of your module and that will trigger the automation which will complete all the required steps to build the new Docker images.
 
-You're now ready to contribute a new Valkey module 🎉 test
+You're now ready to contribute a new Valkey module 🎉
