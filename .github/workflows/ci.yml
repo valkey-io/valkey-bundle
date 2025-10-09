@@ -233,7 +233,7 @@ jobs:
         if: env.HAS_SECRETS == 'true'
         uses: docker/setup-buildx-action@v3
 
-      # Use imagetools to combine the arch-specific digests into respective multi-arch manifest
+      # Use imagetools to combine the arch-specific digests into respective multi-arch manifest test
       - name: Create Multi-Arch Manifest and Push
         if: env.HAS_SECRETS == 'true'
         working-directory: ${{ runner.temp }}
