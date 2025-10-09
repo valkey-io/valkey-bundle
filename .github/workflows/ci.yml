@@ -307,6 +307,7 @@ jobs:
   update-dockerhub-description:
     if: github.event_name == 'push' && github.ref == 'refs/heads/mainline' && needs.check-docker-secrets.outputs.has-secrets == 'true'
     needs: [merge-manifest, check-docker-secrets]
+    name: Update DockerHub Description
     uses: ./.github/workflows/update-dockerhub-docs.yml
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
