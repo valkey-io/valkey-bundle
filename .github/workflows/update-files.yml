@@ -44,11 +44,18 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
       - name: Checkout valkey-container
-        uses: actions/checkout@v4
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           repository: ${{ github.repository_owner }}/valkey-container
           path: valkey-container
           clean: false
+
+      - name: Checkout valkey-release-automation
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          repository: ${{ github.repository_owner }}/valkey-release-automation
+
+          path: valkey-release-automation
 
       - name: Exclude valkey-container in bundle repo
         run: |
@@ -85,18 +92,6 @@ jobs:
             # From "workflow_dispatch" trigger
             echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
             echo "component=${{ github.event.inputs.component }}" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Guard against unsupported Valkey versions
-        if: ${{ steps.process-inputs.outputs.component == 'valkey' }}
-        run: |
-          VERSION="${{ steps.process-inputs.outputs.version }}"
-          MAJOR=$(echo "$VERSION" | cut -d. -f1)
-          MINOR=$(echo "$VERSION" | cut -d. -f2)
-
-          if [ "$MAJOR" -lt 8 ] || { [ "$MAJOR" -eq 8 ] && [ "$MINOR" -lt 1 ]; }; then
-            echo "Valkey version must be >= 8.1. Current: $VERSION"
-            exit 1
           fi
 
       - name: Setup Python
@@ -148,6 +143,13 @@ jobs:
           rm strategy.json
           git add dockerhub-description.md
           git commit -m "Update DockerHub description for ${{ steps.process-inputs.outputs.component }} ${{ steps.process-inputs.outputs.version }}" || echo "No changes to commit"
+
+      - name: Update Bundle Alias
+        if: steps.process-inputs.outputs.component == 'valkey'
+        run: |
+          python ../valkey-release-automation/scripts/automate_alias_update.py generate-stackbrew-library.sh "${{ steps.process-inputs.outputs.version }}"
+          git add generate-stackbrew-library.sh
+          git commit -m "Update alias for valkey version ${{ steps.process-inputs.outputs.version }}" || echo "No changes to commit"
 
       - name: Push changes and update existing PR
         if: steps.check-branch.outputs.branch-exists == 'true'
