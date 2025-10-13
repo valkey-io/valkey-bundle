@@ -118,6 +118,7 @@ jobs:
         id: build
         uses: docker/build-push-action@v6
         with:
+          context: .
           file: ./${{ matrix.version.meta.entries[0].directory }}/Dockerfile
           platforms: ${{ matrix.platform }}
           # Push is true only for push events
