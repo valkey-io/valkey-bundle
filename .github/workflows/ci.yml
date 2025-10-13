@@ -28,12 +28,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
-        with:
-          fetch-depth: 2
       - uses: docker-library/bashbrew@v0.1.12
 
       - id: generate-jobs
-        name: Generate Jobs
         name: Generate Jobs
         run: |
           strategy="$("$BASHBREW_SCRIPTS/github-actions/generate.sh")"
