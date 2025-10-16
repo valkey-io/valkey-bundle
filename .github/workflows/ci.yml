@@ -11,7 +11,7 @@ on:
 
 env:
   IS_PULL: ${{ github.event_name == 'pull_request' }}
-  HAS_SECRETS: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' && secrets.DOCKERHUB_ACCOUNT != '' }}
+  HAS_SECRETS: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' && secrets.DOCKERHUB_ACCOUNT != '' && secrets.DOCKERHUB_REPOSITORY != '' }}
 
 defaults:
   run:
@@ -24,6 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       strategy: ${{ steps.generate-jobs.outputs.strategy }}
+      has-secrets: ${{ steps.generate-jobs.outputs.has-secrets }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -48,6 +49,7 @@ jobs:
           fi
 
           echo "strategy=$(jq -c . <<<"$strategy")" >> "$GITHUB_OUTPUT"
+          echo "has-secrets=${env.has-secrets}" >> "$GITHUB_OUTPUT"
           jq . <<<"$strategy" # debugging aid to visually inspect the generated matrix
   # Job to build and push Docker images individually for each architecture/platform
   build_and_push:
@@ -289,24 +291,24 @@ jobs:
             fi
           done
 
-  check-docker-secrets:
-    runs-on: ubuntu-latest
-    outputs:
-      has-secrets: ${{ steps.check_if_secrets_exist.outputs.has-secrets }}
-    steps:
-      - id: check_if_secrets_exist
-        run: |
-          if [ -n "${{ secrets.DOCKERHUB_USERNAME }}" ] && \
-             [ -n "${{ secrets.DOCKERHUB_TOKEN }}" ] && \
-             [ -n "${{ secrets.DOCKERHUB_REPOSITORY }}" ]; then
-            echo "has-secrets=true" >> $GITHUB_OUTPUT
-          else
-            echo "has-secrets=false" >> $GITHUB_OUTPUT
-          fi
+  # check-docker-secrets:
+  #   runs-on: ubuntu-latest
+  #   outputs:
+  #     has-secrets: ${{ steps.check_if_secrets_exist.outputs.has-secrets }}
+  #   steps:
+  #     - id: check_if_secrets_exist
+  #       run: |
+  #         if [ -n "${{ secrets.DOCKERHUB_USERNAME }}" ] && \
+  #            [ -n "${{ secrets.DOCKERHUB_TOKEN }}" ] && \
+  #            [ -n "${{ secrets.DOCKERHUB_REPOSITORY }}" ]; then
+  #           echo "has-secrets=true" >> $GITHUB_OUTPUT
+  #         else
+  #           echo "has-secrets=false" >> $GITHUB_OUTPUT
+  #         fi
 
   update-dockerhub-description:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/mainline' && needs.check-docker-secrets.outputs.has-secrets == 'true'
-    needs: [merge-manifest, check-docker-secrets]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/mainline' && needs.generate-jobs.outputs.has-secrets == 'true'
+    needs: [merge-manifest, generate-jobs]
     name: Update DockerHub Description
     uses: ./.github/workflows/update-dockerhub-docs.yml
     secrets:
