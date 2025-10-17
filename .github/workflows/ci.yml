@@ -111,7 +111,6 @@ jobs:
           echo "$tags" > tags.txt
 
       - name: Upload Tags Artifact
-        if: env.HAS_SECRETS == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: tags-${{ matrix.version.name }}
@@ -162,7 +161,6 @@ jobs:
           
       # Export digest to a file to reference it later in merging manifests
       - name: Export digest
-        if: env.HAS_SECRETS == 'true'
         id: export-digest
         run: |
           mkdir -p ${{ runner.temp }}/digests
@@ -183,7 +181,6 @@ jobs:
           echo "version_major_minor=$major_minor" >> "$GITHUB_OUTPUT"
     
       - name: Upload digest for version-distro combination
-        if: env.HAS_SECRETS == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: digests-${{ steps.export-digest.outputs.version_major_minor }}-${{ steps.export-digest.outputs.linux_distro }}-${{ env.PLATFORM_PAIR }}
@@ -205,7 +202,6 @@ jobs:
           fi
 
       - name: Download All Digests
-        if: env.HAS_SECRETS == 'true'
         uses: actions/download-artifact@v4
         with:
           path: ${{ runner.temp }}/all-digests
@@ -213,7 +209,6 @@ jobs:
           merge-multiple: false
 
       - name: Download All Tags
-        if: env.HAS_SECRETS == 'true'
         uses: actions/download-artifact@v4
         with:
           path: ${{ runner.temp }}/all-tags
@@ -234,7 +229,6 @@ jobs:
 
       # Use imagetools to combine the arch-specific digests into respective multi-arch manifest
       - name: Create Multi-Arch Manifest and Push
-        if: env.HAS_SECRETS == 'true'
         working-directory: ${{ runner.temp }}
         run: |
           declare -A combinations
