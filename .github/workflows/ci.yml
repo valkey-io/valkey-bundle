@@ -13,6 +13,10 @@ env:
   IS_PULL: ${{ github.event_name == 'pull_request' }}
   HAS_SECRETS: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' && secrets.DOCKERHUB_ACCOUNT != '' && secrets.DOCKERHUB_REPOSITORY != '' }}
 
+permissions:
+  id-token: write
+  contents: read
+
 defaults:
   run:
     shell: 'bash -Eeuo pipefail -x {0}'
@@ -180,6 +184,40 @@ jobs:
           echo "linux_distro=$distro" >> "$GITHUB_OUTPUT"
           echo "version_major_minor=$major_minor" >> "$GITHUB_OUTPUT"
     
+      - name: Configure AWS credentials
+        if: env.IS_PULL != 'true'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-west-2
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+
+      - name: Extract and package module .so files
+        run: |
+          CONTAINER_ID=$(docker create "${{ env.DOCKER_REPO_NAME }}")
+          mkdir -p modules-temp
+          docker cp "$CONTAINER_ID:/usr/lib/valkey/libjson.so" modules-temp/
+          docker cp "$CONTAINER_ID:/usr/lib/valkey/libvalkey_bloom.so" modules-temp/
+          docker cp "$CONTAINER_ID:/usr/lib/valkey/libsearch.so" modules-temp/
+          docker cp "$CONTAINER_ID:/usr/lib/valkey/libvalkey_ldap.so" modules-temp/
+          docker rm "$CONTAINER_ID"
+          
+          VERSION="${{ matrix.version.name }}"
+          ARCH=$(echo "${{ matrix.platform }}" | cut -d'/' -f2)
+          PACKAGE_NAME="valkey-bundle-modules-${VERSION}-linux-${ARCH}"
+          
+          mkdir -p "${PACKAGE_NAME}/lib"
+          cp -v modules-temp/*.so "${PACKAGE_NAME}/lib/"
+          
+          tar -czvf "${PACKAGE_NAME}.tar.gz" "${PACKAGE_NAME}"
+          sha256sum "${PACKAGE_NAME}.tar.gz" > "${PACKAGE_NAME}.tar.gz.sha256"
+          
+          mkdir -p packages-files
+          cp -v "${PACKAGE_NAME}.tar.gz"* packages-files/
+
+      - name: Upload modules to S3
+        if: env.IS_PULL != 'true'
+        run: aws s3 sync packages-files s3://${{ secrets.AWS_S3_BUCKET }}/valkey-bundle/releases/
+
       - name: Upload digest for version-distro combination
         uses: actions/upload-artifact@v4
         with:
