@@ -36,7 +36,7 @@ jobs:
         run: |
           strategy="$("$BASHBREW_SCRIPTS/github-actions/generate.sh")"
           # For pushes to mainline or PRs targeting mainline, only build changed versions
-          if [[ ("${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/mainline")]] ; then
+          if [[ ("${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/mainline") ]] ; then
             changed_files=$(git diff --name-only HEAD~1 HEAD)
             if printf "%s\n" "$changed_files" | grep -qE "^(versions\.json|[0-9]+\.[0-9]+/|unstable/)"; then
               changed_versions=$(echo $changed_files | grep -oE "[0-9]+\.[0-9]+|unstable" | sort -u | tr '\n' '|' | sed 's/|$//')
