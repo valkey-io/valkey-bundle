@@ -75,6 +75,7 @@ jobs:
             echo "Checking out existing branch"
             git fetch origin "$BRANCH_NAME"
             git checkout "$BRANCH_NAME"
+            git pull --ff-only origin "$BRANCH_NAME"
           else
             echo "branch-exists=false" >> $GITHUB_OUTPUT
             echo "Staying on mainline for new branch creation"
@@ -86,22 +87,12 @@ jobs:
           if [[ "${{ github.event_name }}" == "repository_dispatch" ]]; then
             # From "repository_dispatch" trigger
             echo "version=${{ github.event.client_payload.version }}" >> $GITHUB_OUTPUT
-            # Handle both 'component' and 'module' field names for backward compatibility
-            COMPONENT="${{ github.event.client_payload.component }}"
-            if [[ -z "$COMPONENT" ]]; then
-              COMPONENT="${{ github.event.client_payload.module }}"
-            fi
-            echo "component=$COMPONENT" >> $GITHUB_OUTPUT
+            echo "component=${{ github.event.client_payload.component }}" >> $GITHUB_OUTPUT
           else
             # From "workflow_dispatch" trigger
             echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
             echo "component=${{ github.event.inputs.component }}" >> $GITHUB_OUTPUT
           fi
-
-      - name: Sync with remote branch
-        if: steps.check-branch.outputs.branch-exists == 'true'
-        run: |
-          git pull origin "${{ steps.check-branch.outputs.branch-name }}" --no-edit || true
 
       - name: Setup Python
         uses: actions/setup-python@v4
@@ -160,12 +151,20 @@ jobs:
           git add generate-stackbrew-library.sh
           git commit -m "Update alias for valkey version ${{ steps.process-inputs.outputs.version }}" || echo "No changes to commit"
 
-      - name: Create or Update Pull Request
+      - name: Push changes and update existing PR
+        if: steps.check-branch.outputs.branch-exists == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.VALKEY_BUNDLE_PAT_FOR_PR }}
+        run: |
+          BRANCH_NAME="${{ steps.check-branch.outputs.branch-name }}"
+          git push origin HEAD:"$BRANCH_NAME"
+
+      - name: Create Pull Request
+        if: steps.check-branch.outputs.branch-exists == 'false'
         uses: peter-evans/create-pull-request@v5
         with:
           path: valkey-bundle
           token: ${{ secrets.VALKEY_BUNDLE_PAT_FOR_PR }}
-          base: mainline
           branch: ${{ steps.check-branch.outputs.branch-name }}
           delete-branch: false
           title: "Automated Updates for Valkey Bundle"
@@ -179,7 +178,7 @@ jobs:
 
       - name: Comment on Pull Request
         env:
-          GH_TOKEN: ${{ secrets.VALKEY_BUNDLE_PAT_FOR_PR }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           BRANCH_NAME="${{ steps.check-branch.outputs.branch-name }}"
           gh pr comment "$BRANCH_NAME" --body "**Updated ${{ steps.process-inputs.outputs.component }} to version ${{ steps.process-inputs.outputs.version }}.**"
