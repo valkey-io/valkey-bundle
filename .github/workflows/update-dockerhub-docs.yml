@@ -11,6 +11,9 @@ on:
       DOCKERHUB_REPOSITORY:
         required: true
 
+env:
+  HAS_SECRETS: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' && secrets.DOCKERHUB_REPOSITORY != '' }}
+
 jobs:
   update-dockerhub:
     name: Update Dockerhub description
@@ -20,6 +23,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Docker Hub Description
+        if: ${{ env.HAS_SECRETS }}
         uses: peter-evans/dockerhub-description@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
