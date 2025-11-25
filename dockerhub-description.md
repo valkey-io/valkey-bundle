@@ -15,8 +15,8 @@ Last updated: 2025-11-25
 ## Official releases
 - [`9.0.0`, `9.0`, `9`, `latest`, `9.0.0-trixie`, `9.0-trixie`, `9-trixie`, `trixie`](https://github.com/valkey-io/valkey-bundle/blob/mainline/9.0/debian/Dockerfile)
 - [`9.0.0-alpine`, `9.0-alpine`, `9-alpine`, `alpine`](https://github.com/valkey-io/valkey-bundle/blob/mainline/9.0/alpine/Dockerfile)
-- [`8.1.3`, `8.1`, `8`, `8.1.3-trixie`, `8.1-trixie`, `8-trixie`](https://github.com/valkey-io/valkey-bundle/blob/mainline/8.1/debian/Dockerfile)
-- [`8.1.3-alpine`, `8.1-alpine`, `8-alpine`](https://github.com/valkey-io/valkey-bundle/blob/mainline/8.1/alpine/Dockerfile)
+- [`8.1.4`, `8.1`, `8`, `8.1.4-trixie`, `8.1-trixie`, `8-trixie`](https://github.com/valkey-io/valkey-bundle/blob/mainline/8.1/debian/Dockerfile)
+- [`8.1.4-alpine`, `8.1-alpine`, `8-alpine`](https://github.com/valkey-io/valkey-bundle/blob/mainline/8.1/alpine/Dockerfile)
 
 ## What is [Valkey Bundle](https://github.com/valkey-io/valkey-bundle)?
 --------------
@@ -29,7 +29,7 @@ This image is built on top of the official Valkey base image and simplifies depl
 | valkey-bundle | valkey | valkey-json | valkey-bloom | valkey-search | valkey-ldap |
 |-------------------------|-------------|-------------|--------------|---------------|---------------|
 | [9.0.0](https://github.com/valkey-io/valkey-bundle/releases/tag/9.0.0) |[9.0.0](https://github.com/valkey-io/valkey/releases/tag/9.0.0) | [1.0.2](https://github.com/valkey-io/valkey-json/releases/tag/1.0.2)| [1.0.0](https://github.com/valkey-io/valkey-bloom/releases/tag/1.0.0)| [1.0.2](https://github.com/valkey-io/valkey-search/releases/tag/1.0.2) | [1.0.0](https://github.com/valkey-io/valkey-ldap/releases/tag/1.0.0) |
-| [8.1.3](https://github.com/valkey-io/valkey-bundle/releases/tag/8.1.3) |[8.1.4](https://github.com/valkey-io/valkey/releases/tag/8.1.4) | [1.0.2](https://github.com/valkey-io/valkey-json/releases/tag/1.0.2)| [1.0.0](https://github.com/valkey-io/valkey-bloom/releases/tag/1.0.0)| [1.0.2](https://github.com/valkey-io/valkey-search/releases/tag/1.0.2) | [1.0.0](https://github.com/valkey-io/valkey-ldap/releases/tag/1.0.0) |
+| [8.1.4](https://github.com/valkey-io/valkey-bundle/releases/tag/8.1.4) |[8.1.4](https://github.com/valkey-io/valkey/releases/tag/8.1.4) | [1.0.2](https://github.com/valkey-io/valkey-json/releases/tag/1.0.2)| [1.0.0](https://github.com/valkey-io/valkey-bloom/releases/tag/1.0.0)| [1.0.2](https://github.com/valkey-io/valkey-search/releases/tag/1.0.2) | [1.0.0](https://github.com/valkey-io/valkey-ldap/releases/tag/1.0.0) |
 
 
 # Security
