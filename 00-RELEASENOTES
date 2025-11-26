@@ -7,6 +7,43 @@ Overview
 * This image is built on top of the official valkey base image and includes pre-installed modules for simplified deployment.
 
 ================================================================================
+Valkey Bundle 9.0.0 - Released Wed 26 Nov 2025
+================================================================================
+
+Core Components
+===========================
+* Base Debian Image: valkey/valkey:9.0.0-trixie
+* Base Alpine Image: valkey/valkey:9.0.0-alpine
+* valkey - 9.0.0
+* valkey-json - 1.0.2
+* valkey-bloom - 1.0.0  
+* valkey-search - 1.0.2
+* valkey-ldap - 1.0.0
+
+Supported Tags and Platforms
+===========================
+Supported Debian Tags:
+* 9.0.0
+* 9.0
+* 9.0.0-trixie
+* 9.0-trixie
+
+Supported Alpine Tags:
+* 9.0.0-alpine
+* 9.0-alpine
+* 9-alpine
+* alpine
+
+Platform Support:
+===========================
+* linux/amd64
+* linux/arm64
+
+Key Changes
+===========================
+Check the [Valkey 9.0.0](https://github.com/valkey-io/valkey/blob/9.0/00-RELEASENOTES), [Valkey-JSON 1.0.2](https://github.com/valkey-io/valkey-json/blob/1.0/00-RELEASENOTES), and [Valkey-Search 1.0.2](https://github.com/valkey-io/valkey-search/blob/1.0/00-RELEASENOTES) release notes to see all the changes for Valkey Bundle 9.0.0.
+
+================================================================================
 Valkey Bundle 9.0.0-rc1 - Released Fri 22 Aug 2025
 ================================================================================
 
