@@ -84,6 +84,16 @@ jobs:
             echo "DOCKER_REPO_NAME=${{ secrets.DOCKERHUB_ACCOUNT }}/valkey-bundle" >> $GITHUB_ENV
           fi
 
+      - name: Set GHCR_REPO_NAME dynamically
+        run: |
+          if [[ "${{ env.IS_PULL }}" == "true" ]]; then
+            echo "GHCR_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
+          elif [[ "${{ env.HAS_SECRETS }}" != "true" ]]; then
+            echo "GHCR_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
+          else
+            echo "GHCR_REPO_NAME=${{ github.repository_owner }}/valkey-bundle" >> $GITHUB_ENV
+          fi
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
@@ -98,15 +108,33 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Login to GitHub Container Registry
+        if: env.IS_PULL != 'true' && env.HAS_SECRETS == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
       # Prepare Docker tags from version metadata, replacing repository name with ACCOUNT/DOCKER_REPOSITORY
       - name: Prepare Tags
         id: prep_tags
         run: |
           original_tags="${{ toJson(matrix.version.meta.entries[0].tags) }}"
-          tags=$(echo $original_tags | sed "s|valkey-bundle|${{ env.DOCKER_REPO_NAME }}|g" \
-          | sed 's/\[ *//; s/ *\]//; s/ //g' | tr -d '\n')  
-          echo "modified_tags=$tags" >> "$GITHUB_OUTPUT"
-          echo "$tags" > tags.txt
+
+          # Docker Hub tags
+          docker_tags=$(echo $original_tags | sed "s|valkey-bundle|${{ env.DOCKER_REPO_NAME }}|g" \
+            | sed 's/\[ *//; s/ *\]//; s/ //g' | tr -d '\n')
+          echo "docker_tags=$docker_tags" >> "$GITHUB_OUTPUT"
+
+          # GHCR tags
+          ghcr_tags=$(echo $original_tags | sed "s|valkey-bundle|${{ env.GHCR_REPO_NAME }}|g" \
+            | sed 's/\[ *//; s/ *\]//; s/ //g' | tr -d '\n')
+          echo "ghcr_tags=$ghcr_tags" >> "$GITHUB_OUTPUT"
+
+          # Save both in a single file for merge-manifest job to pick up
+          echo "$docker_tags" > tags.txt
+          echo "$ghcr_tags" >> tags.txt
 
       - name: Upload Tags Artifact
         uses: actions/upload-artifact@v4
@@ -125,7 +153,8 @@ jobs:
           # Push is true only for push events if the secrets have been created
           push: ${{ env.HAS_SECRETS == 'true' && env.IS_PULL != 'true' }}
           outputs: type=image,push-by-digest=true,name-canonical=true
-          tags: ${{ env.DOCKER_REPO_NAME }}
+          tags: >-
+            ${{ env.DOCKER_REPO_NAME }},ghcr.io/${{ env.GHCR_REPO_NAME }}
           provenance: false
           load: true
           cache-from: type=gha
@@ -203,6 +232,14 @@ jobs:
             echo "DOCKER_REPO_NAME=${{ secrets.DOCKERHUB_ACCOUNT }}/valkey-bundle" >> $GITHUB_ENV
           fi
 
+      - name: Set GHCR_REPO_NAME dynamically
+        run: |
+          if [[ "${{ env.IS_PULL }}" == "true" ]]; then
+            echo "GHCR_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
+          else
+            echo "GHCR_REPO_NAME=${{ github.repository_owner }}/valkey-bundle" >> $GITHUB_ENV
+          fi
+
       - name: Output if User has set secrets
         id: output-has-secrets
         run: echo "has-secrets=${{ env.HAS_SECRETS }}" >> "$GITHUB_OUTPUT"
@@ -228,6 +265,14 @@ jobs:
           registry: docker.io
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to GitHub Container Registry
+        if: env.IS_PULL != 'true' && env.HAS_SECRETS == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
 
       - name: Set up Docker Buildx
         if: env.HAS_SECRETS == 'true'
@@ -271,7 +316,7 @@ jobs:
             tag_file="$tag_dir/tags.txt"
             [[ -f "$tag_file" ]] || continue
             
-            all_tags=$(cat "$tag_file" | sed 's/,/ /g')
+            all_tags=$(cat "$tag_file" | tr '\n' ' ' | sed 's/,/ /g')
 
             if [[ "$distro" == "alpine" ]]; then
               tags=$(echo "$all_tags" | tr ' ' '\n' | grep alpine | tr '\n' ' ')
@@ -284,6 +329,15 @@ jobs:
             digest_args=$(printf "${{ env.DOCKER_REPO_NAME }}@sha256:%s " digests/$combo/*)
             digest_args=${digest_args//digests\/$combo\//}
             
+            if [[ "${{ env.IS_PULL }}" == "true" || "${{ env.HAS_SECRETS }}" != "true" ]]; then
+              echo "Dry run: docker buildx imagetools create $tag_args $digest_args"
+            else
+              docker buildx imagetools create $tag_args $digest_args
+            fi
+
+            # GHCR
+            digest_args=$(printf "ghcr.io/${{ env.GHCR_REPO_NAME }}@sha256:%s " digests/$combo/*)
+            digest_args=${digest_args//digests\/$combo\//}
             if [[ "${{ env.IS_PULL }}" == "true" || "${{ env.HAS_SECRETS }}" != "true" ]]; then
               echo "Dry run: docker buildx imagetools create $tag_args $digest_args"
             else
