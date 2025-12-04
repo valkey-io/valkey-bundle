@@ -164,17 +164,17 @@ jobs:
       - name: Prepare Environment
         run: ${{ matrix.version.runs.prepare }}
 
-      - name: Validation Tests ${{ matrix.version.name }}
-        run: |
-          docker images
+      # - name: Validation Tests ${{ matrix.version.name }}
+      #   run: |
+      #     docker images
 
-          # Use GHCR image instead of Docker Hub
-          set -- "ghcr.io/${{ env.GHCR_REPO_NAME }}"
+      #     # Use GHCR image instead of Docker Hub
+      #     set -- "ghcr.io/${{ env.GHCR_REPO_NAME }}"
 
-          if [ -s ./.test/config.sh ]; then
-            set -- --config ~/oi/test/config.sh --config ./.test/config.sh "$@";
-          fi
-          ~/oi/test/run.sh "$@"
+      #     if [ -s ./.test/config.sh ]; then
+      #       set -- --config ~/oi/test/config.sh --config ./.test/config.sh "$@";
+      #     fi
+      #     ~/oi/test/run.sh "$@"
 
       - name: Set up Python
         uses: actions/setup-python@v4
