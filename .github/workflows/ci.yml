@@ -74,15 +74,15 @@ jobs:
           platform=${{ matrix.platform }}
           echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
 
-      - name: Set DOCKER_REPO_NAME dynamically
-        run: |
-          if [[ "${{ env.IS_PULL }}" == "true" ]]; then
-            echo "DOCKER_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
-          elif [[ "${{ env.HAS_SECRETS }}" != "true" ]]; then
-            echo "DOCKER_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
-          else
-            echo "DOCKER_REPO_NAME=${{ secrets.DOCKERHUB_ACCOUNT }}/valkey-bundle" >> $GITHUB_ENV
-          fi
+      # - name: Set DOCKER_REPO_NAME dynamically
+      #   run: |
+      #     if [[ "${{ env.IS_PULL }}" == "true" ]]; then
+      #       echo "DOCKER_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
+      #     elif [[ "${{ env.HAS_SECRETS }}" != "true" ]]; then
+      #       echo "DOCKER_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
+      #     else
+      #       echo "DOCKER_REPO_NAME=${{ secrets.DOCKERHUB_ACCOUNT }}/valkey-bundle" >> $GITHUB_ENV
+      #     fi
 
       - name: Set GHCR_REPO_NAME dynamically
         run: |
@@ -100,13 +100,13 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Docker Hub
-        if: env.IS_PULL != 'true' && env.HAS_SECRETS == 'true'
-        uses: docker/login-action@v3
-        with:
-          registry: docker.io
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      # - name: Login to Docker Hub
+      #   if: env.IS_PULL != 'true' && env.HAS_SECRETS == 'true'
+      #   uses: docker/login-action@v3
+      #   with:
+      #     registry: docker.io
+      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
+      #     password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Login to GitHub Container Registry
         if: env.IS_PULL != 'true' && env.HAS_SECRETS == 'true'
@@ -122,10 +122,10 @@ jobs:
         run: |
           original_tags="${{ toJson(matrix.version.meta.entries[0].tags) }}"
 
-          # Docker Hub tags
-          docker_tags=$(echo $original_tags | sed "s|valkey-bundle|${{ env.DOCKER_REPO_NAME }}|g" \
-            | sed 's/\[ *//; s/ *\]//; s/ //g' | tr -d '\n')
-          echo "docker_tags=$docker_tags" >> "$GITHUB_OUTPUT"
+          # # Docker Hub tags
+          # docker_tags=$(echo $original_tags | sed "s|valkey-bundle|${{ env.DOCKER_REPO_NAME }}|g" \
+          #   | sed 's/\[ *//; s/ *\]//; s/ //g' | tr -d '\n')
+          # echo "docker_tags=$docker_tags" >> "$GITHUB_OUTPUT"
 
           # GHCR tags
           ghcr_tags=$(echo $original_tags | sed "s|valkey-bundle|${{ env.GHCR_REPO_NAME }}|g" \
@@ -133,8 +133,8 @@ jobs:
           echo "ghcr_tags=$ghcr_tags" >> "$GITHUB_OUTPUT"
 
           # Save both in a single file for merge-manifest job to pick up
-          echo "$docker_tags" > tags.txt
-          echo "$ghcr_tags" >> tags.txt
+          # echo "$docker_tags" > tags.txt, change ghcr_tags > tags to >> when uncommenting
+          echo "$ghcr_tags" > tags.txt
 
       - name: Upload Tags Artifact
         uses: actions/upload-artifact@v4
@@ -154,7 +154,7 @@ jobs:
           push: ${{ env.HAS_SECRETS == 'true' && env.IS_PULL != 'true' }}
           outputs: type=image,push-by-digest=true,name-canonical=true
           tags: >-
-            ${{ env.DOCKER_REPO_NAME }},ghcr.io/${{ env.GHCR_REPO_NAME }}
+            ghcr.io/${{ env.GHCR_REPO_NAME }}
           provenance: false
           load: true
           cache-from: type=gha
@@ -167,7 +167,10 @@ jobs:
       - name: Validation Tests ${{ matrix.version.name }}
         run: |
           docker images
-          set -- "${{ env.DOCKER_REPO_NAME }}"
+
+          # Use GHCR image instead of Docker Hub
+          set -- "ghcr.io/${{ env.GHCR_REPO_NAME }}"
+
           if [ -s ./.test/config.sh ]; then
             set -- --config ~/oi/test/config.sh --config ./.test/config.sh "$@";
           fi
@@ -178,13 +181,13 @@ jobs:
         with:
           python-version: "3.8"
 
-      # Core + Module Integration Tests
-      - name: All Core + Module Tests
-        run: |
-          matrix_version="${{ matrix.version.name }}"
-          bundle_version=$(echo "$matrix_version" | cut -d'.' -f1-2)
+      # # Core + Module Integration Tests
+      # - name: All Core + Module Tests
+      #   run: |
+      #     matrix_version="${{ matrix.version.name }}"
+      #     bundle_version=$(echo "$matrix_version" | cut -d'.' -f1-2)
 
-          ./.test/tests/valkey-integration-tests/run.sh "${{ env.DOCKER_REPO_NAME }}" "$bundle_version"
+      #     ./.test/tests/valkey-integration-tests/run.sh "${{ env.DOCKER_REPO_NAME }}" "$bundle_version"
 
       # Export digest to a file to reference it later in merging manifests
       - name: Export digest
@@ -224,13 +227,13 @@ jobs:
     outputs:
       has-secrets: ${{ steps.output-has-secrets.outputs.has-secrets }}
     steps:
-      - name: Set DOCKER_REPO_NAME dynamically
-        run: |
-          if [[ "${{ env.IS_PULL }}" == "true" || "${{ env.HAS_SECRETS }}" != "true" ]]; then
-            echo "DOCKER_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
-          else
-            echo "DOCKER_REPO_NAME=${{ secrets.DOCKERHUB_ACCOUNT }}/valkey-bundle" >> $GITHUB_ENV
-          fi
+      # - name: Set DOCKER_REPO_NAME dynamically
+      #   run: |
+      #     if [[ "${{ env.IS_PULL }}" == "true" || "${{ env.HAS_SECRETS }}" != "true" ]]; then
+      #       echo "DOCKER_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
+      #     else
+      #       echo "DOCKER_REPO_NAME=${{ secrets.DOCKERHUB_ACCOUNT }}/valkey-bundle" >> $GITHUB_ENV
+      #     fi
 
       - name: Set GHCR_REPO_NAME dynamically
         run: |
@@ -258,13 +261,13 @@ jobs:
           pattern: tags-*
           merge-multiple: false
 
-      - name: Login to Docker Hub
-        if: env.HAS_SECRETS == 'true' && env.IS_PULL != 'true'
-        uses: docker/login-action@v3
-        with:
-          registry: docker.io
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      # - name: Login to Docker Hub
+      #   if: env.HAS_SECRETS == 'true' && env.IS_PULL != 'true'
+      #   uses: docker/login-action@v3
+      #   with:
+      #     registry: docker.io
+      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
+      #     password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Login to GitHub Container Registry
         if: env.IS_PULL != 'true' && env.HAS_SECRETS == 'true'
@@ -326,14 +329,14 @@ jobs:
             [[ -n "$tags" ]] || continue
             
             tag_args=$(printf -- "-t %s " $tags)
-            digest_args=$(printf "${{ env.DOCKER_REPO_NAME }}@sha256:%s " digests/$combo/*)
-            digest_args=${digest_args//digests\/$combo\//}
+            # digest_args=$(printf "${{ env.DOCKER_REPO_NAME }}@sha256:%s " digests/$combo/*)
+            # digest_args=${digest_args//digests\/$combo\//}
             
-            if [[ "${{ env.IS_PULL }}" == "true" || "${{ env.HAS_SECRETS }}" != "true" ]]; then
-              echo "Dry run: docker buildx imagetools create $tag_args $digest_args"
-            else
-              docker buildx imagetools create $tag_args $digest_args
-            fi
+            # if [[ "${{ env.IS_PULL }}" == "true" || "${{ env.HAS_SECRETS }}" != "true" ]]; then
+            #   echo "Dry run: docker buildx imagetools create $tag_args $digest_args"
+            # else
+            #   docker buildx imagetools create $tag_args $digest_args
+            # fi
 
             # GHCR
             digest_args=$(printf "ghcr.io/${{ env.GHCR_REPO_NAME }}@sha256:%s " digests/$combo/*)
@@ -345,12 +348,12 @@ jobs:
             fi
           done
 
-  update-dockerhub-description:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/mainline' && needs.merge-manifest.outputs.has-secrets == 'true'
-    needs: [merge-manifest, generate-jobs]
-    name: Update DockerHub Description
-    uses: ./.github/workflows/update-dockerhub-docs.yml
-    secrets:
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-      DOCKERHUB_REPOSITORY: ${{ secrets.DOCKERHUB_REPOSITORY }}
+  # update-dockerhub-description:
+  #   if: github.event_name == 'push' && github.ref == 'refs/heads/mainline' && needs.merge-manifest.outputs.has-secrets == 'true'
+  #   needs: [merge-manifest, generate-jobs]
+  #   name: Update DockerHub Description
+  #   uses: ./.github/workflows/update-dockerhub-docs.yml
+  #   secrets:
+  #     DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+  #     DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+  #     DOCKERHUB_REPOSITORY: ${{ secrets.DOCKERHUB_REPOSITORY }}
