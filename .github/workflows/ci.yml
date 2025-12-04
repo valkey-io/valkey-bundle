@@ -128,7 +128,7 @@ jobs:
           # echo "docker_tags=$docker_tags" >> "$GITHUB_OUTPUT"
 
           # GHCR tags
-          ghcr_tags=$(echo $original_tags | sed "s|valkey-bundle|${{ env.GHCR_REPO_NAME }}|g" \
+          ghcr_tags=$(echo $original_tags | sed "s|valkey-bundle|ghcr.io/${{ env.GHCR_REPO_NAME }}|g" \
             | sed 's/\[ *//; s/ *\]//; s/ //g' | tr -d '\n')
           echo "ghcr_tags=$ghcr_tags" >> "$GITHUB_OUTPUT"
 
