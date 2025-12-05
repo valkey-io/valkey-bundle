@@ -160,7 +160,7 @@ jobs:
           # echo "ghcr_tags=$ghcr_tags" >> "$GITHUB_OUTPUT"
 
           # ECR tags (prepended with public ECR alias)
-          ecr_tags=$(echo $original_tags | sed "s|valkey-bundle|public.ecr.aws/${{ secrets.ECR_REPO_ALIAS }}/valkey-bundle|g" \
+          ecr_tags=$(echo $original_tags | sed "s|valkey-bundle|public.ecr.aws/${{ env.ECR_REPO_NAME }}|g" \
             | sed 's/\[ *//; s/ *\]//; s/ //g' | tr -d '\n')
           echo "ecr_tags=$ecr_tags" >> "$GITHUB_OUTPUT"
 
