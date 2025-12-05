@@ -138,6 +138,11 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: us-east-1
 
+      - name: Login to Amazon ECR Public Gallery
+        if: env.IS_PULL != 'true' && env.HAS_SECRETS == 'true'
+        run: |
+          aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
+
       # Prepare Docker tags from version metadata, replacing repository name with ACCOUNT/DOCKER_REPOSITORY
       - name: Prepare Tags
         id: prep_tags
@@ -320,6 +325,11 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: us-east-1
+
+      - name: Login to Amazon ECR Public Gallery
+        if: env.IS_PULL != 'true' && env.HAS_SECRETS == 'true'
+        run: |
+          aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
 
       - name: Set up Docker Buildx
         if: env.HAS_SECRETS == 'true'
