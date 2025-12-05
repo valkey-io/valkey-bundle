@@ -9,6 +9,11 @@ on:
       - "**/Dockerfile"
   workflow_dispatch:
 
+permissions:
+  id-token: write
+  contents: read
+  packages: write
+
 env:
   IS_PULL: ${{ github.event_name == 'pull_request' }}
 
