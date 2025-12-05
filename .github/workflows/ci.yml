@@ -84,15 +84,15 @@ jobs:
       #       echo "DOCKER_REPO_NAME=${{ secrets.DOCKERHUB_ACCOUNT }}/valkey-bundle" >> $GITHUB_ENV
       #     fi
 
-      - name: Set GHCR_REPO_NAME dynamically
-        run: |
-          if [[ "${{ env.IS_PULL }}" == "true" ]]; then
-            echo "GHCR_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
-          elif [[ "${{ env.HAS_SECRETS }}" != "true" ]]; then
-            echo "GHCR_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
-          else
-            echo "GHCR_REPO_NAME=${{ github.repository_owner }}/valkey-bundle" >> $GITHUB_ENV
-          fi
+      # - name: Set GHCR_REPO_NAME dynamically
+      #   run: |
+      #     if [[ "${{ env.IS_PULL }}" == "true" ]]; then
+      #       echo "GHCR_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
+      #     elif [[ "${{ env.HAS_SECRETS }}" != "true" ]]; then
+      #       echo "GHCR_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
+      #     else
+      #       echo "GHCR_REPO_NAME=${{ github.repository_owner }}/valkey-bundle" >> $GITHUB_ENV
+      #     fi
 
       - name: Set ECR_REPO_NAME dynamically
         run: |
@@ -118,13 +118,13 @@ jobs:
       #     username: ${{ secrets.DOCKERHUB_USERNAME }}
       #     password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Login to GitHub Container Registry
-        if: env.IS_PULL != 'true' && env.HAS_SECRETS == 'true'
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ github.token }}
+      # - name: Login to GitHub Container Registry
+      #   if: env.IS_PULL != 'true' && env.HAS_SECRETS == 'true'
+      #   uses: docker/login-action@v3
+      #   with:
+      #     registry: ghcr.io
+      #     username: ${{ github.actor }}
+      #     password: ${{ github.token }}
       
       - name: Configure AWS credentials via OIDC
         if: env.IS_PULL != 'true' && env.HAS_SECRETS == 'true'
@@ -144,10 +144,10 @@ jobs:
           #   | sed 's/\[ *//; s/ *\]//; s/ //g' | tr -d '\n')
           # echo "docker_tags=$docker_tags" >> "$GITHUB_OUTPUT"
 
-          # GHCR tags
-          ghcr_tags=$(echo $original_tags | sed "s|valkey-bundle|ghcr.io/${{ env.GHCR_REPO_NAME }}|g" \
-            | sed 's/\[ *//; s/ *\]//; s/ //g' | tr -d '\n')
-          echo "ghcr_tags=$ghcr_tags" >> "$GITHUB_OUTPUT"
+          # # GHCR tags
+          # ghcr_tags=$(echo $original_tags | sed "s|valkey-bundle|ghcr.io/${{ env.GHCR_REPO_NAME }}|g" \
+          #   | sed 's/\[ *//; s/ *\]//; s/ //g' | tr -d '\n')
+          # echo "ghcr_tags=$ghcr_tags" >> "$GITHUB_OUTPUT"
 
           # ECR tags (prepended with public ECR alias)
           ecr_tags=$(echo $original_tags | sed "s|valkey-bundle|public.ecr.aws/${{ secrets.ECR_REPO_ALIAS }}/valkey-bundle|g" \
@@ -257,13 +257,13 @@ jobs:
       #       echo "DOCKER_REPO_NAME=${{ secrets.DOCKERHUB_ACCOUNT }}/valkey-bundle" >> $GITHUB_ENV
       #     fi
 
-      - name: Set GHCR_REPO_NAME dynamically
-        run: |
-          if [[ "${{ env.IS_PULL }}" == "true" ]]; then
-            echo "GHCR_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
-          else
-            echo "GHCR_REPO_NAME=${{ github.repository_owner }}/valkey-bundle" >> $GITHUB_ENV
-          fi
+      # - name: Set GHCR_REPO_NAME dynamically
+      #   run: |
+      #     if [[ "${{ env.IS_PULL }}" == "true" ]]; then
+      #       echo "GHCR_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
+      #     else
+      #       echo "GHCR_REPO_NAME=${{ github.repository_owner }}/valkey-bundle" >> $GITHUB_ENV
+      #     fi
 
       - name: Set ECR_REPO_NAME dynamically
         run: |
@@ -301,13 +301,13 @@ jobs:
       #     username: ${{ secrets.DOCKERHUB_USERNAME }}
       #     password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Login to GitHub Container Registry
-        if: env.IS_PULL != 'true' && env.HAS_SECRETS == 'true'
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ github.token }}
+      # - name: Login to GitHub Container Registry
+      #   if: env.IS_PULL != 'true' && env.HAS_SECRETS == 'true'
+      #   uses: docker/login-action@v3
+      #   with:
+      #     registry: ghcr.io
+      #     username: ${{ github.actor }}
+      #     password: ${{ github.token }}
       
       - name: Configure AWS credentials via OIDC
         if: env.IS_PULL != 'true' && env.HAS_SECRETS == 'true'
@@ -378,13 +378,13 @@ jobs:
             # fi
 
             # GHCR
-            digest_args=$(printf "ghcr.io/${{ env.GHCR_REPO_NAME }}@sha256:%s " digests/$combo/*)
-            digest_args=${digest_args//digests\/$combo\//}
-            if [[ "${{ env.IS_PULL }}" == "true" || "${{ env.HAS_SECRETS }}" != "true" ]]; then
-              echo "Dry run: docker buildx imagetools create $tag_args $digest_args"
-            else
-              docker buildx imagetools create $tag_args $digest_args
-            fi
+            # digest_args=$(printf "ghcr.io/${{ env.GHCR_REPO_NAME }}@sha256:%s " digests/$combo/*)
+            # digest_args=${digest_args//digests\/$combo\//}
+            # if [[ "${{ env.IS_PULL }}" == "true" || "${{ env.HAS_SECRETS }}" != "true" ]]; then
+            #   echo "Dry run: docker buildx imagetools create $tag_args $digest_args"
+            # else
+            #   docker buildx imagetools create $tag_args $digest_args
+            # fi
 
             # ECR
             digest_args=$(printf "public.ecr.aws/${{ env.ECR_REPO_NAME }}@sha256:%s " digests/$combo/*)
