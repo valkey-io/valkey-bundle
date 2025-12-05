@@ -94,6 +94,16 @@ jobs:
             echo "GHCR_REPO_NAME=${{ github.repository_owner }}/valkey-bundle" >> $GITHUB_ENV
           fi
 
+      - name: Set ECR_REPO_NAME dynamically
+        run: |
+          if [[ "${{ env.IS_PULL }}" == "true" ]]; then
+            echo "ECR_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
+          elif [[ "${{ env.HAS_SECRETS }}" != "true" ]]; then
+            echo "ECR_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
+          else
+            echo "ECR_REPO_NAME=${{ secrets.ECR_REGISTRY_ALIAS }}/valkey-bundle" >> $GITHUB_ENV
+          fi
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
@@ -115,6 +125,13 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ github.token }}
+      
+      - name: Configure AWS credentials via OIDC
+        if: env.IS_PULL != 'true' && env.HAS_SECRETS == 'true'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-east-1
 
       # Prepare Docker tags from version metadata, replacing repository name with ACCOUNT/DOCKER_REPOSITORY
       - name: Prepare Tags
@@ -132,9 +149,14 @@ jobs:
             | sed 's/\[ *//; s/ *\]//; s/ //g' | tr -d '\n')
           echo "ghcr_tags=$ghcr_tags" >> "$GITHUB_OUTPUT"
 
+          # ECR tags (prepended with public ECR alias)
+          ecr_tags=$(echo $original_tags | sed "s|valkey-bundle|public.ecr.aws/${{ secrets.ECR_REPO_ALIAS }}/valkey-bundle|g" \
+            | sed 's/\[ *//; s/ *\]//; s/ //g' | tr -d '\n')
+          echo "ecr_tags=$ecr_tags" >> "$GITHUB_OUTPUT"
+
           # Save both in a single file for merge-manifest job to pick up
           # echo "$docker_tags" > tags.txt, change ghcr_tags > tags to >> when uncommenting
-          echo "$ghcr_tags" > tags.txt
+          echo "$ecr_tags" > tags.txt
 
       - name: Upload Tags Artifact
         uses: actions/upload-artifact@v4
@@ -154,7 +176,7 @@ jobs:
           push: ${{ env.HAS_SECRETS == 'true' && env.IS_PULL != 'true' }}
           outputs: type=image,push-by-digest=true,name-canonical=true
           tags: >-
-            ghcr.io/${{ env.GHCR_REPO_NAME }}
+            public.ecr.aws/${{ secrets.ECR_REPOSITORY_ALIAS }}
           provenance: false
           load: true
           cache-from: type=gha
@@ -243,6 +265,16 @@ jobs:
             echo "GHCR_REPO_NAME=${{ github.repository_owner }}/valkey-bundle" >> $GITHUB_ENV
           fi
 
+      - name: Set ECR_REPO_NAME dynamically
+        run: |
+          if [[ "${{ env.IS_PULL }}" == "true" ]]; then
+            echo "ECR_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
+          elif [[ "${{ env.HAS_SECRETS }}" != "true" ]]; then
+            echo "ECR_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
+          else
+            echo "ECR_REPO_NAME=${{ secrets.ECR_REGISTRY_ALIAS }}/valkey-bundle" >> $GITHUB_ENV
+          fi
+
       - name: Output if User has set secrets
         id: output-has-secrets
         run: echo "has-secrets=${{ env.HAS_SECRETS }}" >> "$GITHUB_OUTPUT"
@@ -276,6 +308,13 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ github.token }}
+      
+      - name: Configure AWS credentials via OIDC
+        if: env.IS_PULL != 'true' && env.HAS_SECRETS == 'true'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-east-1
 
       - name: Set up Docker Buildx
         if: env.HAS_SECRETS == 'true'
@@ -346,6 +385,17 @@ jobs:
             else
               docker buildx imagetools create $tag_args $digest_args
             fi
+
+            # ECR
+            digest_args=$(printf "public.ecr.aws/${{ env.ECR_REPO_NAME }}@sha256:%s " digests/$combo/*)
+            digest_args=${digest_args//digests\/$combo\//}
+
+            if [[ "${{ env.IS_PULL }}" == "true" || "${{ env.HAS_SECRETS }}" != "true" ]]; then
+              echo "Dry run: docker buildx imagetools create $tag_args $digest_args"
+            else
+              docker buildx imagetools create $tag_args $digest_args
+            fi
+
           done
 
   # update-dockerhub-description:
