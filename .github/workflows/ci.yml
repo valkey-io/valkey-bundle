@@ -79,25 +79,25 @@ jobs:
           platform=${{ matrix.platform }}
           echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
 
-      # - name: Set DOCKER_REPO_NAME dynamically
-      #   run: |
-      #     if [[ "${{ env.IS_PULL }}" == "true" ]]; then
-      #       echo "DOCKER_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
-      #     elif [[ "${{ env.HAS_SECRETS }}" != "true" ]]; then
-      #       echo "DOCKER_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
-      #     else
-      #       echo "DOCKER_REPO_NAME=${{ secrets.DOCKERHUB_ACCOUNT }}/valkey-bundle" >> $GITHUB_ENV
-      #     fi
+      - name: Set DOCKER_REPO_NAME dynamically
+        run: |
+          if [[ "${{ env.IS_PULL }}" == "true" ]]; then
+            echo "DOCKER_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
+          elif [[ "${{ env.HAS_SECRETS }}" != "true" ]]; then
+            echo "DOCKER_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
+          else
+            echo "DOCKER_REPO_NAME=${{ secrets.DOCKERHUB_ACCOUNT }}/valkey-bundle" >> $GITHUB_ENV
+          fi
 
-      # - name: Set GHCR_REPO_NAME dynamically
-      #   run: |
-      #     if [[ "${{ env.IS_PULL }}" == "true" ]]; then
-      #       echo "GHCR_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
-      #     elif [[ "${{ env.HAS_SECRETS }}" != "true" ]]; then
-      #       echo "GHCR_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
-      #     else
-      #       echo "GHCR_REPO_NAME=${{ github.repository_owner }}/valkey-bundle" >> $GITHUB_ENV
-      #     fi
+      - name: Set GHCR_REPO_NAME dynamically
+        run: |
+          if [[ "${{ env.IS_PULL }}" == "true" ]]; then
+            echo "GHCR_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
+          elif [[ "${{ env.HAS_SECRETS }}" != "true" ]]; then
+            echo "GHCR_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
+          else
+            echo "GHCR_REPO_NAME=${{ github.repository_owner }}/valkey-bundle" >> $GITHUB_ENV
+          fi
 
       - name: Set ECR_REPO_NAME dynamically
         run: |
@@ -115,21 +115,21 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # - name: Login to Docker Hub
-      #   if: env.IS_PULL != 'true' && env.HAS_SECRETS == 'true'
-      #   uses: docker/login-action@v3
-      #   with:
-      #     registry: docker.io
-      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
-      #     password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Login to Docker Hub
+        if: env.IS_PULL != 'true' && env.HAS_SECRETS == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # - name: Login to GitHub Container Registry
-      #   if: env.IS_PULL != 'true' && env.HAS_SECRETS == 'true'
-      #   uses: docker/login-action@v3
-      #   with:
-      #     registry: ghcr.io
-      #     username: ${{ github.actor }}
-      #     password: ${{ github.token }}
+      - name: Login to GitHub Container Registry
+        if: env.IS_PULL != 'true' && env.HAS_SECRETS == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
       
       - name: Configure AWS credentials via OIDC
         if: env.IS_PULL != 'true' && env.HAS_SECRETS == 'true'
@@ -153,26 +153,39 @@ jobs:
           # docker_tags=$(echo $original_tags | sed "s|valkey-bundle|${{ env.DOCKER_REPO_NAME }}|g" \
           #   | sed 's/\[ *//; s/ *\]//; s/ //g' | tr -d '\n')
           # echo "docker_tags=$docker_tags" >> "$GITHUB_OUTPUT"
+          echo "$docker_tags" > tags-docker.txt
 
-          # # GHCR tags
-          # ghcr_tags=$(echo $original_tags | sed "s|valkey-bundle|ghcr.io/${{ env.GHCR_REPO_NAME }}|g" \
-          #   | sed 's/\[ *//; s/ *\]//; s/ //g' | tr -d '\n')
-          # echo "ghcr_tags=$ghcr_tags" >> "$GITHUB_OUTPUT"
+          # GHCR tags
+          ghcr_tags=$(echo $original_tags | sed "s|valkey-bundle|ghcr.io/${{ env.GHCR_REPO_NAME }}|g" \
+            | sed 's/\[ *//; s/ *\]//; s/ //g' | tr -d '\n')
+          echo "ghcr_tags=$ghcr_tags" >> "$GITHUB_OUTPUT"
+          echo "$ghcr_tags" > tags-ghcr.txt
 
           # ECR tags (prepended with public ECR alias)
           ecr_tags=$(echo $original_tags | sed "s|valkey-bundle|public.ecr.aws/${{ env.ECR_REPO_NAME }}|g" \
             | sed 's/\[ *//; s/ *\]//; s/ //g' | tr -d '\n')
           echo "ecr_tags=$ecr_tags" >> "$GITHUB_OUTPUT"
+          echo "$ecr_tags" > tags-ecr.txt
 
-          # Save both in a single file for merge-manifest job to pick up
-          # echo "$docker_tags" > tags.txt, change ghcr_tags > tags to >> when uncommenting
-          echo "$ecr_tags" > tags.txt
-
-      - name: Upload Tags Artifact
+      - name: Upload Tags Artifact for Docker
         uses: actions/upload-artifact@v4
         with:
           name: tags-${{ matrix.version.name }}
-          path: tags.txt
+          path: tags-docker.txt
+          overwrite: true
+
+      - name: Upload Tags Artifact for ECR
+        uses: actions/upload-artifact@v4
+        with:
+          name: tags-${{ matrix.version.name }}
+          path: tags-ghcr.txt
+          overwrite: true
+
+      - name: Upload Tags Artifact for GHCR
+        uses: actions/upload-artifact@v4
+        with:
+          name: tags-${{ matrix.version.name }}
+          path: tags-ecr.txt
           overwrite: true
 
       # Build Docker images and push them to Docker Hub by digest (sha256)
@@ -259,21 +272,21 @@ jobs:
     outputs:
       has-secrets: ${{ steps.output-has-secrets.outputs.has-secrets }}
     steps:
-      # - name: Set DOCKER_REPO_NAME dynamically
-      #   run: |
-      #     if [[ "${{ env.IS_PULL }}" == "true" || "${{ env.HAS_SECRETS }}" != "true" ]]; then
-      #       echo "DOCKER_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
-      #     else
-      #       echo "DOCKER_REPO_NAME=${{ secrets.DOCKERHUB_ACCOUNT }}/valkey-bundle" >> $GITHUB_ENV
-      #     fi
+      - name: Set DOCKER_REPO_NAME dynamically
+        run: |
+          if [[ "${{ env.IS_PULL }}" == "true" || "${{ env.HAS_SECRETS }}" != "true" ]]; then
+            echo "DOCKER_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
+          else
+            echo "DOCKER_REPO_NAME=${{ secrets.DOCKERHUB_ACCOUNT }}/valkey-bundle" >> $GITHUB_ENV
+          fi
 
-      # - name: Set GHCR_REPO_NAME dynamically
-      #   run: |
-      #     if [[ "${{ env.IS_PULL }}" == "true" ]]; then
-      #       echo "GHCR_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
-      #     else
-      #       echo "GHCR_REPO_NAME=${{ github.repository_owner }}/valkey-bundle" >> $GITHUB_ENV
-      #     fi
+      - name: Set GHCR_REPO_NAME dynamically
+        run: |
+          if [[ "${{ env.IS_PULL }}" == "true" ]]; then
+            echo "GHCR_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
+          else
+            echo "GHCR_REPO_NAME=${{ github.repository_owner }}/valkey-bundle" >> $GITHUB_ENV
+          fi
 
       - name: Set ECR_REPO_NAME dynamically
         run: |
@@ -303,21 +316,21 @@ jobs:
           pattern: tags-*
           merge-multiple: false
 
-      # - name: Login to Docker Hub
-      #   if: env.HAS_SECRETS == 'true' && env.IS_PULL != 'true'
-      #   uses: docker/login-action@v3
-      #   with:
-      #     registry: docker.io
-      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
-      #     password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Login to Docker Hub
+        if: env.HAS_SECRETS == 'true' && env.IS_PULL != 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # - name: Login to GitHub Container Registry
-      #   if: env.IS_PULL != 'true' && env.HAS_SECRETS == 'true'
-      #   uses: docker/login-action@v3
-      #   with:
-      #     registry: ghcr.io
-      #     username: ${{ github.actor }}
-      #     password: ${{ github.token }}
+      - name: Login to GitHub Container Registry
+        if: env.IS_PULL != 'true' && env.HAS_SECRETS == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
       
       - name: Configure AWS credentials via OIDC
         if: env.IS_PULL != 'true' && env.HAS_SECRETS == 'true'
@@ -335,8 +348,9 @@ jobs:
         if: env.HAS_SECRETS == 'true'
         uses: docker/setup-buildx-action@v3
 
+
       # Use imagetools to combine the arch-specific digests into respective multi-arch manifest
-      - name: Create Multi-Arch Manifest and Push
+      - name: Create Multi-Arch Manifest and Push for Docker
         working-directory: ${{ runner.temp }}
         run: |
           declare -A combinations
@@ -370,7 +384,7 @@ jobs:
                 tag_dir=$(find all-tags/ -name "tags-${version}*" -type d | grep -v "\-alpine$" | head -1)
             fi
 
-            tag_file="$tag_dir/tags.txt"
+            tag_file="$tag_dir/tags-docker.txt"
             [[ -f "$tag_file" ]] || continue
             
             all_tags=$(cat "$tag_file" | tr '\n' ' ' | sed 's/,/ /g')
@@ -383,23 +397,127 @@ jobs:
             [[ -n "$tags" ]] || continue
             
             tag_args=$(printf -- "-t %s " $tags)
-            # digest_args=$(printf "${{ env.DOCKER_REPO_NAME }}@sha256:%s " digests/$combo/*)
-            # digest_args=${digest_args//digests\/$combo\//}
-            
-            # if [[ "${{ env.IS_PULL }}" == "true" || "${{ env.HAS_SECRETS }}" != "true" ]]; then
-            #   echo "Dry run: docker buildx imagetools create $tag_args $digest_args"
-            # else
-            #   docker buildx imagetools create $tag_args $digest_args
-            # fi
 
-            # GHCR
-            # digest_args=$(printf "ghcr.io/${{ env.GHCR_REPO_NAME }}@sha256:%s " digests/$combo/*)
-            # digest_args=${digest_args//digests\/$combo\//}
-            # if [[ "${{ env.IS_PULL }}" == "true" || "${{ env.HAS_SECRETS }}" != "true" ]]; then
-            #   echo "Dry run: docker buildx imagetools create $tag_args $digest_args"
-            # else
-            #   docker buildx imagetools create $tag_args $digest_args
-            # fi
+            digest_args=$(printf "${{ env.DOCKER_REPO_NAME }}@sha256:%s " digests/$combo/*)
+            digest_args=${digest_args//digests\/$combo\//}
+            
+            if [[ "${{ env.IS_PULL }}" == "true" || "${{ env.HAS_SECRETS }}" != "true" ]]; then
+              echo "Dry run: docker buildx imagetools create $tag_args $digest_args"
+            else
+              docker buildx imagetools create $tag_args $digest_args
+            fi
+
+          done
+
+      # Use imagetools to combine the arch-specific digests into respective multi-arch manifest
+      - name: Create Multi-Arch Manifest and Push for GHCR
+        working-directory: ${{ runner.temp }}
+        run: |
+          declare -A combinations
+          for digest_artifact_dir in all-digests/digests-*; do
+            [[ -d "$digest_artifact_dir" ]] || continue
+            artifact_name=$(basename "$digest_artifact_dir")
+            if [[ "$artifact_name" =~ digests-(.+)-(alpine|debian|bookworm|trixie)-linux-.+ ]]; then
+              version="${BASH_REMATCH[1]}"
+              distro="${BASH_REMATCH[2]}"
+              combo="${version}-${distro}"
+              combinations["$combo"]=1
+            fi
+          done
+
+          for combo in "${!combinations[@]}"; do
+            if [[ "$combo" =~ (.+)-(alpine|debian|bookworm|trixie)$ ]]; then
+              version="${BASH_REMATCH[1]}"
+              distro="${BASH_REMATCH[2]}"
+            else
+              continue
+            fi
+
+            mkdir -p "digests/$combo"
+            find all-digests/ -name "digests-${combo}-*" -exec sh -c 'cp "$1"/* "$2"/' _ {} "digests/$combo/" \; 2>/dev/null
+            digest_count=$(ls -1 "digests/$combo" 2>/dev/null | wc -l)
+            [[ $digest_count -gt 0 ]] || continue
+            
+            if [[ "$distro" == "alpine" ]]; then
+                tag_dir=$(find all-tags/ -name "tags-${version}*-alpine" -type d | head -1)
+            else
+                tag_dir=$(find all-tags/ -name "tags-${version}*" -type d | grep -v "\-alpine$" | head -1)
+            fi
+
+            tag_file="$tag_dir/tags-ghcr.txt"
+            [[ -f "$tag_file" ]] || continue
+            
+            all_tags=$(cat "$tag_file" | tr '\n' ' ' | sed 's/,/ /g')
+
+            if [[ "$distro" == "alpine" ]]; then
+              tags=$(echo "$all_tags" | tr ' ' '\n' | grep alpine | tr '\n' ' ')
+            else
+              tags=$(echo "$all_tags" | tr ' ' '\n' | grep -v alpine | tr '\n' ' ')
+            fi
+            [[ -n "$tags" ]] || continue
+            
+            tag_args=$(printf -- "-t %s " $tags)
+
+            GHCR
+            digest_args=$(printf "ghcr.io/${{ env.GHCR_REPO_NAME }}@sha256:%s " digests/$combo/*)
+            digest_args=${digest_args//digests\/$combo\//}
+            if [[ "${{ env.IS_PULL }}" == "true" || "${{ env.HAS_SECRETS }}" != "true" ]]; then
+              echo "Dry run: docker buildx imagetools create $tag_args $digest_args"
+            else
+              docker buildx imagetools create $tag_args $digest_args
+            fi
+
+          done
+
+
+      # Use imagetools to combine the arch-specific digests into respective multi-arch manifest
+      - name: Create Multi-Arch Manifest and Push for ECR
+        working-directory: ${{ runner.temp }}
+        run: |
+          declare -A combinations
+          for digest_artifact_dir in all-digests/digests-*; do
+            [[ -d "$digest_artifact_dir" ]] || continue
+            artifact_name=$(basename "$digest_artifact_dir")
+            if [[ "$artifact_name" =~ digests-(.+)-(alpine|debian|bookworm|trixie)-linux-.+ ]]; then
+              version="${BASH_REMATCH[1]}"
+              distro="${BASH_REMATCH[2]}"
+              combo="${version}-${distro}"
+              combinations["$combo"]=1
+            fi
+          done
+
+          for combo in "${!combinations[@]}"; do
+            if [[ "$combo" =~ (.+)-(alpine|debian|bookworm|trixie)$ ]]; then
+              version="${BASH_REMATCH[1]}"
+              distro="${BASH_REMATCH[2]}"
+            else
+              continue
+            fi
+
+            mkdir -p "digests/$combo"
+            find all-digests/ -name "digests-${combo}-*" -exec sh -c 'cp "$1"/* "$2"/' _ {} "digests/$combo/" \; 2>/dev/null
+            digest_count=$(ls -1 "digests/$combo" 2>/dev/null | wc -l)
+            [[ $digest_count -gt 0 ]] || continue
+            
+            if [[ "$distro" == "alpine" ]]; then
+                tag_dir=$(find all-tags/ -name "tags-${version}*-alpine" -type d | head -1)
+            else
+                tag_dir=$(find all-tags/ -name "tags-${version}*" -type d | grep -v "\-alpine$" | head -1)
+            fi
+
+            tag_file="$tag_dir/tags-ecr.txt"
+            [[ -f "$tag_file" ]] || continue
+            
+            all_tags=$(cat "$tag_file" | tr '\n' ' ' | sed 's/,/ /g')
+
+            if [[ "$distro" == "alpine" ]]; then
+              tags=$(echo "$all_tags" | tr ' ' '\n' | grep alpine | tr '\n' ' ')
+            else
+              tags=$(echo "$all_tags" | tr ' ' '\n' | grep -v alpine | tr '\n' ' ')
+            fi
+            [[ -n "$tags" ]] || continue
+            
+            tag_args=$(printf -- "-t %s " $tags)
 
             # ECR
             digest_args=$(printf "public.ecr.aws/${{ env.ECR_REPO_NAME }}@sha256:%s " digests/$combo/*)
