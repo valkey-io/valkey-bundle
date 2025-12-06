@@ -149,10 +149,10 @@ jobs:
         run: |
           original_tags="${{ toJson(matrix.version.meta.entries[0].tags) }}"
 
-          # # Docker Hub tags
-          # docker_tags=$(echo $original_tags | sed "s|valkey-bundle|${{ env.DOCKER_REPO_NAME }}|g" \
-          #   | sed 's/\[ *//; s/ *\]//; s/ //g' | tr -d '\n')
-          # echo "docker_tags=$docker_tags" >> "$GITHUB_OUTPUT"
+          # Docker Hub tags
+          docker_tags=$(echo $original_tags | sed "s|valkey-bundle|${{ env.DOCKER_REPO_NAME }}|g" \
+            | sed 's/\[ *//; s/ *\]//; s/ //g' | tr -d '\n')
+          echo "docker_tags=$docker_tags" >> "$GITHUB_OUTPUT"
           echo "$docker_tags" > tags-docker.txt
 
           # GHCR tags
