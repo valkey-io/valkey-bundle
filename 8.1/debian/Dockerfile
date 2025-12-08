@@ -36,40 +36,40 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 
 WORKDIR /opt
 
-# # Clone repositories
-# RUN set -eux; \
-#     git clone --depth 1 --branch 1.0.2 https://github.com/valkey-io/valkey-json.git; \
-#     git clone --depth 1 --branch 1.0.0 https://github.com/valkey-io/valkey-bloom.git; \
-#     git clone --depth 1 --branch 1.0.2 https://github.com/valkey-io/valkey-search.git; \
-#     git clone --depth 1 --branch 1.0.0 https://github.com/valkey-io/valkey-ldap.git;
+# Clone repositories
+RUN set -eux; \
+    git clone --depth 1 --branch 1.0.2 https://github.com/valkey-io/valkey-json.git; \
+    git clone --depth 1 --branch 1.0.0 https://github.com/valkey-io/valkey-bloom.git; \
+    git clone --depth 1 --branch 1.0.2 https://github.com/valkey-io/valkey-search.git; \
+    git clone --depth 1 --branch 1.0.0 https://github.com/valkey-io/valkey-ldap.git;
 
-# # Build JSON module
-# WORKDIR /opt/valkey-json
-# RUN set -eux; \
-#     ./build.sh --release
+# Build JSON module
+WORKDIR /opt/valkey-json
+RUN set -eux; \
+    ./build.sh --release
 
-# # Build Bloom module
-# WORKDIR /opt/valkey-bloom
-# # RUN cargo build --all --all-targets --release;
-# 
-# # Build Search module
-# WORKDIR /opt/valkey-search
-# RUN set -eux; \
-#     ./build.sh
+# Build Bloom module
+WORKDIR /opt/valkey-bloom
+RUN cargo build --all --all-targets --release;
 
-# # Build LDAP module
-# WORKDIR /opt/valkey-ldap
-# # RUN cargo build --all --all-targets --release;
-# 
+# Build Search module
+WORKDIR /opt/valkey-search
+RUN set -eux; \
+    ./build.sh
+
+# Build LDAP module
+WORKDIR /opt/valkey-ldap
+RUN cargo build --all --all-targets --release;
+
 FROM docker.io/valkey/valkey:8.1.4-trixie
 
 RUN mkdir -p /usr/lib/valkey;
 
-# # Copy built modules from the build stage test1 2 2 2 3 4 5 6 7 8 9 10
-# COPY --from=build /opt/valkey-json/build/src/libjson.so /usr/lib/valkey/libjson.so
-# COPY --from=build /opt/valkey-bloom/target/release/libvalkey_bloom.so /usr/lib/valkey/libvalkey_bloom.so
-# COPY --from=build /opt/valkey-search/.build-release/libsearch.so /usr/lib/valkey/libsearch.so
-# COPY --from=build /opt/valkey-ldap/target/release/libvalkey_ldap.so /usr/lib/valkey/libvalkey_ldap.so
+# Copy built modules from the build stage test1 2 2 2 3 4 5 6 7 8 9 10
+COPY --from=build /opt/valkey-json/build/src/libjson.so /usr/lib/valkey/libjson.so
+COPY --from=build /opt/valkey-bloom/target/release/libvalkey_bloom.so /usr/lib/valkey/libvalkey_bloom.so
+COPY --from=build /opt/valkey-search/.build-release/libsearch.so /usr/lib/valkey/libsearch.so
+COPY --from=build /opt/valkey-ldap/target/release/libvalkey_ldap.so /usr/lib/valkey/libvalkey_ldap.so
 
 COPY bundle-docker-entrypoint.sh /usr/local/bin/
 ENTRYPOINT ["bundle-docker-entrypoint.sh"]
