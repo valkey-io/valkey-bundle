@@ -528,6 +528,21 @@ jobs:
 
           done
 
+  update-ecr-description:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/mainline' && needs.merge-manifest.outputs.has-secrets == 'true'
+    needs:
+      - generate-jobs
+      # - test
+      # - build_and_push
+    name: Update ECR Description
+    permissions:
+      id-token: write
+      contents: read
+    uses: ./.github/workflows/update-ecr-docs.yml
+    secrets:
+      AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+      ECR_REPOSITORY_NAME: ${{ secrets.ECR_REPOSITORY_NAME }}
+
   # update-dockerhub-description:
   #   if: github.event_name == 'push' && github.ref == 'refs/heads/mainline' && needs.merge-manifest.outputs.has-secrets == 'true'
   #   needs: [merge-manifest, generate-jobs]
