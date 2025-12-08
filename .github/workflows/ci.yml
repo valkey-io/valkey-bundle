@@ -530,8 +530,8 @@ jobs:
 
   update-ecr-description:
     if: github.event_name == 'push' && github.ref == 'refs/heads/mainline' && needs.merge-manifest.outputs.has-secrets == 'true'
-    needs:
-      - generate-jobs
+    needs: [merge-manifest, generate-jobs]
+    # needs:
       # - test
       # - build_and_push
     name: Update ECR Description
