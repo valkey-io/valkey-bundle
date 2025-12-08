@@ -198,7 +198,8 @@ jobs:
           # Push is true only for push events if the secrets have been created
           push: ${{ env.HAS_SECRETS == 'true' && env.IS_PULL != 'true' }}
           outputs: type=image,push-by-digest=true,name-canonical=true
-          tags: "public.ecr.aws/${{ env.ECR_REPO_NAME }},ghcr.io/${{ env.GHCR_REPO_NAME }},${{ env.DOCKER_REPO_NAME }}"
+          tags: >-
+            public.ecr.aws/${{ env.ECR_REPO_NAME }},ghcr.io/${{ env.GHCR_REPO_NAME }},${{ env.DOCKER_REPO_NAME }}
           provenance: false
           load: true
           cache-from: type=gha
