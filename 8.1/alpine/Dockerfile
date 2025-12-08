@@ -66,7 +66,7 @@ RUN set -eux; \
     apk add --no-cache libstdc++; \
     mkdir -p /usr/lib/valkey;
 
-# # Copy built modules from the build stage test1 2 2 2 3 4 5 6 7
+# # Copy built modules from the build stage test1 2 2 2 3 4 5 6 7 8
 # COPY --from=build /opt/valkey-json/build/src/libjson.so /usr/lib/valkey/libjson.so
 # COPY --from=build /opt/valkey-bloom/target/release/libvalkey_bloom.so /usr/lib/valkey/libvalkey_bloom.so
 # COPY --from=build /opt/valkey-search/.build-release/libsearch.so /usr/lib/valkey/libsearch.so
