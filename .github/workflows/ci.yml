@@ -378,9 +378,9 @@ jobs:
             [[ $digest_count -gt 0 ]] || continue
             
             if [[ "$distro" == "alpine" ]]; then
-                tag_dir=$(find all-tags/ -name "tags-${version}*-alpine" -type d | head -1)
+                tag_dir=$(find all-tags/ -name "tags-ecr-${version}*-alpine" -type d | head -1)
             else
-                tag_dir=$(find all-tags/ -name "tags-${version}*" -type d | grep -v "\-alpine$" | head -1)
+                tag_dir=$(find all-tags/ -name "tags-ecr-${version}*" -type d | grep -v "\-alpine$" | head -1)
             fi
 
             tag_file="$tag_dir/tags-ecr.txt"
@@ -439,9 +439,9 @@ jobs:
             [[ $digest_count -gt 0 ]] || continue
             
             if [[ "$distro" == "alpine" ]]; then
-                tag_dir=$(find all-tags/ -name "tags-${version}*-alpine" -type d | head -1)
+                tag_dir=$(find all-tags/ -name "tags-docker-${version}*-alpine" -type d | head -1)
             else
-                tag_dir=$(find all-tags/ -name "tags-${version}*" -type d | grep -v "\-alpine$" | head -1)
+                tag_dir=$(find all-tags/ -name "tags-docker-${version}*" -type d | grep -v "\-alpine$" | head -1)
             fi
 
             tag_file="$tag_dir/tags-docker.txt"
@@ -499,9 +499,9 @@ jobs:
             [[ $digest_count -gt 0 ]] || continue
             
             if [[ "$distro" == "alpine" ]]; then
-                tag_dir=$(find all-tags/ -name "tags-${version}*-alpine" -type d | head -1)
+                tag_dir=$(find all-tags/ -name "tags-ghcr-${version}*-alpine" -type d | head -1)
             else
-                tag_dir=$(find all-tags/ -name "tags-${version}*" -type d | grep -v "\-alpine$" | head -1)
+                tag_dir=$(find all-tags/ -name "tags-ghcr-${version}*" -type d | grep -v "\-alpine$" | head -1)
             fi
 
             tag_file="$tag_dir/tags-ghcr.txt"
