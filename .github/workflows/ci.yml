@@ -200,6 +200,8 @@ jobs:
           outputs: type=image,push-by-digest=true,name-canonical=true
           tags: >-
             public.ecr.aws/${{ env.ECR_REPO_NAME }}
+            ghcr.io/${{ env.GHCR_REPO_NAME }}
+            ${{ env.DOCKER_REPO_NAME }}
           provenance: false
           load: true
           cache-from: type=gha
