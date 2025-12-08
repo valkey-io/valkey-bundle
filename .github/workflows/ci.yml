@@ -518,7 +518,6 @@ jobs:
             
             tag_args=$(printf -- "-t %s " $tags)
 
-            GHCR
             digest_args=$(printf "ghcr.io/${{ env.GHCR_REPO_NAME }}@sha256:%s " digests/$combo/*)
             digest_args=${digest_args//digests\/$combo\//}
             if [[ "${{ env.IS_PULL }}" == "true" || "${{ env.HAS_SECRETS }}" != "true" ]]; then
