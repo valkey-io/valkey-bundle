@@ -170,21 +170,21 @@ jobs:
       - name: Upload Tags Artifact for Docker
         uses: actions/upload-artifact@v4
         with:
-          name: tags-${{ matrix.version.name }}
+          name: tags-docker-${{ matrix.version.name }}
           path: tags-docker.txt
-          overwrite: true
-
-      - name: Upload Tags Artifact for ECR
-        uses: actions/upload-artifact@v4
-        with:
-          name: tags-${{ matrix.version.name }}
-          path: tags-ghcr.txt
           overwrite: true
 
       - name: Upload Tags Artifact for GHCR
         uses: actions/upload-artifact@v4
         with:
-          name: tags-${{ matrix.version.name }}
+          name: tags-ghcr-${{ matrix.version.name }}
+          path: tags-ghcr.txt
+          overwrite: true
+
+      - name: Upload Tags Artifact for ECR
+        uses: actions/upload-artifact@v4
+        with:
+          name: tags-ecr-${{ matrix.version.name }}
           path: tags-ecr.txt
           overwrite: true
 
