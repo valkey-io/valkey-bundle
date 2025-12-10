@@ -23,15 +23,6 @@ for sec in sections[1:]:
     # Extract title (text until newline)
     title, _, content = sec.partition("\n")
     title = title.strip()
-
-    # if "## Latest unstable" in content:
-    #     sub_parts = content.split("## Latest unstable", 1)
-    #     main_content = sub_parts[0].strip()
-    #     unstable_content = sub_parts[1].strip()
-    #     parsed[title] = main_content
-    #     parsed["Latest unstable"] = unstable_content
-    #     continue
-
     parsed[title] = content.strip()
 
 # Sections we want in usage
