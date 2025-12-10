@@ -410,7 +410,7 @@ jobs:
               tag_args=$(printf -- "-t %s " $tags)
 
               # registry-specific digest path
-              digest_args=$(printf "%s@sha256:%s " "$prefix" digests/$combo/*)
+              digest_args=$(printf "${prefix}@sha256:%s " digests/$combo/*)
               digest_args=${digest_args//digests\/$combo\//}
               
               if [[ "${{ env.IS_PULL }}" == "true" || "${{ env.HAS_SECRETS }}" != "true" ]]; then
