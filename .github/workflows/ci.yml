@@ -56,7 +56,7 @@ jobs:
   build_and_push:
     needs: [generate-jobs]
     env:
-      HAS_SECRETS: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' && secrets.DOCKERHUB_ACCOUNT != '' && secrets.DOCKERHUB_REPOSITORY != '' }}
+      HAS_SECRETS: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' && secrets.DOCKERHUB_ACCOUNT != '' && secrets.DOCKERHUB_REPOSITORY != '' && secrets.ECR_REGISTRY_ALIAS != '' && secrets.ECR_REPOSITORY_NAME != '' && secrets.AWS_ROLE_TO_ASSUME != ''  }}
     strategy:
       fail-fast: false # continue other jobs even if one job fails
       matrix:
@@ -106,7 +106,7 @@ jobs:
           elif [[ "${{ env.HAS_SECRETS }}" != "true" ]]; then
             echo "ECR_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
           else
-            echo "ECR_REPO_NAME=${{ secrets.ECR_REPOSITORY_ALIAS }}/valkey-bundle" >> $GITHUB_ENV
+            echo "ECR_REPO_NAME=${{ secrets.ECR_REGISTRY_ALIAS }}/valkey-bundle" >> $GITHUB_ENV
           fi
 
       - name: Set up QEMU
@@ -292,7 +292,7 @@ jobs:
           elif [[ "${{ env.HAS_SECRETS }}" != "true" ]]; then
             echo "ECR_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
           else
-            echo "ECR_REPO_NAME=${{ secrets.ECR_REPOSITORY_ALIAS }}/valkey-bundle" >> $GITHUB_ENV
+            echo "ECR_REPO_NAME=${{ secrets.ECR_REGISTRY_ALIAS }}/valkey-bundle" >> $GITHUB_ENV
           fi
 
       - name: Output if User has set secrets
