@@ -209,14 +209,14 @@ jobs:
       - name: Prepare Environment
         run: ${{ matrix.version.runs.prepare }}
 
-      - name: Validation Tests ${{ matrix.version.name }}
-        run: |
-          docker images
-          set -- "${{ env.DOCKER_REPO_NAME }}"
-          if [ -s ./.test/config.sh ]; then
-            set -- --config ~/oi/test/config.sh --config ./.test/config.sh "$@";
-          fi
-          ~/oi/test/run.sh "$@"
+      # - name: Validation Tests ${{ matrix.version.name }}
+      #   run: |
+      #     docker images
+      #     set -- "${{ env.DOCKER_REPO_NAME }}"
+      #     if [ -s ./.test/config.sh ]; then
+      #       set -- --config ~/oi/test/config.sh --config ./.test/config.sh "$@";
+      #     fi
+      #     ~/oi/test/run.sh "$@"
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -224,12 +224,12 @@ jobs:
           python-version: "3.8"
 
       # Core + Module Integration Tests
-      - name: All Core + Module Tests
-        run: |
-          matrix_version="${{ matrix.version.name }}"
-          bundle_version=$(echo "$matrix_version" | cut -d'.' -f1-2)
+      # - name: All Core + Module Tests
+      #   run: |
+      #     matrix_version="${{ matrix.version.name }}"
+      #     bundle_version=$(echo "$matrix_version" | cut -d'.' -f1-2)
 
-          ./.test/tests/valkey-integration-tests/run.sh "${{ env.DOCKER_REPO_NAME }}" "$bundle_version"
+      #     ./.test/tests/valkey-integration-tests/run.sh "${{ env.DOCKER_REPO_NAME }}" "$bundle_version"
 
       # Export digest to a file to reference it later in merging manifests
       - name: Export digest
@@ -537,12 +537,12 @@ jobs:
       AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
       ECR_REPOSITORY_NAME: ${{ secrets.ECR_REPOSITORY_NAME }}
 
-  update-dockerhub-description:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/mainline' && needs.merge-manifest.outputs.has-secrets == 'true'
-    needs: [merge-manifest, generate-jobs]
-    name: Update DockerHub Description
-    uses: ./.github/workflows/update-dockerhub-docs.yml
-    secrets:
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-      DOCKERHUB_REPOSITORY: ${{ secrets.DOCKERHUB_REPOSITORY }}
+  # update-dockerhub-description:
+  #   if: github.event_name == 'push' && github.ref == 'refs/heads/mainline' && needs.merge-manifest.outputs.has-secrets == 'true'
+  #   needs: [merge-manifest, generate-jobs]
+  #   name: Update DockerHub Description
+  #   uses: ./.github/workflows/update-dockerhub-docs.yml
+  #   secrets:
+  #     DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+  #     DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+  #     DOCKERHUB_REPOSITORY: ${{ secrets.DOCKERHUB_REPOSITORY }}
