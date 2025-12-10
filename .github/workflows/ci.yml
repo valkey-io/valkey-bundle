@@ -102,7 +102,7 @@ jobs:
           else
             echo "ECR_REPO_PATH=${{ secrets.ECR_REGISTRY_ALIAS }}/valkey-bundle" >> $GITHUB_ENV
           fi
-          
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
@@ -337,14 +337,28 @@ jobs:
         if: env.HAS_SECRETS == 'true'
         uses: docker/setup-buildx-action@v3
 
-      # Use imagetools to combine the arch-specific digests into respective multi-arch manifest
-      - name: Create Multi-Arch Manifest and Push for ECR
+
+      - name: Create Multi-Arch Manifests for ECR, Docker, GHCR
         working-directory: ${{ runner.temp }}
         run: |
+          # registry → pattern prefix, repo path, tag file name
+          declare -A REGISTRY_PREFIX=(
+            ["ecr"]="public.ecr.aws/${{ env.ECR_REPO_PATH }}"
+            ["docker"]="${{ env.DOCKER_REPO_NAME }}"
+            ["ghcr"]="ghcr.io/${{ env.GHCR_REPO_NAME }}"
+          )
+          declare -A TAGFILE_PREFIX=(
+            ["ecr"]="tags-ecr"
+            ["docker"]="tags-docker"
+            ["ghcr"]="tags-ghcr"
+          )
+
+          # Gather combinations (version + distro)
           declare -A combinations
           for digest_artifact_dir in all-digests/digests-*; do
             [[ -d "$digest_artifact_dir" ]] || continue
             artifact_name=$(basename "$digest_artifact_dir")
+
             if [[ "$artifact_name" =~ digests-(.+)-(alpine|debian|bookworm|trixie)-linux-.+ ]]; then
               version="${BASH_REMATCH[1]}"
               distro="${BASH_REMATCH[2]}"
@@ -353,169 +367,239 @@ jobs:
             fi
           done
 
-          for combo in "${!combinations[@]}"; do
-            if [[ "$combo" =~ (.+)-(alpine|debian|bookworm|trixie)$ ]]; then
-              version="${BASH_REMATCH[1]}"
-              distro="${BASH_REMATCH[2]}"
-            else
-              continue
-            fi
+          # Loop through each registry
+          for registry in "ecr" "docker" "ghcr"; do
+            echo "=== Processing registry: $registry ==="
+            prefix="${REGISTRY_PREFIX[$registry]}"
+            tag_prefix="${TAGFILE_PREFIX[$registry]}"
 
-            mkdir -p "digests/$combo"
-            find all-digests/ -name "digests-${combo}-*" -exec sh -c 'cp "$1"/* "$2"/' _ {} "digests/$combo/" \; 2>/dev/null
-            digest_count=$(ls -1 "digests/$combo" 2>/dev/null | wc -l)
-            [[ $digest_count -gt 0 ]] || continue
-            
-            if [[ "$distro" == "alpine" ]]; then
-                tag_dir=$(find all-tags/ -name "tags-ecr-${version}*-alpine" -type d | head -1)
-            else
-                tag_dir=$(find all-tags/ -name "tags-ecr-${version}*" -type d | grep -v "\-alpine$" | head -1)
-            fi
+            for combo in "${!combinations[@]}"; do
+              if [[ "$combo" =~ (.+)-(alpine|debian|bookworm|trixie)$ ]]; then
+                version="${BASH_REMATCH[1]}"
+                distro="${BASH_REMATCH[2]}"
+              else
+                continue
+              fi
 
-            tag_file="$tag_dir/tags-ecr.txt"
-            [[ -f "$tag_file" ]] || continue
-            
-            all_tags=$(cat "$tag_file" | tr '\n' ' ' | sed 's/,/ /g')
+              mkdir -p "digests/$combo"
+              find all-digests/ -name "digests-${combo}-*" -exec sh -c 'cp "$1"/* "$2"/' _ {} "digests/$combo/" \; 2>/dev/null
+              
+              digest_count=$(ls -1 "digests/$combo" 2>/dev/null | wc -l)
+              [[ $digest_count -gt 0 ]] || continue
 
-            if [[ "$distro" == "alpine" ]]; then
-              tags=$(echo "$all_tags" | tr ' ' '\n' | grep alpine | tr '\n' ' ')
-            else
-              tags=$(echo "$all_tags" | tr ' ' '\n' | grep -v alpine | tr '\n' ' ')
-            fi
-            [[ -n "$tags" ]] || continue
-            
-            tag_args=$(printf -- "-t %s " $tags)
+              # tag dirs differ for alpine vs non-alpine
+              if [[ "$distro" == "alpine" ]]; then
+                tag_dir=$(find all-tags/ -name "${tag_prefix}-${version}*-alpine" -type d | head -1)
+              else
+                tag_dir=$(find all-tags/ -name "${tag_prefix}-${version}*" -type d | grep -v "\-alpine$" | head -1)
+              fi
 
-            # ECR
-            digest_args=$(printf "public.ecr.aws/${{ env.ECR_REPO_PATH }}@sha256:%s " digests/$combo/*)
-            digest_args=${digest_args//digests\/$combo\//}
+              tag_file="$tag_dir/${tag_prefix}.txt"
+              [[ -f "$tag_file" ]] || continue
 
-            if [[ "${{ env.IS_PULL }}" == "true" || "${{ env.HAS_SECRETS }}" != "true" ]]; then
-              echo "Dry run: docker buildx imagetools create $tag_args $digest_args"
-            else
-              docker buildx imagetools create $tag_args $digest_args
-            fi
+              all_tags=$(cat "$tag_file" | tr '\n' ' ' | sed 's/,/ /g')
+              
+              if [[ "$distro" == "alpine" ]]; then
+                tags=$(echo "$all_tags" | tr ' ' '\n' | grep alpine | tr '\n' ' ')
+              else
+                tags=$(echo "$all_tags" | tr ' ' '\n' | grep -v alpine | tr '\n' ' ')
+              fi
+              
+              [[ -n "$tags" ]] || continue
+              
+              tag_args=$(printf -- "-t %s " $tags)
 
+              # registry-specific digest path
+              digest_args=$(printf "%s@sha256:%s " "$prefix" digests/$combo/*)
+              digest_args=${digest_args//digests\/$combo\//}
+              
+              if [[ "${{ env.IS_PULL }}" == "true" || "${{ env.HAS_SECRETS }}" != "true" ]]; then
+                echo "Dry run: docker buildx imagetools create $tag_args $digest_args"
+              else
+                docker buildx imagetools create $tag_args $digest_args
+              fi
+            done
           done
 
-      # Use imagetools to combine the arch-specific digests into respective multi-arch manifest
-      - name: Create Multi-Arch Manifest and Push for Docker
-        working-directory: ${{ runner.temp }}
-        run: |
-          declare -A combinations
-          for digest_artifact_dir in all-digests/digests-*; do
-            [[ -d "$digest_artifact_dir" ]] || continue
-            artifact_name=$(basename "$digest_artifact_dir")
-            if [[ "$artifact_name" =~ digests-(.+)-(alpine|debian|bookworm|trixie)-linux-.+ ]]; then
-              version="${BASH_REMATCH[1]}"
-              distro="${BASH_REMATCH[2]}"
-              combo="${version}-${distro}"
-              combinations["$combo"]=1
-            fi
-          done
+      # # Use imagetools to combine the arch-specific digests into respective multi-arch manifest
+      # - name: Create Multi-Arch Manifest and Push for ECR
+      #   working-directory: ${{ runner.temp }}
+      #   run: |
+      #     declare -A combinations
+      #     for digest_artifact_dir in all-digests/digests-*; do
+      #       [[ -d "$digest_artifact_dir" ]] || continue
+      #       artifact_name=$(basename "$digest_artifact_dir")
+      #       if [[ "$artifact_name" =~ digests-(.+)-(alpine|debian|bookworm|trixie)-linux-.+ ]]; then
+      #         version="${BASH_REMATCH[1]}"
+      #         distro="${BASH_REMATCH[2]}"
+      #         combo="${version}-${distro}"
+      #         combinations["$combo"]=1
+      #       fi
+      #     done
 
-          for combo in "${!combinations[@]}"; do
-            if [[ "$combo" =~ (.+)-(alpine|debian|bookworm|trixie)$ ]]; then
-              version="${BASH_REMATCH[1]}"
-              distro="${BASH_REMATCH[2]}"
-            else
-              continue
-            fi
+      #     for combo in "${!combinations[@]}"; do
+      #       if [[ "$combo" =~ (.+)-(alpine|debian|bookworm|trixie)$ ]]; then
+      #         version="${BASH_REMATCH[1]}"
+      #         distro="${BASH_REMATCH[2]}"
+      #       else
+      #         continue
+      #       fi
 
-            mkdir -p "digests/$combo"
-            find all-digests/ -name "digests-${combo}-*" -exec sh -c 'cp "$1"/* "$2"/' _ {} "digests/$combo/" \; 2>/dev/null
-            digest_count=$(ls -1 "digests/$combo" 2>/dev/null | wc -l)
-            [[ $digest_count -gt 0 ]] || continue
+      #       mkdir -p "digests/$combo"
+      #       find all-digests/ -name "digests-${combo}-*" -exec sh -c 'cp "$1"/* "$2"/' _ {} "digests/$combo/" \; 2>/dev/null
+      #       digest_count=$(ls -1 "digests/$combo" 2>/dev/null | wc -l)
+      #       [[ $digest_count -gt 0 ]] || continue
             
-            if [[ "$distro" == "alpine" ]]; then
-                tag_dir=$(find all-tags/ -name "tags-docker-${version}*-alpine" -type d | head -1)
-            else
-                tag_dir=$(find all-tags/ -name "tags-docker-${version}*" -type d | grep -v "\-alpine$" | head -1)
-            fi
+      #       if [[ "$distro" == "alpine" ]]; then
+      #           tag_dir=$(find all-tags/ -name "tags-ecr-${version}*-alpine" -type d | head -1)
+      #       else
+      #           tag_dir=$(find all-tags/ -name "tags-ecr-${version}*" -type d | grep -v "\-alpine$" | head -1)
+      #       fi
 
-            tag_file="$tag_dir/tags-docker.txt"
-            [[ -f "$tag_file" ]] || continue
+      #       tag_file="$tag_dir/tags-ecr.txt"
+      #       [[ -f "$tag_file" ]] || continue
             
-            all_tags=$(cat "$tag_file" | tr '\n' ' ' | sed 's/,/ /g')
+      #       all_tags=$(cat "$tag_file" | tr '\n' ' ' | sed 's/,/ /g')
 
-            if [[ "$distro" == "alpine" ]]; then
-              tags=$(echo "$all_tags" | tr ' ' '\n' | grep alpine | tr '\n' ' ')
-            else
-              tags=$(echo "$all_tags" | tr ' ' '\n' | grep -v alpine | tr '\n' ' ')
-            fi
-            [[ -n "$tags" ]] || continue
+      #       if [[ "$distro" == "alpine" ]]; then
+      #         tags=$(echo "$all_tags" | tr ' ' '\n' | grep alpine | tr '\n' ' ')
+      #       else
+      #         tags=$(echo "$all_tags" | tr ' ' '\n' | grep -v alpine | tr '\n' ' ')
+      #       fi
+      #       [[ -n "$tags" ]] || continue
             
-            tag_args=$(printf -- "-t %s " $tags)
+      #       tag_args=$(printf -- "-t %s " $tags)
 
-            digest_args=$(printf "${{ env.DOCKER_REPO_NAME }}@sha256:%s " digests/$combo/*)
-            digest_args=${digest_args//digests\/$combo\//}
+      #       # ECR
+      #       digest_args=$(printf "public.ecr.aws/${{ env.ECR_REPO_PATH }}@sha256:%s " digests/$combo/*)
+      #       digest_args=${digest_args//digests\/$combo\//}
+
+      #       if [[ "${{ env.IS_PULL }}" == "true" || "${{ env.HAS_SECRETS }}" != "true" ]]; then
+      #         echo "Dry run: docker buildx imagetools create $tag_args $digest_args"
+      #       else
+      #         docker buildx imagetools create $tag_args $digest_args
+      #       fi
+
+      #     done
+
+      # # Use imagetools to combine the arch-specific digests into respective multi-arch manifest
+      # - name: Create Multi-Arch Manifest and Push for Docker
+      #   working-directory: ${{ runner.temp }}
+      #   run: |
+      #     declare -A combinations
+      #     for digest_artifact_dir in all-digests/digests-*; do
+      #       [[ -d "$digest_artifact_dir" ]] || continue
+      #       artifact_name=$(basename "$digest_artifact_dir")
+      #       if [[ "$artifact_name" =~ digests-(.+)-(alpine|debian|bookworm|trixie)-linux-.+ ]]; then
+      #         version="${BASH_REMATCH[1]}"
+      #         distro="${BASH_REMATCH[2]}"
+      #         combo="${version}-${distro}"
+      #         combinations["$combo"]=1
+      #       fi
+      #     done
+
+      #     for combo in "${!combinations[@]}"; do
+      #       if [[ "$combo" =~ (.+)-(alpine|debian|bookworm|trixie)$ ]]; then
+      #         version="${BASH_REMATCH[1]}"
+      #         distro="${BASH_REMATCH[2]}"
+      #       else
+      #         continue
+      #       fi
+
+      #       mkdir -p "digests/$combo"
+      #       find all-digests/ -name "digests-${combo}-*" -exec sh -c 'cp "$1"/* "$2"/' _ {} "digests/$combo/" \; 2>/dev/null
+      #       digest_count=$(ls -1 "digests/$combo" 2>/dev/null | wc -l)
+      #       [[ $digest_count -gt 0 ]] || continue
             
-            if [[ "${{ env.IS_PULL }}" == "true" || "${{ env.HAS_SECRETS }}" != "true" ]]; then
-              echo "Dry run: docker buildx imagetools create $tag_args $digest_args"
-            else
-              docker buildx imagetools create $tag_args $digest_args
-            fi
+      #       if [[ "$distro" == "alpine" ]]; then
+      #           tag_dir=$(find all-tags/ -name "tags-docker-${version}*-alpine" -type d | head -1)
+      #       else
+      #           tag_dir=$(find all-tags/ -name "tags-docker-${version}*" -type d | grep -v "\-alpine$" | head -1)
+      #       fi
 
-          done
-
-      # Use imagetools to combine the arch-specific digests into respective multi-arch manifest
-      - name: Create Multi-Arch Manifest and Push for GHCR
-        working-directory: ${{ runner.temp }}
-        run: |
-          declare -A combinations
-          for digest_artifact_dir in all-digests/digests-*; do
-            [[ -d "$digest_artifact_dir" ]] || continue
-            artifact_name=$(basename "$digest_artifact_dir")
-            if [[ "$artifact_name" =~ digests-(.+)-(alpine|debian|bookworm|trixie)-linux-.+ ]]; then
-              version="${BASH_REMATCH[1]}"
-              distro="${BASH_REMATCH[2]}"
-              combo="${version}-${distro}"
-              combinations["$combo"]=1
-            fi
-          done
-
-          for combo in "${!combinations[@]}"; do
-            if [[ "$combo" =~ (.+)-(alpine|debian|bookworm|trixie)$ ]]; then
-              version="${BASH_REMATCH[1]}"
-              distro="${BASH_REMATCH[2]}"
-            else
-              continue
-            fi
-
-            mkdir -p "digests/$combo"
-            find all-digests/ -name "digests-${combo}-*" -exec sh -c 'cp "$1"/* "$2"/' _ {} "digests/$combo/" \; 2>/dev/null
-            digest_count=$(ls -1 "digests/$combo" 2>/dev/null | wc -l)
-            [[ $digest_count -gt 0 ]] || continue
+      #       tag_file="$tag_dir/tags-docker.txt"
+      #       [[ -f "$tag_file" ]] || continue
             
-            if [[ "$distro" == "alpine" ]]; then
-                tag_dir=$(find all-tags/ -name "tags-ghcr-${version}*-alpine" -type d | head -1)
-            else
-                tag_dir=$(find all-tags/ -name "tags-ghcr-${version}*" -type d | grep -v "\-alpine$" | head -1)
-            fi
+      #       all_tags=$(cat "$tag_file" | tr '\n' ' ' | sed 's/,/ /g')
 
-            tag_file="$tag_dir/tags-ghcr.txt"
-            [[ -f "$tag_file" ]] || continue
+      #       if [[ "$distro" == "alpine" ]]; then
+      #         tags=$(echo "$all_tags" | tr ' ' '\n' | grep alpine | tr '\n' ' ')
+      #       else
+      #         tags=$(echo "$all_tags" | tr ' ' '\n' | grep -v alpine | tr '\n' ' ')
+      #       fi
+      #       [[ -n "$tags" ]] || continue
             
-            all_tags=$(cat "$tag_file" | tr '\n' ' ' | sed 's/,/ /g')
+      #       tag_args=$(printf -- "-t %s " $tags)
 
-            if [[ "$distro" == "alpine" ]]; then
-              tags=$(echo "$all_tags" | tr ' ' '\n' | grep alpine | tr '\n' ' ')
-            else
-              tags=$(echo "$all_tags" | tr ' ' '\n' | grep -v alpine | tr '\n' ' ')
-            fi
-            [[ -n "$tags" ]] || continue
+      #       digest_args=$(printf "${{ env.DOCKER_REPO_NAME }}@sha256:%s " digests/$combo/*)
+      #       digest_args=${digest_args//digests\/$combo\//}
             
-            tag_args=$(printf -- "-t %s " $tags)
+      #       if [[ "${{ env.IS_PULL }}" == "true" || "${{ env.HAS_SECRETS }}" != "true" ]]; then
+      #         echo "Dry run: docker buildx imagetools create $tag_args $digest_args"
+      #       else
+      #         docker buildx imagetools create $tag_args $digest_args
+      #       fi
 
-            digest_args=$(printf "ghcr.io/${{ env.GHCR_REPO_NAME }}@sha256:%s " digests/$combo/*)
-            digest_args=${digest_args//digests\/$combo\//}
-            if [[ "${{ env.IS_PULL }}" == "true" || "${{ env.HAS_SECRETS }}" != "true" ]]; then
-              echo "Dry run: docker buildx imagetools create $tag_args $digest_args"
-            else
-              docker buildx imagetools create $tag_args $digest_args
-            fi
+      #     done
 
-          done
+      # # Use imagetools to combine the arch-specific digests into respective multi-arch manifest
+      # - name: Create Multi-Arch Manifest and Push for GHCR
+      #   working-directory: ${{ runner.temp }}
+      #   run: |
+      #     declare -A combinations
+      #     for digest_artifact_dir in all-digests/digests-*; do
+      #       [[ -d "$digest_artifact_dir" ]] || continue
+      #       artifact_name=$(basename "$digest_artifact_dir")
+      #       if [[ "$artifact_name" =~ digests-(.+)-(alpine|debian|bookworm|trixie)-linux-.+ ]]; then
+      #         version="${BASH_REMATCH[1]}"
+      #         distro="${BASH_REMATCH[2]}"
+      #         combo="${version}-${distro}"
+      #         combinations["$combo"]=1
+      #       fi
+      #     done
+
+      #     for combo in "${!combinations[@]}"; do
+      #       if [[ "$combo" =~ (.+)-(alpine|debian|bookworm|trixie)$ ]]; then
+      #         version="${BASH_REMATCH[1]}"
+      #         distro="${BASH_REMATCH[2]}"
+      #       else
+      #         continue
+      #       fi
+
+      #       mkdir -p "digests/$combo"
+      #       find all-digests/ -name "digests-${combo}-*" -exec sh -c 'cp "$1"/* "$2"/' _ {} "digests/$combo/" \; 2>/dev/null
+      #       digest_count=$(ls -1 "digests/$combo" 2>/dev/null | wc -l)
+      #       [[ $digest_count -gt 0 ]] || continue
+            
+      #       if [[ "$distro" == "alpine" ]]; then
+      #           tag_dir=$(find all-tags/ -name "tags-ghcr-${version}*-alpine" -type d | head -1)
+      #       else
+      #           tag_dir=$(find all-tags/ -name "tags-ghcr-${version}*" -type d | grep -v "\-alpine$" | head -1)
+      #       fi
+
+      #       tag_file="$tag_dir/tags-ghcr.txt"
+      #       [[ -f "$tag_file" ]] || continue
+            
+      #       all_tags=$(cat "$tag_file" | tr '\n' ' ' | sed 's/,/ /g')
+
+      #       if [[ "$distro" == "alpine" ]]; then
+      #         tags=$(echo "$all_tags" | tr ' ' '\n' | grep alpine | tr '\n' ' ')
+      #       else
+      #         tags=$(echo "$all_tags" | tr ' ' '\n' | grep -v alpine | tr '\n' ' ')
+      #       fi
+      #       [[ -n "$tags" ]] || continue
+            
+      #       tag_args=$(printf -- "-t %s " $tags)
+
+      #       digest_args=$(printf "ghcr.io/${{ env.GHCR_REPO_NAME }}@sha256:%s " digests/$combo/*)
+      #       digest_args=${digest_args//digests\/$combo\//}
+      #       if [[ "${{ env.IS_PULL }}" == "true" || "${{ env.HAS_SECRETS }}" != "true" ]]; then
+      #         echo "Dry run: docker buildx imagetools create $tag_args $digest_args"
+      #       else
+      #         docker buildx imagetools create $tag_args $digest_args
+      #       fi
+
+      #     done
 
   update-ecr-description:
     if: github.event_name == 'push' && github.ref == 'refs/heads/mainline' && needs.merge-manifest.outputs.has-secrets == 'true'
