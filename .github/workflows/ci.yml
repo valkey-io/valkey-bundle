@@ -99,14 +99,14 @@ jobs:
             echo "GHCR_REPO_NAME=${{ github.repository_owner }}/valkey-bundle" >> $GITHUB_ENV
           fi
 
-      - name: Set ECR_REPO_NAME dynamically
+      - name: Set ECR_REPO_PATH dynamically
         run: |
           if [[ "${{ env.IS_PULL }}" == "true" ]]; then
-            echo "ECR_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
+            echo "ECR_REPO_PATH=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
           elif [[ "${{ env.HAS_SECRETS }}" != "true" ]]; then
-            echo "ECR_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
+            echo "ECR_REPO_PATH=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
           else
-            echo "ECR_REPO_NAME=${{ secrets.ECR_REGISTRY_ALIAS }}/valkey-bundle" >> $GITHUB_ENV
+            echo "ECR_REPO_PATH=${{ secrets.ECR_REGISTRY_ALIAS }}/valkey-bundle" >> $GITHUB_ENV
           fi
 
       - name: Set up QEMU
@@ -162,7 +162,7 @@ jobs:
           echo "$ghcr_tags" > tags-ghcr.txt
 
           # ECR tags (prepended with public ECR alias)
-          ecr_tags=$(echo $original_tags | sed "s|valkey-bundle|public.ecr.aws/${{ env.ECR_REPO_NAME }}|g" \
+          ecr_tags=$(echo $original_tags | sed "s|valkey-bundle|public.ecr.aws/${{ env.ECR_REPO_PATH }}|g" \
             | sed 's/\[ *//; s/ *\]//; s/ //g' | tr -d '\n')
           echo "ecr_tags=$ecr_tags" >> "$GITHUB_OUTPUT"
           echo "$ecr_tags" > tags-ecr.txt
@@ -199,7 +199,7 @@ jobs:
           push: ${{ env.HAS_SECRETS == 'true' && env.IS_PULL != 'true' }}
           outputs: type=image,push-by-digest=true,name-canonical=true
           tags: >-
-            public.ecr.aws/${{ env.ECR_REPO_NAME }},ghcr.io/${{ env.GHCR_REPO_NAME }},${{ env.DOCKER_REPO_NAME }}
+            public.ecr.aws/${{ env.ECR_REPO_PATH }},ghcr.io/${{ env.GHCR_REPO_NAME }},${{ env.DOCKER_REPO_NAME }}
           provenance: false
           load: true
           cache-from: type=gha
@@ -285,14 +285,14 @@ jobs:
             echo "GHCR_REPO_NAME=${{ github.repository_owner }}/valkey-bundle" >> $GITHUB_ENV
           fi
 
-      - name: Set ECR_REPO_NAME dynamically
+      - name: Set ECR_REPO_PATH dynamically
         run: |
           if [[ "${{ env.IS_PULL }}" == "true" ]]; then
-            echo "ECR_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
+            echo "ECR_REPO_PATH=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
           elif [[ "${{ env.HAS_SECRETS }}" != "true" ]]; then
-            echo "ECR_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
+            echo "ECR_REPO_PATH=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
           else
-            echo "ECR_REPO_NAME=${{ secrets.ECR_REGISTRY_ALIAS }}/valkey-bundle" >> $GITHUB_ENV
+            echo "ECR_REPO_PATH=${{ secrets.ECR_REGISTRY_ALIAS }}/valkey-bundle" >> $GITHUB_ENV
           fi
 
       - name: Output if User has set secrets
@@ -395,7 +395,7 @@ jobs:
             tag_args=$(printf -- "-t %s " $tags)
 
             # ECR
-            digest_args=$(printf "public.ecr.aws/${{ env.ECR_REPO_NAME }}@sha256:%s " digests/$combo/*)
+            digest_args=$(printf "public.ecr.aws/${{ env.ECR_REPO_PATH }}@sha256:%s " digests/$combo/*)
             digest_args=${digest_args//digests\/$combo\//}
 
             if [[ "${{ env.IS_PULL }}" == "true" || "${{ env.HAS_SECRETS }}" != "true" ]]; then
