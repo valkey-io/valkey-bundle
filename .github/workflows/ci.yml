@@ -81,9 +81,7 @@ jobs:
 
       - name: Set DOCKER_REPO_NAME dynamically
         run: |
-          if [[ "${{ env.IS_PULL }}" == "true" ]]; then
-            echo "DOCKER_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
-          elif [[ "${{ env.HAS_SECRETS }}" != "true" ]]; then
+          if [[ "${{ env.IS_PULL }}" == "true" || "${{ env.HAS_SECRETS }}" != "true" ]]; then
             echo "DOCKER_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
           else
             echo "DOCKER_REPO_NAME=${{ secrets.DOCKERHUB_ACCOUNT }}/valkey-bundle" >> $GITHUB_ENV
@@ -91,9 +89,7 @@ jobs:
 
       - name: Set GHCR_REPO_NAME dynamically
         run: |
-          if [[ "${{ env.IS_PULL }}" == "true" ]]; then
-            echo "GHCR_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
-          elif [[ "${{ env.HAS_SECRETS }}" != "true" ]]; then
+          if [[ "${{ env.IS_PULL }}" == "true" || "${{ env.HAS_SECRETS }}" != "true" ]]; then
             echo "GHCR_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
           else
             echo "GHCR_REPO_NAME=${{ github.repository_owner }}/valkey-bundle" >> $GITHUB_ENV
@@ -101,14 +97,12 @@ jobs:
 
       - name: Set ECR_REPO_PATH dynamically
         run: |
-          if [[ "${{ env.IS_PULL }}" == "true" ]]; then
-            echo "ECR_REPO_PATH=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
-          elif [[ "${{ env.HAS_SECRETS }}" != "true" ]]; then
+          if [[ "${{ env.IS_PULL }}" == "true" || "${{ env.HAS_SECRETS }}" != "true" ]]; then
             echo "ECR_REPO_PATH=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
           else
             echo "ECR_REPO_PATH=${{ secrets.ECR_REGISTRY_ALIAS }}/valkey-bundle" >> $GITHUB_ENV
           fi
-
+          
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
@@ -279,7 +273,7 @@ jobs:
 
       - name: Set GHCR_REPO_NAME dynamically
         run: |
-          if [[ "${{ env.IS_PULL }}" == "true" ]]; then
+          if [[ "${{ env.IS_PULL }}" == "true" || "${{ env.HAS_SECRETS }}" != "true" ]]; then
             echo "GHCR_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
           else
             echo "GHCR_REPO_NAME=${{ github.repository_owner }}/valkey-bundle" >> $GITHUB_ENV
@@ -287,9 +281,7 @@ jobs:
 
       - name: Set ECR_REPO_PATH dynamically
         run: |
-          if [[ "${{ env.IS_PULL }}" == "true" ]]; then
-            echo "ECR_REPO_PATH=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
-          elif [[ "${{ env.HAS_SECRETS }}" != "true" ]]; then
+          if [[ "${{ env.IS_PULL }}" == "true" || "${{ env.HAS_SECRETS }}" != "true" ]]; then
             echo "ECR_REPO_PATH=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
           else
             echo "ECR_REPO_PATH=${{ secrets.ECR_REGISTRY_ALIAS }}/valkey-bundle" >> $GITHUB_ENV
