@@ -422,7 +422,7 @@ jobs:
           done
 
   update-ecr-description:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/mainline' && needs.merge-manifest.outputs.has-secrets == 'true'
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/mainline' && needs.merge-manifest.outputs.has-secrets == 'true'
     needs: [merge-manifest, generate-jobs]
     name: Update ECR Description
     permissions:
@@ -434,7 +434,7 @@ jobs:
       ECR_REPOSITORY_NAME: ${{ secrets.ECR_REPOSITORY_NAME }}
 
   update-dockerhub-description:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/mainline' && needs.merge-manifest.outputs.has-secrets == 'true'
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/mainline' && needs.merge-manifest.outputs.has-secrets == 'true'
     needs: [merge-manifest, generate-jobs]
     name: Update DockerHub Description
     uses: ./.github/workflows/update-dockerhub-docs.yml

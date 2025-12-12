@@ -1,6 +1,7 @@
 name: Update ECR Public Description
 
 on:
+  workflow_dispatch:
   workflow_call:
     secrets:
       AWS_ROLE_TO_ASSUME:
