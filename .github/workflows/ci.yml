@@ -263,10 +263,13 @@ jobs:
     outputs:
       has-secrets: ${{ steps.output-has-secrets.outputs.has-secrets }}
     steps:
+      - name: Set lowercase actor name
+        run: echo "ACTOR_LOWER=$(echo '${{ github.actor }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
       - name: Set DOCKER_REPO_NAME dynamically
         run: |
           if [[ "${{ env.IS_PULL }}" == "true" || "${{ env.HAS_SECRETS }}" != "true" ]]; then
-            echo "DOCKER_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
+            echo "DOCKER_REPO_NAME=${{ env.ACTOR_LOWER }}/valkey-bundle" >> $GITHUB_ENV
           else
             echo "DOCKER_REPO_NAME=${{ secrets.DOCKERHUB_ACCOUNT }}/valkey-bundle" >> $GITHUB_ENV
           fi
@@ -274,7 +277,7 @@ jobs:
       - name: Set GHCR_REPO_NAME dynamically
         run: |
           if [[ "${{ env.IS_PULL }}" == "true" || "${{ env.HAS_SECRETS }}" != "true" ]]; then
-            echo "GHCR_REPO_NAME=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
+            echo "GHCR_REPO_NAME=${{ env.ACTOR_LOWER }}/valkey-bundle" >> $GITHUB_ENV
           else
             echo "GHCR_REPO_NAME=${{ github.repository_owner }}/valkey-bundle" >> $GITHUB_ENV
           fi
@@ -282,11 +285,11 @@ jobs:
       - name: Set ECR_REPO_PATH dynamically
         run: |
           if [[ "${{ env.IS_PULL }}" == "true" || "${{ env.HAS_SECRETS }}" != "true" ]]; then
-            echo "ECR_REPO_PATH=${{ github.actor }}/valkey-bundle" >> $GITHUB_ENV
+            echo "ECR_REPO_PATH=${{ env.ACTOR_LOWER }}/valkey-bundle" >> $GITHUB_ENV
           else
             echo "ECR_REPO_PATH=${{ secrets.ECR_REGISTRY_ALIAS }}/valkey-bundle" >> $GITHUB_ENV
           fi
-
+          
       - name: Output if User has set secrets
         id: output-has-secrets
         run: echo "has-secrets=${{ env.HAS_SECRETS }}" >> "$GITHUB_OUTPUT"
