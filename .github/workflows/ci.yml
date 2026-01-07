@@ -289,7 +289,6 @@ jobs:
           else
             echo "ECR_REPO_PATH=${{ secrets.ECR_REGISTRY_ALIAS }}/valkey-bundle" >> $GITHUB_ENV
           fi
-          
       - name: Output if User has set secrets
         id: output-has-secrets
         run: echo "has-secrets=${{ env.HAS_SECRETS }}" >> "$GITHUB_OUTPUT"
