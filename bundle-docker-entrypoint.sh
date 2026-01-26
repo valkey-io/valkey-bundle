@@ -3,9 +3,21 @@ set -e
 
 MODULE_DIR="/usr/lib/valkey"
 MODULE_ARGS=""
+CONFIG=""
+
+# Check if the arguments list have a config file (`something.conf`)
+for arg in "${@}"; do
+    if [ "${arg%.conf}" != "$arg" ]; then
+        CONFIG="${arg}"
+    fi 
+done
 
 # Auto-discover and append all .so modules in MODULE_DIR
 for module in "$MODULE_DIR"/*.so; do
+    if [ -n "$(grep "loadmodule $module" "${CONFIG}")" ]; then 
+        # skipping `loadmodule` flag due to being already present in config file
+        continue
+    fi 
     if [ -f "$module" ]; then
         MODULE_ARGS="$MODULE_ARGS --loadmodule $module"
     fi

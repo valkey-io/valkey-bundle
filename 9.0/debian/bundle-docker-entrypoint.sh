@@ -5,10 +5,12 @@ MODULE_DIR="/usr/lib/valkey"
 MODULE_ARGS=""
 CONFIG=""
 
-# Check if the first arg is a config file (`something.conf`)
-if [ "${1%.conf}" != "$1" ]; then
-    CONFIG="${1}"
-fi 
+# Check if the arguments list have a config file (`something.conf`)
+for arg in "${@}"; do
+    if [ "${arg%.conf}" != "$arg" ]; then
+        CONFIG="${arg}"
+    fi 
+done
 
 # Auto-discover and append all .so modules in MODULE_DIR
 for module in "$MODULE_DIR"/*.so; do
