@@ -120,14 +120,25 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
 
         is_module_major_release = (minor == 0 and patch == 0)
 
+        valkey_version = versions_data[latest]["valkey-server"]["version"]
+        valkey_major, valkey_minor, valkey_patch, valkey_rc = parse_version(valkey_version)
+        
         if is_module_major_release:
-            valkey_version = versions_data[latest]["valkey-server"]["version"]
             if not re.match(r'^\d+\.0\.0(?:-rc\d+)?$', valkey_version):
                 logging.error(
                     f"Can't release {component_name} {new_version}: "
                     f"The latest Valkey version is '{valkey_version}', which is not a new major version release (X.0.0 or X.0.0-rcY)."
                 )
                 sys.exit(1)
+        
+        # Only update module minor versions if Valkey is also at a minor version
+        is_module_minor_release = (minor > 0 and patch == 0)
+        if is_module_minor_release and valkey_minor == 0:
+            logging.error(
+                f"Can't release {component_name} {new_version}: "
+                f"The latest Valkey version is '{valkey_version}', which is not a minor version release."
+            )
+            sys.exit(1)
         
         if patch > 0:
             # For patch releases we will update all version entries with the same major.minor version as the module patch we just released
