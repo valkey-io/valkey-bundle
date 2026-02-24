@@ -9,7 +9,7 @@
         "version": "1.0.2"
       },
       "valkey-bloom": {
-        "version": "1.0.0"
+        "version": "1.0.1"
       },
       "valkey-search": {
         "version": "1.0.2"
@@ -23,7 +23,7 @@
     }
   },
   "9.0": {
-    "version": "9.0.0",
+    "version": "9.0.1",
     "valkey-server": {
       "version": "9.0.0"
     },
@@ -32,7 +32,7 @@
         "version": "1.0.2"
       },
       "valkey-bloom": {
-        "version": "1.0.0"
+        "version": "1.0.1"
       },
       "valkey-search": {
         "version": "1.0.2"
