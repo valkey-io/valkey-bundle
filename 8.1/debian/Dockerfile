@@ -54,7 +54,9 @@ RUN cargo build --all --all-targets --release;
 
 # Build Search module
 WORKDIR /opt/valkey-search
+# TODO: Remove the sed workaround once valkey-search 1.0.x includes the CMAKE_POLICY_VERSION_MINIMUM fix (see https://github.com/valkey-io/valkey-search/pull/626)
 RUN set -eux; \
+    sed -i 's/-DCMAKE_CXX_STANDARD=20"/-DCMAKE_CXX_STANDARD=20 -DCMAKE_POLICY_VERSION_MINIMUM=3.5"/' submodules/CMakeLists.txt; \
     ./build.sh
 
 # Build LDAP module
