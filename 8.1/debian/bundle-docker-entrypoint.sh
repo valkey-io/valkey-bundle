@@ -14,7 +14,7 @@ done
 
 # Auto-discover and append all .so modules in MODULE_DIR
 for module in "$MODULE_DIR"/*.so; do
-    if [ -n "$(grep "loadmodule $module" "${CONFIG}")" ]; then 
+    if [ "${CONFIG}" != "" ] && [ -n "$(grep "loadmodule $module" "${CONFIG}")" ]; then 
         # skipping `loadmodule` flag due to being already present in config file
         continue
     fi 
