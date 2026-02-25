@@ -6,6 +6,110 @@ Overview
 * valkey-bundle is a containerized version of valkey, enhanced with popular modules for advanced data structures and additional search capabilities.
 * This image is built on top of the official valkey base image and includes pre-installed modules for simplified deployment.
 
+Upgrade urgency levels:
+|--------------------------------------------------------------------------------|
+| Level    | Meaning                                                             |
+|----------|---------------------------------------------------------------------|
+| LOW      | No need to upgrade unless there are new features you want to use.   |
+| MODERATE | Program an upgrade of the server, but it's not urgent.              |
+| HIGH     | There is a critical bug that may affect a subset of users. Upgrade! |
+| CRITICAL | There is a critical bug affecting MOST USERS. Upgrade ASAP.         |
+| SECURITY | There are security fixes in the release.                            |
+|--------------------------------------------------------------------------------|
+
+================================================================================
+Valkey Bundle 9.0.1 - Released Tue 24 Feb 2026
+================================================================================
+Upgrade urgency SECURITY: This release includes security fixes we recommend you
+apply as soon as possible.
+
+Security fixes
+==============
+* (CVE-2025-67733) RESP Protocol Injection via Lua error_reply
+* (CVE-2026-21863) Remote DoS with malformed Valkey Cluster bus message
+* (CVE-2026-27623) Reset request type after handling empty requests
+* (CVE-2026-21864) Remote DoS from malformed RESTORE command
+
+Key Changes
+===========================
+Check the [Valkey 9.0.3](https://github.com/valkey-io/valkey/blob/9.0/00-RELEASENOTES), [Valkey-JSON 1.0.2](https://github.com/valkey-io/valkey-json/blob/1.0/00-RELEASENOTES), [Valkey-Bloom 1.0.1](https://github.com/valkey-io/valkey-bloom/blob/1.0/00-RELEASENOTES), and [Valkey-Search 1.0.2](https://github.com/valkey-io/valkey-search/blob/1.0/00-RELEASENOTES) release notes to see all the changes for Valkey Bundle 9.0.1.
+
+Core Components
+===========================
+* Base Debian Image: valkey/valkey:9.0.3-trixie
+* Base Alpine Image: valkey/valkey:9.0.3-alpine
+* valkey - 9.0.3
+* valkey-json - 1.0.2
+* valkey-bloom - 1.0.1  
+* valkey-search - 1.0.2
+* valkey-ldap - 1.0.0
+
+Supported Tags and Platforms
+===========================
+Supported Debian Tags:
+* 9.0.1
+* 9.0
+* 9
+* latest
+* 9.0.1-trixie
+* 9.0-trixie
+* 9-trixie
+
+Supported Alpine Tags:
+* 9.0.1-alpine
+* 9.0-alpine
+* 9-alpine
+* alpine
+
+Platform Support:
+===========================
+* linux/amd64
+* linux/arm64
+
+================================================================================
+Valkey Bundle 8.1.4 - Released Tue 24 Feb 2026
+================================================================================
+
+Upgrade urgency SECURITY: This release includes security fixes we recommend you
+apply as soon as possible.
+
+Security fixes
+==============
+* (CVE-2026-21863) Remote DoS with malformed Valkey Cluster bus message
+* (CVE-2025-67733) RESP Protocol Injection via Lua error_reply
+* (CVE-2026-21864) Remote DoS from malformed RESTORE command
+
+Key Changes
+===========================
+Check the [Valkey 8.1.6](https://github.com/valkey-io/valkey/blob/8.1/00-RELEASENOTES), [Valkey-JSON 1.0.2](https://github.com/valkey-io/valkey-json/blob/1.0/00-RELEASENOTES), [Valkey-Bloom 1.0.1](https://github.com/valkey-io/valkey-bloom/blob/1.0/00-RELEASENOTES), and [Valkey-Search 1.0.2](https://github.com/valkey-io/valkey-search/blob/1.0/00-RELEASENOTES) release notes to see all the changes for Valkey Bundle 8.1.4.
+
+Core Components
+===========================
+* Base Debian Image: valkey/valkey:8.1.6-trixie
+* Base Alpine Image: valkey/valkey:8.1.6-alpine
+* valkey - 8.1.6
+* valkey-json - 1.0.2
+* valkey-bloom - 1.0.1  
+* valkey-search - 1.0.2
+* valkey-ldap - 1.0.0
+
+Supported Tags and Platforms
+===========================
+Supported Debian Tags:
+* 8.1.4
+* 8.1
+* 8.1.4-trixie
+* 8.1-trixie
+
+Supported Alpine Tags:
+* 8.1.4-alpine
+* 8.1-alpine
+
+Platform Support:
+===========================
+* linux/amd64
+* linux/arm64
+
 ================================================================================
 Valkey Bundle 9.0.0 - Released Wed 26 Nov 2025
 ================================================================================
