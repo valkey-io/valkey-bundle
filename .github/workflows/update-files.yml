@@ -100,16 +100,25 @@ jobs:
           python-version: '3.x'
 
       - name: Update versions.json
+        id: update-versions
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           python scripts/update-versions.py versions.json \
             "${{ steps.process-inputs.outputs.component }}" \
             "${{ steps.process-inputs.outputs.version }}"
-          git add versions.json
-          git commit -m "Update versions.json for ${{ steps.process-inputs.outputs.component }} ${{ steps.process-inputs.outputs.version }}" || echo "No changes to commit"
+          
+          if git diff --quiet versions.json; then
+            echo "No Changes to Commit"
+            echo "has-changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "has-changes=true" >> $GITHUB_OUTPUT
+            git add versions.json
+            git commit -m "Update versions.json for ${{ steps.process-inputs.outputs.component }} ${{ steps.process-inputs.outputs.version }}"
+          fi
 
       - name: Update Dockerfiles
+        if: steps.update-versions.outputs.has-changes == 'true'
         run: |
           # Fetch template helpers into bundle/
           jqt='.jq-template.awk'
@@ -137,6 +146,7 @@ jobs:
           echo "strategy=$(echo "$strategy" | jq -c '.')" >> $GITHUB_OUTPUT
 
       - name: Update DockerHub description
+        if: steps.update-versions.outputs.has-changes == 'true'
         run: |
           echo '${{ steps.generate-jobs.outputs.strategy }}' > strategy.json
           python scripts/update-dockerhub-description.py strategy.json dockerhub-description-template.md dockerhub-description.md
@@ -145,14 +155,14 @@ jobs:
           git commit -m "Update DockerHub description for ${{ steps.process-inputs.outputs.component }} ${{ steps.process-inputs.outputs.version }}" || echo "No changes to commit"
 
       - name: Update Bundle Alias
-        if: steps.process-inputs.outputs.component == 'valkey'
+        if: steps.process-inputs.outputs.component == 'valkey' && steps.update-versions.outputs.has-changes == 'true'
         run: |
           python ../valkey-release-automation/scripts/automate_alias_update.py generate-stackbrew-library.sh "${{ steps.process-inputs.outputs.version }}"
           git add generate-stackbrew-library.sh
           git commit -m "Update alias for valkey version ${{ steps.process-inputs.outputs.version }}" || echo "No changes to commit"
 
       - name: Push changes and update existing PR
-        if: steps.check-branch.outputs.branch-exists == 'true'
+        if: steps.check-branch.outputs.branch-exists == 'true' && steps.update-versions.outputs.has-changes == 'true'
         env:
           GH_TOKEN: ${{ secrets.VALKEY_BUNDLE_PAT_FOR_PR }}
         run: |
@@ -160,7 +170,7 @@ jobs:
           git push origin HEAD:"$BRANCH_NAME"
 
       - name: Create Pull Request
-        if: steps.check-branch.outputs.branch-exists == 'false'
+        if: steps.check-branch.outputs.branch-exists == 'false' && steps.update-versions.outputs.has-changes == 'true'
         uses: peter-evans/create-pull-request@v5
         with:
           path: valkey-bundle
@@ -177,6 +187,7 @@ jobs:
             - Updated DockerHub description
 
       - name: Comment on Pull Request
+        if: steps.update-versions.outputs.has-changes == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
