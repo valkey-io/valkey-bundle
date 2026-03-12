@@ -67,6 +67,9 @@ jobs:
              }}' versions.json > versions.json.tmp
           mv versions.json.tmp versions.json
 
+          wget -qO '.jq-template.awk' 'https://github.com/docker-library/bashbrew/raw/9f6a35772ac863a0241f147c820354e4008edf38/scripts/jq-template.awk'
+          wget -qO '.template-helper-functions.jq' 'https://github.com/docker-library/bashbrew/raw/08c926140ad0af22de58c2a2656afda58082ba3e/scripts/template-helper-functions.jq'
+
           ./apply-templates.sh unstable
 
       - id: generate-jobs
