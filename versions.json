@@ -1,4 +1,27 @@
 {
+  "unstable": {
+    "version": "unstable",
+    "valkey-server": {
+      "version": "unstable"
+    },
+    "modules": {
+      "valkey-json": {
+        "version": "1.0.2"
+      },
+      "valkey-bloom": {
+        "version": "1.0.1"
+      },
+      "valkey-search": {
+        "version": "1.1.0"
+      },
+      "valkey-ldap": {
+        "version": "1.0.0"
+      }
+    },
+    "debian": {
+      "version": "trixie"
+    }
+  },
   "8.1": {
     "version": "8.1.4",
     "valkey-server": {
@@ -45,4 +68,5 @@
       "version": "trixie"
     }
   }
+
 }

@@ -35,7 +35,8 @@ jobs:
           fetch-depth: 2
       - uses: docker-library/bashbrew@v0.1.13
 
-      - name: Generate unstable versions and Dockerfiles
+      - name: Update unstable module versions
+        if: github.event_name == 'schedule'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -54,26 +55,15 @@ jobs:
              --arg bloom "$BLOOM_VERSION" \
              --arg search "$SEARCH_VERSION" \
              --arg ldap "$LDAP_VERSION" \
-             '. + { "unstable": {
-               "version": "unstable",
-               "valkey-server": { "version": "unstable" },
-               "modules": {
-                 "valkey-json": { "version": $json },
-                 "valkey-bloom": { "version": $bloom },
-                 "valkey-search": { "version": $search },
-                 "valkey-ldap": { "version": $ldap }
-               },
-               "debian": { "version": "trixie" }
-             }}' versions.json > versions.json.tmp
+             '.unstable.modules = {
+               "valkey-json": { "version": $json },
+               "valkey-bloom": { "version": $bloom },
+               "valkey-search": { "version": $search },
+               "valkey-ldap": { "version": $ldap }
+             }' versions.json > versions.json.tmp
           mv versions.json.tmp versions.json
 
-          wget -qO '.jq-template.awk' 'https://github.com/docker-library/bashbrew/raw/9f6a35772ac863a0241f147c820354e4008edf38/scripts/jq-template.awk'
-          wget -qO '.template-helper-functions.jq' 'https://github.com/docker-library/bashbrew/raw/08c926140ad0af22de58c2a2656afda58082ba3e/scripts/template-helper-functions.jq'
-
           ./apply-templates.sh unstable
-
-          git add unstable/
-          git -c user.name='CI' -c user.email='ci@localhost' commit -m 'unstable' --quiet
 
       - id: generate-jobs
         name: Generate Jobs
