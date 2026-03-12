@@ -7,6 +7,8 @@ on:
       - mainline
     paths:
       - "**/Dockerfile"
+  schedule:
+    - cron: '0 0 * * *'
   workflow_dispatch:
 
 permissions:
@@ -33,12 +35,49 @@ jobs:
           fetch-depth: 2
       - uses: docker-library/bashbrew@v0.1.13
 
+      - name: Generate unstable versions and Dockerfiles
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          get_latest_stable() {
+            gh release list --repo "$1" --limit 50 --json tagName,isPrerelease \
+              -q '[.[] | select(.isPrerelease == false)] | .[].tagName' \
+              | sort -V | tail -1
+          }
+
+          JSON_VERSION=$(get_latest_stable "valkey-io/valkey-json")
+          BLOOM_VERSION=$(get_latest_stable "valkey-io/valkey-bloom")
+          SEARCH_VERSION=$(get_latest_stable "valkey-io/valkey-search")
+          LDAP_VERSION=$(get_latest_stable "valkey-io/valkey-ldap")
+
+          jq --arg json "$JSON_VERSION" \
+             --arg bloom "$BLOOM_VERSION" \
+             --arg search "$SEARCH_VERSION" \
+             --arg ldap "$LDAP_VERSION" \
+             '. + { "unstable": {
+               "version": "unstable",
+               "valkey-server": { "version": "unstable" },
+               "modules": {
+                 "valkey-json": { "version": $json },
+                 "valkey-bloom": { "version": $bloom },
+                 "valkey-search": { "version": $search },
+                 "valkey-ldap": { "version": $ldap }
+               },
+               "debian": { "version": "trixie" }
+             }}' versions.json > versions.json.tmp
+          mv versions.json.tmp versions.json
+
+          ./apply-templates.sh unstable
+
       - id: generate-jobs
         name: Generate Jobs
         run: |
           strategy="$("$BASHBREW_SCRIPTS/github-actions/generate.sh")"
-          # For pushes to mainline or PRs targeting mainline, only build changed versions
-          if [[ ("${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/mainline")]] ; then
+          # For scheduled runs, only build unstable
+          if [[ "${{ github.event_name }}" == "schedule" ]]; then
+            strategy=$(jq -c '{"fail-fast": .["fail-fast"],"matrix":{"include":[ .matrix.include[]|select(.name =="unstable" or .name== "unstable-alpine")]}}' <<<"$strategy")
+          # For pushes to mainline, only build changed versions
+          elif [[ ("${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/mainline")]] ; then
             changed_files=$(git diff --name-only HEAD~1 HEAD)
             if printf "%s\n" "$changed_files" | grep -qE "^(versions\.json|[0-9]+\.[0-9]+/|unstable/)"; then
               changed_versions=$(echo $changed_files | grep -oE "[0-9]+\.[0-9]+|unstable" | sort -u | tr '\n' '|' | sed 's/|$//')
