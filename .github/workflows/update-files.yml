@@ -3,6 +3,8 @@ name: Automated Valkey Bundle Release
 on:
   repository_dispatch:
     types: [valkey-release, json-release, bloom-release, search-release, ldap-release]
+  schedule:
+    - cron: '0 3 * * *'
   workflow_dispatch:
     inputs:
       version:
@@ -19,8 +21,49 @@ permissions:
   pull-requests: write
 
 jobs:
+  update-unstable:
+    name: Update Unstable Module Versions
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Valkey-Bundle
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Update unstable module versions
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python scripts/update-versions.py versions.json unstable
+
+      - name: Regenerate unstable Dockerfiles
+        run: |
+          wget -qO '.jq-template.awk' 'https://github.com/docker-library/bashbrew/raw/9f6a35772ac863a0241f147c820354e4008edf38/scripts/jq-template.awk'
+          wget -qO '.template-helper-functions.jq' 'https://github.com/docker-library/bashbrew/raw/08c926140ad0af22de58c2a2656afda58082ba3e/scripts/template-helper-functions.jq'
+          ./apply-templates.sh unstable
+
+      - name: Commit and push if changed
+        run: |
+          git add versions.json unstable/
+          if git diff --staged --quiet; then
+            echo "No unstable version changes"
+          else
+            git commit -m "Update unstable module versions"
+            git push
+          fi
+
   update-files:
     name: Update Files and Create Pull Request
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     concurrency:
       group: valkey-bundle-updates
@@ -33,7 +76,7 @@ jobs:
 
     steps:
       - name: Checkout Valkey-Bundle 
-        uses: actions/checkout@v4
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           fetch-depth: 0
           path: valkey-bundle

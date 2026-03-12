@@ -7,13 +7,11 @@ on:
       - mainline
     paths:
       - "**/Dockerfile"
-  schedule:
-    - cron: '0 3 * * *'
   workflow_dispatch:
 
 permissions:
   id-token: write
-  contents: write
+  contents: read
   packages: write
 
 env:
@@ -35,61 +33,12 @@ jobs:
           fetch-depth: 2
       - uses: docker-library/bashbrew@v0.1.13
 
-      - name: Update unstable module versions
-        if: github.event_name == 'schedule'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          get_latest_stable() {
-            gh release list --repo "$1" --limit 50 --json tagName,isPrerelease \
-              -q '[.[] | select(.isPrerelease == false) | select(.tagName | test("-rc") | not)] | .[].tagName' \
-              | sed 's/^v//' | sort -V | tail -1
-          }
-
-          JSON_VERSION=$(get_latest_stable "valkey-io/valkey-json")
-          BLOOM_VERSION=$(get_latest_stable "valkey-io/valkey-bloom")
-          SEARCH_VERSION=$(get_latest_stable "valkey-io/valkey-search")
-          LDAP_VERSION=$(get_latest_stable "valkey-io/valkey-ldap")
-
-          DEBIAN_VERSION=$(gh api repos/valkey-io/valkey-container/contents/versions.json -H 'Accept: application/vnd.github.raw' | jq -r '.unstable.debian.version')
-
-          jq --arg json "$JSON_VERSION" \
-             --arg bloom "$BLOOM_VERSION" \
-             --arg search "$SEARCH_VERSION" \
-             --arg ldap "$LDAP_VERSION" \
-             --arg debian "$DEBIAN_VERSION" \
-             '.unstable.modules = {
-               "valkey-json": { "version": $json },
-               "valkey-bloom": { "version": $bloom },
-               "valkey-search": { "version": $search },
-               "valkey-ldap": { "version": $ldap }
-             } | .unstable.debian.version = $debian' versions.json > versions.json.tmp
-          mv versions.json.tmp versions.json
-
-          wget -qO '.jq-template.awk' 'https://github.com/docker-library/bashbrew/raw/9f6a35772ac863a0241f147c820354e4008edf38/scripts/jq-template.awk'
-          wget -qO '.template-helper-functions.jq' 'https://github.com/docker-library/bashbrew/raw/08c926140ad0af22de58c2a2656afda58082ba3e/scripts/template-helper-functions.jq'
-
-          ./apply-templates.sh unstable
-
-          if git diff --quiet && [ -z "$(git ls-files --others --exclude-standard)" ]; then
-            echo "No unstable version changes"
-          else
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add versions.json unstable/
-            git commit -m "Update unstable module versions [skip ci]"
-            git push
-          fi
-
       - id: generate-jobs
         name: Generate Jobs
         run: |
           strategy="$("$BASHBREW_SCRIPTS/github-actions/generate.sh")"
-          # For scheduled runs, only build unstable
-          if [[ "${{ github.event_name }}" == "schedule" ]]; then
-            strategy=$(jq -c '{"fail-fast": .["fail-fast"],"matrix":{"include":[ .matrix.include[]|select(.name =="unstable" or .name== "unstable-alpine")]}}' <<<"$strategy")
           # For pushes to mainline, only build changed versions
-          elif [[ ("${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/mainline")]] ; then
+          if [[ ("${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/mainline")]] ; then
             changed_files=$(git diff --name-only HEAD~1 HEAD)
             if printf "%s\n" "$changed_files" | grep -qE "^(versions\.json|[0-9]+\.[0-9]+/|unstable/)"; then
               changed_versions=$(echo $changed_files | grep -oE "[0-9]+\.[0-9]+|unstable" | sort -u | tr '\n' '|' | sed 's/|$//')

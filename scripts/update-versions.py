@@ -37,13 +37,18 @@ def get_known_modules_from_versions(versions_data: Dict[str, Any]) -> Dict[str, 
     return modules
 
 def get_debian_version(valkey_version: str) -> str:
-    """Get debian version from container PR that is currently open."""
-    major, minor, _, _ = parse_version(valkey_version)
-    version_key = f"{major}.{minor}"
-    pr_branch = f"update-{valkey_version}"
+    """Get debian version from the container repo's versions.json."""
+    if valkey_version == 'unstable':
+        version_key = 'unstable'
+        api_url = 'repos/valkey-io/valkey-container/contents/versions.json'
+    else:
+        major, minor, _, _ = parse_version(valkey_version)
+        version_key = f"{major}.{minor}"
+        pr_branch = f"update-{valkey_version}"
+        api_url = f'repos/valkey-io/valkey-container/contents/versions.json?ref={pr_branch}'
     
     try:
-        result = subprocess.check_output(['gh', 'api', f'repos/valkey-io/valkey-container/contents/versions.json?ref={pr_branch}', '-H', 'Accept: application/vnd.github.raw'], text=True, stderr=subprocess.DEVNULL)
+        result = subprocess.check_output(['gh', 'api', api_url, '-H', 'Accept: application/vnd.github.raw'], text=True, stderr=subprocess.DEVNULL)
         container_versions = json.loads(result)
     except subprocess.CalledProcessError:
         with open('../valkey-container/versions.json', 'r') as f:
@@ -52,16 +57,31 @@ def get_debian_version(valkey_version: str) -> str:
     return container_versions[version_key]["debian"]["version"]
 
 def get_latest_stable_module_release(repository: str) -> str:
-    """Use GitHub CLI to fetch the latest stable release tag for each module."""
+    """Fetch the highest semver stable release tag, filtering out pre-releases."""
     try:
-        github_cli_output = subprocess.check_output(['gh', 'release', 'list', '--repo', repository], text=True)
-        for line in github_cli_output.splitlines():
-            columns = line.split() # Format is: Title | Type | Tag Name | Published
-            if len(columns) >= 4 and columns[1] == 'Latest':
-                return columns[2]
-        raise RuntimeError(f"No stable release found for {repository}")
+        result = subprocess.check_output(
+            ['gh', 'release', 'list', '--repo', repository, '--limit', '50',
+             '--json', 'tagName,isPrerelease', '-q',
+             '[.[] | select(.isPrerelease == false) | select(.tagName | test("-rc") | not)] | .[].tagName'],
+            text=True)
+        tags = [t.lstrip('v') for t in result.strip().splitlines() if t.strip()]
+        tags.sort(key=lambda v: [int(x) for x in v.split('.')])
+        return tags[-1]
     except subprocess.CalledProcessError as e:
         raise RuntimeError(f"Failed to get release list for {repository}: {e}")
+
+def update_unstable(versions_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Update the unstable block with latest stable module releases."""
+    known_modules = get_known_modules_from_versions(versions_data)
+
+    module_versions = {}
+    for name, repository in known_modules.items():
+        version = get_latest_stable_module_release(repository)
+        module_versions[name] = {"version": version}
+
+    versions_data["unstable"]["modules"] = module_versions
+    versions_data["unstable"]["debian"]["version"] = get_debian_version('unstable')
+    return versions_data
 
 def update_versions(versions_data: Dict[str, Any], component_name: str, new_version: str) -> Dict[str, Any]:
     """Update versions.json according to Valkey and module versioning strategy."""
@@ -178,33 +198,38 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
         return versions_data
 
 if __name__ == "__main__":
-    if len(sys.argv) != 4:
-        logging.error("Incorrect parameters. Usage: update_versions.py <json_file> <component [valkey, json, bloom, etc]> <new_version>")
+    if len(sys.argv) < 3 or (sys.argv[2] != 'unstable' and len(sys.argv) != 4):
+        logging.error("Incorrect parameters. Usage: update_versions.py <json_file> <component [valkey, json, bloom, etc | unstable]> [new_version]")
         sys.exit(1)
 
     json_file = sys.argv[1]
     component_name = sys.argv[2]
-    new_version = sys.argv[3]
 
     try:
         with open(json_file, 'r') as f:
             versions_data = json.load(f)
-        
-        parse_version(new_version)
     except FileNotFoundError as file_error:
         logging.error(f"File not found: {file_error}")
         sys.exit(1)
-    except ValueError as version_error:
-        logging.error(version_error)
-        sys.exit(1)
 
-    updated_file = update_versions(versions_data, component_name, new_version)
+    if component_name == 'unstable':
+        updated_file = update_unstable(versions_data)
+    else:
+        new_version = sys.argv[3]
+        try:
+            parse_version(new_version)
+        except ValueError as version_error:
+            logging.error(version_error)
+            sys.exit(1)
+        updated_file = update_versions(versions_data, component_name, new_version)
 
     with open(json_file, 'w') as f:
         json.dump(updated_file, f, indent=2)
         f.write('\n')
 
-    if component_name == 'valkey':
+    if component_name == 'unstable':
+        logging.info("Updated unstable block")
+    elif component_name == 'valkey':
         logging.info(f"Updated {component_name} to {new_version}")
     else:
         logging.info(f"Updated valkey-{component_name} to {new_version}")
