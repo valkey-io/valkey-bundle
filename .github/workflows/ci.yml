@@ -72,6 +72,9 @@ jobs:
 
           ./apply-templates.sh unstable
 
+          git add unstable/
+          git -c user.name='CI' -c user.email='ci@localhost' commit -m 'unstable' --quiet
+
       - id: generate-jobs
         name: Generate Jobs
         run: |
