@@ -52,14 +52,22 @@ jobs:
           ./apply-templates.sh unstable
 
       - name: Commit and push if changed
+        id: commit-push
         run: |
           git add versions.json unstable/
           if git diff --staged --quiet; then
-            echo "No unstable version changes"
+            echo "pushed=false" >> $GITHUB_OUTPUT
           else
             git commit -m "Update unstable module versions"
             git push
+            echo "pushed=true" >> $GITHUB_OUTPUT
           fi
+
+      - name: Trigger CI
+        if: steps.commit-push.outputs.pushed != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run ci.yml --ref mainline
 
   update-files:
     name: Update Files and Create Pull Request
