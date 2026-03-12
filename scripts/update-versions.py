@@ -20,8 +20,6 @@ def parse_version(version: str) -> tuple:
 def get_latest_major_minor(versions_data: Dict[str, Any]) -> str:
     """Get the latest major.minor version (bottom most block), skipping non-numeric keys like 'unstable'."""
     numeric_keys = [k for k in versions_data.keys() if re.match(r'^\d+\.\d+$', k)]
-    if not numeric_keys:
-        raise ValueError("No numeric version keys found in versions.json")
     return max(numeric_keys, key=lambda x: [int(i) for i in x.split('.')])
 
 def get_known_modules_from_versions(versions_data: Dict[str, Any]) -> Dict[str, str]:
@@ -57,7 +55,7 @@ def get_debian_version(valkey_version: str) -> str:
     return container_versions[version_key]["debian"]["version"]
 
 def get_latest_stable_module_release(repository: str) -> str:
-    """Fetch the highest semver stable release tag, filtering out pre-releases."""
+    """Use GitHub CLI to fetch the latest stable release tag for each module."""
     try:
         result = subprocess.check_output(
             ['gh', 'release', 'list', '--repo', repository, '--limit', '50',
