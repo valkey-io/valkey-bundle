@@ -56,6 +56,9 @@ get_versions() {
     if [[ "$VALKEY_SERVER_VERSION" =~ ^([0-9]+\.[0-9]+) ]]; then
         VALKEY_BRANCH="${BASH_REMATCH[1]}"
         VALKEY_TAG="$VALKEY_SERVER_VERSION"
+    else
+        VALKEY_BRANCH="$VALKEY_SERVER_VERSION"
+        VALKEY_TAG="$VALKEY_SERVER_VERSION"
     fi
 }
 

@@ -8,7 +8,7 @@ on:
     paths:
       - "**/Dockerfile"
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '0 3 * * *'
   workflow_dispatch:
 
 permissions:
@@ -51,16 +51,19 @@ jobs:
           SEARCH_VERSION=$(get_latest_stable "valkey-io/valkey-search")
           LDAP_VERSION=$(get_latest_stable "valkey-io/valkey-ldap")
 
+          DEBIAN_VERSION=$(gh api repos/valkey-io/valkey-container/contents/versions.json -H 'Accept: application/vnd.github.raw' | jq -r '.unstable.debian.version')
+
           jq --arg json "$JSON_VERSION" \
              --arg bloom "$BLOOM_VERSION" \
              --arg search "$SEARCH_VERSION" \
              --arg ldap "$LDAP_VERSION" \
+             --arg debian "$DEBIAN_VERSION" \
              '.unstable.modules = {
                "valkey-json": { "version": $json },
                "valkey-bloom": { "version": $bloom },
                "valkey-search": { "version": $search },
                "valkey-ldap": { "version": $ldap }
-             }' versions.json > versions.json.tmp
+             } | .unstable.debian.version = $debian' versions.json > versions.json.tmp
           mv versions.json.tmp versions.json
 
           wget -qO '.jq-template.awk' 'https://github.com/docker-library/bashbrew/raw/9f6a35772ac863a0241f147c820354e4008edf38/scripts/jq-template.awk'
@@ -68,7 +71,7 @@ jobs:
 
           ./apply-templates.sh unstable
 
-          if git diff --quiet; then
+          if git diff --quiet && [ -z "$(git ls-files --others --exclude-standard)" ]; then
             echo "No unstable version changes"
           else
             git config user.name "github-actions[bot]"

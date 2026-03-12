@@ -18,8 +18,11 @@ def parse_version(version: str) -> tuple:
     return (int(major), int(minor), int(patch), int(rc) if rc else None)
 
 def get_latest_major_minor(versions_data: Dict[str, Any]) -> str:
-    """Get the latest major.minor version (bottom most block)."""
-    return max(versions_data.keys(), key=lambda x: [int(i) for i in x.split('.')])
+    """Get the latest major.minor version (bottom most block), skipping non-numeric keys like 'unstable'."""
+    numeric_keys = [k for k in versions_data.keys() if re.match(r'^\d+\.\d+$', k)]
+    if not numeric_keys:
+        raise ValueError("No numeric version keys found in versions.json")
+    return max(numeric_keys, key=lambda x: [int(i) for i in x.split('.')])
 
 def get_known_modules_from_versions(versions_data: Dict[str, Any]) -> Dict[str, str]:
     """Get all modules from the latest version block in versions.json."""
@@ -143,6 +146,8 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
         if patch > 0:
             # For patch releases we will update all version entries with the same major.minor version as the module patch we just released
             for version_block in versions_data.keys():
+                if not re.match(r'^\d+\.\d+$', version_block):
+                    continue
                 current_module_version = versions_data[version_block]["modules"][module_key]["version"]
                 current_major, current_minor, _, _ = parse_version(current_module_version)
                 current_major_minor = f"{current_major}.{current_minor}"

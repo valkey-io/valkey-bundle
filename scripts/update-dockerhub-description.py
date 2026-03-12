@@ -45,7 +45,7 @@ def get_versions_table() -> str:
     with open('versions.json', 'r') as f:
         data = json.load(f)
 
-    sorted_versions = sorted(data.keys(), key=lambda x: [int(i) for i in x.split('.')], reverse=True)
+    sorted_versions = sorted([k for k in data.keys() if k.replace('.', '').isdigit()], key=lambda x: [int(i) for i in x.split('.')], reverse=True)
     table_rows = []
     
     for version_key in sorted_versions:
