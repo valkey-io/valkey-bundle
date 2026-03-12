@@ -41,8 +41,8 @@ jobs:
         run: |
           get_latest_stable() {
             gh release list --repo "$1" --limit 50 --json tagName,isPrerelease \
-              -q '[.[] | select(.isPrerelease == false)] | .[].tagName' \
-              | sort -V | tail -1
+              -q '[.[] | select(.isPrerelease == false) | select(.tagName | test("-rc") | not)] | .[].tagName' \
+              | sed 's/^v//' | sort -V | tail -1
           }
 
           JSON_VERSION=$(get_latest_stable "valkey-io/valkey-json")
