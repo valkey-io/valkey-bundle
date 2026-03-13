@@ -117,7 +117,10 @@ run_tests() {
                 fi
                 sleep 1
             done
-            
+
+            docker cp "$CONTAINER_NAME":/usr/local/bin/valkey-server src/valkey-server
+            chmod +x src/valkey-server
+
             # Skipping these tests for now as they consistently fail against an external server (Valkey Bundle Container)
             ./runtest --host $VALKEY_HOST --port $VALKEY_PORT \
             --verbose \
