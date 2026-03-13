@@ -217,6 +217,8 @@ if __name__ == "__main__":
         logging.error(f"File not found: {file_error}")
         sys.exit(1)
 
+    original_data = json.dumps(versions_data, indent=2)
+
     if component_name == 'unstable':
         updated_file = update_unstable(versions_data)
     else:
@@ -228,13 +230,21 @@ if __name__ == "__main__":
             sys.exit(1)
         updated_file = update_versions(versions_data, component_name, new_version)
 
+    updated_data = json.dumps(updated_file, indent=2)
+    changed = original_data != updated_data
+
     with open(json_file, 'w') as f:
-        json.dump(updated_file, f, indent=2)
+        f.write(updated_data)
         f.write('\n')
 
     if component_name == 'unstable':
-        logging.info("Updated unstable block")
+        label = "unstable block"
     elif component_name == 'valkey':
-        logging.info(f"Updated {component_name} to {new_version}")
+        label = f"{component_name} to {new_version}"
     else:
-        logging.info(f"Updated valkey-{component_name} to {new_version}")
+        label = f"valkey-{component_name} to {new_version}"
+
+    if changed:
+        logging.info(f"Updated {label}")
+    else:
+        logging.info(f"No changes to {label}")
