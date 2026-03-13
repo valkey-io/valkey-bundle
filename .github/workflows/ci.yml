@@ -224,7 +224,7 @@ jobs:
       - name: All Core + Module Tests
         run: |
           matrix_version="${{ matrix.version.name }}"
-          bundle_version=$(echo "$matrix_version" | sed 's/-\(alpine\|debian\)$//' | cut -d'.' -f1-2)
+          bundle_version=$(echo "$matrix_version" | sed 's/-alpine$//' | cut -d'.' -f1-2)
 
           ./.test/tests/valkey-integration-tests/run.sh "${{ env.DOCKER_REPO_NAME }}" "$bundle_version"
 
@@ -237,7 +237,7 @@ jobs:
           touch "${{ runner.temp }}/digests/${digest#sha256:}"
 
           version="${{ matrix.version.name }}"
-          major_minor=$(echo "$version" | sed 's/-\(alpine\|debian\)$//' | cut -d'.' -f1-2)
+          major_minor=$(echo "$version" | sed 's/-alpine$//' | cut -d'.' -f1-2)
 
           directory="${{ matrix.version.meta.entries[0].directory }}"
           if [[ "$directory" == *"alpine"* ]]; then

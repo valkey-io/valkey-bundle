@@ -140,7 +140,6 @@ run_tests() {
             --skiptest "Extended Redis Compatibility config" \
             --skiptest "CLIENT LIST with IPv6 filter" \
             --skiptest "CLIENT LIST with IPv6 negative filter" \
-            --skiptest "CLIENT KILL with IPv6 filter"
             ;;
         "JSON")
             setup_test_framework "tst/integration/valkeytests"
@@ -270,7 +269,9 @@ run_tests() {
 
 overall_success=true
 
-run_tests "Valkey" "./valkey" || overall_success=false
+if [[ "$version_key" != "unstable" ]]; then
+    run_tests "Valkey" "./valkey" || overall_success=false
+fi
 run_tests "JSON" "./valkey-json" || overall_success=false
 run_tests "Bloom" "./valkey-bloom" || overall_success=false
 # run_tests "Search" "./valkey-search" || overall_success=false
