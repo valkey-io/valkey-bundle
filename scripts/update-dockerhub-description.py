@@ -45,7 +45,8 @@ def get_versions_table() -> str:
     with open('versions.json', 'r') as f:
         data = json.load(f)
 
-    sorted_versions = sorted([k for k in data.keys() if k.replace('.', '').isdigit()], key=lambda x: [int(i) for i in x.split('.')], reverse=True)
+    numeric_keys = sorted([k for k in data.keys() if k.replace('.', '').isdigit()], key=lambda x: [int(i) for i in x.split('.')], reverse=True)
+    sorted_versions = ['unstable'] + numeric_keys
     table_rows = []
     
     for version_key in sorted_versions:
@@ -59,8 +60,11 @@ def get_versions_table() -> str:
         bloom_version = modules['valkey-bloom']['version']
         search_version = modules['valkey-search']['version']
         ldap_version = modules['valkey-ldap']['version']
-        
-        row = f"| [{bundle_version}](https://github.com/valkey-io/valkey-bundle/releases/tag/{bundle_version}) |[{valkey_version}](https://github.com/valkey-io/valkey/releases/tag/{valkey_version}) | [{json_version}](https://github.com/valkey-io/valkey-json/releases/tag/{json_version})| [{bloom_version}](https://github.com/valkey-io/valkey-bloom/releases/tag/{bloom_version})| [{search_version}](https://github.com/valkey-io/valkey-search/releases/tag/{search_version}) | [{ldap_version}](https://github.com/valkey-io/valkey-ldap/releases/tag/{ldap_version}) |"
+
+        if version_key == 'unstable':
+            row = f"| {bundle_version} | {valkey_version} | [{json_version}](https://github.com/valkey-io/valkey-json/releases/tag/{json_version})| [{bloom_version}](https://github.com/valkey-io/valkey-bloom/releases/tag/{bloom_version})| [{search_version}](https://github.com/valkey-io/valkey-search/releases/tag/{search_version}) | [{ldap_version}](https://github.com/valkey-io/valkey-ldap/releases/tag/{ldap_version}) |"
+        else:
+            row = f"| [{bundle_version}](https://github.com/valkey-io/valkey-bundle/releases/tag/{bundle_version}) |[{valkey_version}](https://github.com/valkey-io/valkey/releases/tag/{valkey_version}) | [{json_version}](https://github.com/valkey-io/valkey-json/releases/tag/{json_version})| [{bloom_version}](https://github.com/valkey-io/valkey-bloom/releases/tag/{bloom_version})| [{search_version}](https://github.com/valkey-io/valkey-search/releases/tag/{search_version}) | [{ldap_version}](https://github.com/valkey-io/valkey-ldap/releases/tag/{ldap_version}) |"
         
         table_rows.append(row)
     
@@ -77,10 +81,13 @@ def update_docker_description(json_file: str, template_file: str, output_file: s
 
         official_releases = []
         release_candidates = []
+        unstable_releases = []
 
         for entry in strategy_data["matrix"]["include"]:
             line = format_tag_line(entry)
-            if "rc" in entry["name"]:
+            if "unstable" in entry["name"]:
+                unstable_releases.append(line)
+            elif "rc" in entry["name"]:
                 release_candidates.append(line)
             else:
                 official_releases.append(line)
@@ -95,12 +102,18 @@ def update_docker_description(json_file: str, template_file: str, output_file: s
         else:
             rc_section = ""
 
+        if unstable_releases:
+            unstable_section = "\n## Latest unstable\n" + "\n".join(unstable_releases)
+        else:
+            unstable_section = ""
+
         versions_table = get_versions_table()
 
         content = template.format(
             update_date=datetime.now().strftime("%Y-%m-%d"),
             official_releases=official_releases_section,
             release_candidates_section=rc_section,
+            unstable_section=unstable_section,
             versions_table=versions_table
         )
 

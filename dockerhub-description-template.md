@@ -11,7 +11,7 @@ Last updated: {update_date}
 
 # Supported tags and respective `Dockerfile` links
 
-{official_releases}{release_candidates_section}
+{official_releases}{release_candidates_section}{unstable_section}
 
 ## What is [Valkey Bundle](https://github.com/valkey-io/valkey-bundle)?
 --------------
