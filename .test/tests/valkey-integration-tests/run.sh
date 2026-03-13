@@ -119,7 +119,12 @@ run_tests() {
             done
 
             docker cp "$CONTAINER_NAME":/usr/local/bin/valkey-server src/valkey-server
-            chmod +x src/valkey-server
+            docker cp "$CONTAINER_NAME":/usr/local/bin/valkey-cli src/valkey-cli
+            docker cp "$CONTAINER_NAME":/usr/local/bin/valkey-sentinel src/valkey-sentinel
+            docker cp "$CONTAINER_NAME":/usr/local/bin/valkey-benchmark src/valkey-benchmark
+            chmod +x src/valkey-server src/valkey-cli src/valkey-sentinel src/valkey-benchmark
+            ln -sf valkey-server src/valkey-check-aof
+            ln -sf valkey-server src/valkey-check-rdb
 
             # Skipping these tests for now as they consistently fail against an external server (Valkey Bundle Container)
             ./runtest --host $VALKEY_HOST --port $VALKEY_PORT \
@@ -134,7 +139,8 @@ run_tests() {
             --skiptest "Dumping an RDB - functions only: yes" \
             --skiptest "Extended Redis Compatibility config" \
             --skiptest "CLIENT LIST with IPv6 filter" \
-            --skiptest "CLIENT LIST with IPv6 negative filter"
+            --skiptest "CLIENT LIST with IPv6 negative filter" \
+            --skiptest "CLIENT KILL with IPv6 filter"
             ;;
         "JSON")
             setup_test_framework "tst/integration/valkeytests"
