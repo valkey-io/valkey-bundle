@@ -54,19 +54,26 @@ def get_debian_version(valkey_version: str) -> str:
     
     return container_versions[version_key]["debian"]["version"]
 
+def get_latest_module_release(repository: str) -> str:
+    """Use GitHub CLI to fetch the latest release tag for each module (including RCs)."""
+    result = subprocess.check_output(
+        ['gh', 'release', 'list', '--repo', repository, '--limit', '50',
+         '--json', 'tagName', '-q', '.[].tagName'],
+        text=True)
+    tags = [t.lstrip('v') for t in result.strip().splitlines() if t.strip()]
+    tags.sort(key=lambda v: (parse_version(v)[:3], parse_version(v)[3] or float('inf')))
+    return tags[-1]
+
 def get_latest_stable_module_release(repository: str) -> str:
     """Use GitHub CLI to fetch the latest stable release tag for each module."""
-    try:
-        result = subprocess.check_output(
-            ['gh', 'release', 'list', '--repo', repository, '--limit', '50',
-             '--json', 'tagName,isPrerelease', '-q',
-             '[.[] | select(.isPrerelease == false) | select(.tagName | test("-rc") | not)] | .[].tagName'],
-            text=True)
-        tags = [t.lstrip('v') for t in result.strip().splitlines() if t.strip()]
-        tags.sort(key=lambda v: [int(x) for x in v.split('.')])
-        return tags[-1]
-    except subprocess.CalledProcessError as e:
-        raise RuntimeError(f"Failed to get release list for {repository}: {e}")
+    result = subprocess.check_output(
+        ['gh', 'release', 'list', '--repo', repository, '--limit', '50',
+         '--json', 'tagName,isPrerelease', '-q',
+         '[.[] | select(.isPrerelease == false) | select(.tagName | test("-rc") | not)] | .[].tagName'],
+        text=True)
+    tags = [t.lstrip('v') for t in result.strip().splitlines() if t.strip()]
+    tags.sort(key=lambda v: [int(x) for x in v.split('.')])
+    return tags[-1]
 
 def update_unstable(versions_data: Dict[str, Any]) -> Dict[str, Any]:
     """Update the unstable block with latest stable module releases."""
@@ -74,7 +81,7 @@ def update_unstable(versions_data: Dict[str, Any]) -> Dict[str, Any]:
 
     module_versions = {}
     for name, repository in known_modules.items():
-        version = get_latest_stable_module_release(repository)
+        version = get_latest_module_release(repository)
         module_versions[name] = {"version": version}
 
     versions_data["unstable"]["modules"] = module_versions

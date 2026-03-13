@@ -12,7 +12,7 @@
         "version": "1.0.1"
       },
       "valkey-search": {
-        "version": "1.1.0"
+        "version": "1.2.0-rc3"
       },
       "valkey-ldap": {
         "version": "1.0.0"
