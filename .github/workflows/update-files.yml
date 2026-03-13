@@ -23,7 +23,7 @@ permissions:
 jobs:
   update-unstable:
     name: Update Unstable Module Versions
-    if: github.event_name == 'schedule'
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.version == 'unstable' && inputs.component == 'valkey')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Valkey-Bundle
@@ -81,7 +81,7 @@ jobs:
 
   update-files:
     name: Update Files and Create Pull Request
-    if: github.event_name != 'schedule'
+    if: github.event_name == 'repository_dispatch' || (github.event_name == 'workflow_dispatch' && inputs.version != 'unstable')
     runs-on: ubuntu-latest
     concurrency:
       group: valkey-bundle-updates
