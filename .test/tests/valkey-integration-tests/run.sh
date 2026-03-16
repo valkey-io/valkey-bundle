@@ -216,26 +216,60 @@ run_tests() {
             fi
             ;;
         "Search")
-            echo "CANT RUN SEARCH TESTS UNTIL BUNDLE IS UPDATED WITH NEW SEARCH PATCH"
-    
-            # setup_test_framework "integration/valkey-test-framework"
-                    
-            # pip install -r integration/valkey-test-framework/requirements.txt
-            # pip install absl-py numpy 
+            setup_test_framework "integration/valkeytestframework"
 
-            # docker run -d -p $VALKEY_PORT:6379 --name "$CONTAINER_NAME" "$image" \
-            #    valkey-server \
-            #       --enable-debug-command yes \
-            #       --protected-mode no >/dev/null 2>&1
-            # sleep 3
+            docker run -d -p $VALKEY_PORT:6379 --name "$CONTAINER_NAME" "$image" \
+                valkey-server \
+                --save "" \
+                --enable-debug-command yes \
+                --enable-module-command yes \
+                --protected-mode no >/dev/null 2>&1
+            sleep 3
 
-            # cd integration
-            # export PYTHONPATH="$(pwd)/valkeytestframework:$(pwd)"
-            # export SKIPLOGCLEAN=1
-            # python -m pytest --log-cli-level=INFO --capture=sys --cache-clear -v -k "not (test_module_loaded or CME or cluster)" test_*.py
-            # local pytest_exit_code=$?
-            # cleanup_container
-            # return $pytest_exit_code
+            export VALKEY_SERVER_PATH="valkey-server"
+            export MODULE_PATH="/usr/lib/valkey/modules/libsearch.so"
+            export JSON_MODULE_PATH="/usr/lib/valkey/modules/libjson.so"
+
+            cd integration
+            export PYTHONPATH="$(pwd)/valkeytestframework:$(pwd)"
+            export SKIPLOGCLEAN=1
+            
+            # Exclude tests incompatible with external server mode and only test core functionality:
+            # - Module loading tests: require control over module loading
+            # - Cluster tests: require multi-node cluster setup
+            # - RDB/persistence tests: require save/load control
+            # - Consistency/replication tests: require primary/replica setup
+            # - Cross-module tests: require specific module loading order
+            # - Debug mode tests: require FT._DEBUG commands not available in bundle
+            # - Eviction/OOM tests: modify memory settings that contaminate subsequent tests
+            # - Initial scan tests: require control over server startup
+            # - Metrics tests: check cumulative metrics that don't reset between tests
+            # - Config tests: check configs that differ in bundle vs local build
+            # - ACL tests: require ACL configuration control
+            SKIP_TESTS="not ("
+            SKIP_TESTS+="test_module_loaded or CME or cluster or Cluster"
+            SKIP_TESTS+=" or saverestore or skip_index_load or rdb_load or multidb_rdb"
+            SKIP_TESTS+=" or consistency or fanout or info_primary"
+            SKIP_TESTS+=" or TestJsonBackfill or cross_module or cancel or copy"
+            SKIP_TESTS+=" or debug or postfilter or inflight_blocking or versioning"
+            SKIP_TESTS+=" or eviction or oom or setup_test0"
+            SKIP_TESTS+=" or skipinitialscan or TestSkipInitialScan or dbnum or singleslot"
+            SKIP_TESTS+=" or TestCreateNonVectorIndexes or TestAppMetrics"
+            SKIP_TESTS+=" or test_query_string_bytes_limit or test_tag_min_prefix_length_config"
+            SKIP_TESTS+=" or test_text_search or test_suffix_search or test_text_size_estimation"
+            SKIP_TESTS+=" or acl"
+            SKIP_TESTS+=")"
+
+            python -m pytest --log-cli-level=INFO --capture=sys --cache-clear -v \
+                -k "$SKIP_TESTS" \
+                test_*.py
+
+            local pytest_exit_code=$?
+            cleanup_container
+            cd ..
+            if [ $pytest_exit_code -ne 0 ]; then
+                false
+            fi
             ;;
         "LDAP")
             echo "VALKEY LDAP DOESN'T USE VALKEY TEST FRAMEWORK"
@@ -261,7 +295,7 @@ overall_success=true
 run_tests "Valkey" "./valkey" || overall_success=false
 run_tests "JSON" "./valkey-json" || overall_success=false
 run_tests "Bloom" "./valkey-bloom" || overall_success=false
-# run_tests "Search" "./valkey-search" || overall_success=false
+run_tests "Search" "./valkey-search" || overall_success=false
 # run_tests "LDAP" "./valkey-ldap" || overall_success=false
 
 echo "=== Integration Tests Complete ==="
