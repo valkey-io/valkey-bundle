@@ -73,9 +73,6 @@ for repo in "${repos[@]}"; do
         elif [[ "$repo" == "valkey-json" ]]; then
             echo "Cloning $repo from version tag $JSON_TAG"
             git clone -b "$JSON_TAG" --depth=1 "https://github.com/valkey-io/$repo.git" "./$repo"
-        elif [[ "$repo" == "valkey-search" ]]; then
-            echo "Cloning $repo from unstable branch"
-            git clone -b unstable --depth=1 "https://github.com/valkey-io/$repo.git" "./$repo"
         else
             echo "Cloning $repo from main branch"
             git clone --depth=1 "https://github.com/valkey-io/$repo.git" "./$repo"
