@@ -3,7 +3,6 @@
 import json
 import sys
 import logging
-from datetime import datetime
 
 logging.basicConfig(level=logging.ERROR, format="%(asctime)s - %(levelname)s - %(message)s")
 
@@ -110,7 +109,6 @@ def update_docker_description(json_file: str, template_file: str, output_file: s
         versions_table = get_versions_table()
 
         content = template.format(
-            update_date=datetime.now().strftime("%Y-%m-%d"),
             official_releases=official_releases_section,
             release_candidates_section=rc_section,
             unstable_section=unstable_section,
