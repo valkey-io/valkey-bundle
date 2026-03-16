@@ -177,7 +177,7 @@ class TestUpdateDockerDescription:
         (tmp_path / "versions.json").write_text(json.dumps(versions))
         monkeypatch.chdir(tmp_path)
 
-        template = "Date: {update_date}\n{official_releases}{release_candidates_section}{unstable_section}\nTable:\n{versions_table}"
+        template = "{official_releases}{release_candidates_section}{unstable_section}\nTable:\n{versions_table}"
         template_file = tmp_path / "template.md"
         template_file.write_text(template)
 
