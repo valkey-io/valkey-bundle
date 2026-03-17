@@ -52,7 +52,7 @@ jobs:
           ./apply-templates.sh unstable
 
       - name: Set up bashbrew
-        uses: docker-library/bashbrew@v0.1.12
+        uses: docker-library/bashbrew@a519e31d2ed9cb229ff38ab4488e78bfa09d7a2a # v0.1.14
 
       - name: Update DockerHub description
         run: |
@@ -198,7 +198,7 @@ jobs:
           fi
 
       - name: Set up bashbrew
-        uses: docker-library/bashbrew@v0.1.12
+        uses: docker-library/bashbrew@a519e31d2ed9cb229ff38ab4488e78bfa09d7a2a # v0.1.14
 
       - name: Generate Jobs Strategy
         id: generate-jobs
@@ -232,7 +232,7 @@ jobs:
 
       - name: Create Pull Request
         if: steps.check-branch.outputs.branch-exists == 'false' && steps.update-versions.outputs.has-changes == 'true'
-        uses: peter-evans/create-pull-request@v5
+        uses: peter-evans/create-pull-request@4e1beaa7521e8b457b572c090b25bd3db56bf1c5 # v5.0.3
         with:
           path: valkey-bundle
           token: ${{ secrets.VALKEY_BUNDLE_PAT_FOR_PR }}
