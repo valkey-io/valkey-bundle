@@ -17,6 +17,7 @@ on:
         options: [valkey, json, bloom, search, ldap]
 
 permissions:
+  actions: write
   contents: write
   pull-requests: write
 
@@ -240,7 +241,7 @@ jobs:
           delete-branch: false
           title: "Automated Updates for Valkey Bundle"
           body: |
-            This PR contains automated updates for the valkey bundle release.
+            **Automated:** This PR contains automated updates for the valkey bundle release.
 
             Changes include:
             - Updated versions.json
@@ -250,7 +251,7 @@ jobs:
       - name: Comment on Pull Request
         if: steps.update-versions.outputs.has-changes == 'true'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.VALKEY_BUNDLE_PAT_FOR_PR }}
         run: |
           BRANCH_NAME="${{ steps.check-branch.outputs.branch-name }}"
-          gh pr comment "$BRANCH_NAME" --body "**Updated ${{ steps.process-inputs.outputs.component }} to version ${{ steps.process-inputs.outputs.version }}.**"
+          gh pr comment "$BRANCH_NAME" --body "**Automated:** Updated ${{ steps.process-inputs.outputs.component }} to version ${{ steps.process-inputs.outputs.version }}."
