@@ -28,10 +28,10 @@ jobs:
     outputs:
       strategy: ${{ steps.generate-jobs.outputs.strategy }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 2
-      - uses: docker-library/bashbrew@v0.1.13
+      - uses: docker-library/bashbrew@a519e31d2ed9cb229ff38ab4488e78bfa09d7a2a # v0.1.14
 
       - id: generate-jobs
         name: Generate Jobs
@@ -69,9 +69,9 @@ jobs:
     runs-on: ${{ matrix.platform == 'linux/arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
 
     steps:
-      - uses: docker-library/bashbrew@v0.1.13
+      - uses: docker-library/bashbrew@a519e31d2ed9cb229ff38ab4488e78bfa09d7a2a # v0.1.14
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       # Replace "/" with "-" in platform name for valid artifact naming
       - name: Prepare platform name
@@ -106,15 +106,12 @@ jobs:
             echo "ECR_REPO_PATH=${{ secrets.ECR_REGISTRY_ALIAS }}/valkey-bundle" >> $GITHUB_ENV
           fi
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
 
       - name: Login to Docker Hub
         if: env.IS_PULL != 'true' && env.HAS_SECRETS == 'true'
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: docker.io
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -122,7 +119,7 @@ jobs:
 
       - name: Login to GitHub Container Registry
         if: env.IS_PULL != 'true' && env.HAS_SECRETS == 'true'
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -130,7 +127,7 @@ jobs:
       
       - name: Configure AWS credentials via OIDC
         if: env.IS_PULL != 'true' && env.HAS_SECRETS == 'true'
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: us-east-1
@@ -165,30 +162,30 @@ jobs:
           echo "$ecr_tags" > tags-ecr.txt
 
       - name: Upload Tags Artifact for Docker
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: tags-docker-${{ matrix.version.name }}
+          name: tags-docker-${{ matrix.version.name }}-${{ env.PLATFORM_PAIR }}
           path: tags-docker.txt
           overwrite: true
 
       - name: Upload Tags Artifact for GHCR
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: tags-ghcr-${{ matrix.version.name }}
+          name: tags-ghcr-${{ matrix.version.name }}-${{ env.PLATFORM_PAIR }}
           path: tags-ghcr.txt
           overwrite: true
 
       - name: Upload Tags Artifact for ECR
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: tags-ecr-${{ matrix.version.name }}
+          name: tags-ecr-${{ matrix.version.name }}-${{ env.PLATFORM_PAIR }}
           path: tags-ecr.txt
           overwrite: true
 
       # Build Docker images and push them to Docker Hub by digest (sha256)
       - name: Build and push by digest
         id: build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with:
           file: ./${{ matrix.version.meta.entries[0].directory }}/Dockerfile
           platforms: ${{ matrix.platform }}
@@ -250,7 +247,7 @@ jobs:
           echo "version_major_minor=$major_minor" >> "$GITHUB_OUTPUT"
 
       - name: Upload digest for version-distro combination
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: digests-${{ steps.export-digest.outputs.version_major_minor }}-${{ steps.export-digest.outputs.linux_distro }}-${{ env.PLATFORM_PAIR }}
           path: ${{ runner.temp }}/digests/*
@@ -298,14 +295,14 @@ jobs:
         run: echo "has-secrets=${{ env.HAS_SECRETS }}" >> "$GITHUB_OUTPUT"
 
       - name: Download All Digests
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           path: ${{ runner.temp }}/all-digests
           pattern: digests-*
           merge-multiple: false
 
       - name: Download All Tags
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           path: ${{ runner.temp }}/all-tags
           pattern: tags-*
@@ -313,7 +310,7 @@ jobs:
 
       - name: Login to Docker Hub
         if: env.HAS_SECRETS == 'true' && env.IS_PULL != 'true'
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: docker.io
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -321,7 +318,7 @@ jobs:
 
       - name: Login to GitHub Container Registry
         if: env.IS_PULL != 'true' && env.HAS_SECRETS == 'true'
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -329,7 +326,7 @@ jobs:
       
       - name: Configure AWS credentials via OIDC
         if: env.IS_PULL != 'true' && env.HAS_SECRETS == 'true'
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: us-east-1
@@ -341,7 +338,7 @@ jobs:
 
       - name: Set up Docker Buildx
         if: env.HAS_SECRETS == 'true'
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
 
 
       - name: Create Multi-Arch Manifests for ECR, Docker, GHCR
@@ -395,9 +392,9 @@ jobs:
 
               # tag dirs differ for alpine vs non-alpine
               if [[ "$distro" == "alpine" ]]; then
-                tag_dir=$(find all-tags/ -name "${tag_prefix}-${version}*-alpine" -type d | head -1)
+                tag_dir=$(find all-tags/ -name "${tag_prefix}-${version}*-alpine-*" -type d | head -1)
               else
-                tag_dir=$(find all-tags/ -name "${tag_prefix}-${version}*" -type d | grep -v "\-alpine$" | head -1)
+                tag_dir=$(find all-tags/ -name "${tag_prefix}-${version}*" -type d | grep -v "\-alpine" | head -1)
               fi
 
               tag_file="$tag_dir/${tag_prefix}.txt"
