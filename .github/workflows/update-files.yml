@@ -29,6 +29,8 @@ jobs:
     steps:
       - name: Checkout Valkey-Bundle
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          token: ${{ secrets.VALKEY_BUNDLE_PAT_FOR_PR }}
 
       - name: Configure Git
         run: |
@@ -69,7 +71,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "pushed=false" >> $GITHUB_OUTPUT
           else
-            git commit -m "Update unstable module versions"
+            git commit -m "Automated update for unstable module versions"
             git push
             echo "pushed=true" >> $GITHUB_OUTPUT
           fi
