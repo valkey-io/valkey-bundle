@@ -63,7 +63,7 @@ def get_versions_table() -> str:
         if version_key == 'unstable':
             row = f"| {bundle_version} | {valkey_version} | [{json_version}](https://github.com/valkey-io/valkey-json/releases/tag/{json_version})| [{bloom_version}](https://github.com/valkey-io/valkey-bloom/releases/tag/{bloom_version})| [{search_version}](https://github.com/valkey-io/valkey-search/releases/tag/{search_version}) | [{ldap_version}](https://github.com/valkey-io/valkey-ldap/releases/tag/{ldap_version}) |"
         else:
-            row = f"| [{bundle_version}](https://github.com/valkey-io/valkey-bundle/releases/tag/{bundle_version}) |[{valkey_version}](https://github.com/valkey-io/valkey/releases/tag/{valkey_version}) | [{json_version}](https://github.com/valkey-io/valkey-json/releases/tag/{json_version})| [{bloom_version}](https://github.com/valkey-io/valkey-bloom/releases/tag/{bloom_version})| [{search_version}](https://github.com/valkey-io/valkey-search/releases/tag/{search_version}) | [{ldap_version}](https://github.com/valkey-io/valkey-ldap/releases/tag/{ldap_version}) |"
+            row = f"| {bundle_version} |[{valkey_version}](https://github.com/valkey-io/valkey/releases/tag/{valkey_version}) | [{json_version}](https://github.com/valkey-io/valkey-json/releases/tag/{json_version})| [{bloom_version}](https://github.com/valkey-io/valkey-bloom/releases/tag/{bloom_version})| [{search_version}](https://github.com/valkey-io/valkey-search/releases/tag/{search_version}) | [{ldap_version}](https://github.com/valkey-io/valkey-ldap/releases/tag/{ldap_version}) |"
         
         table_rows.append(row)
     
