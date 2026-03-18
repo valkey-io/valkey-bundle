@@ -76,11 +76,15 @@ jobs:
             echo "pushed=true" >> $GITHUB_OUTPUT
           fi
 
-      - name: Trigger CI
-        if: steps.commit-push.outputs.pushed != 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh workflow run ci.yml --ref mainline
+    outputs:
+      pushed: ${{ steps.commit-push.outputs.pushed }}
+
+  trigger-ci:
+    name: Trigger CI
+    needs: update-unstable
+    if: needs.update-unstable.outputs.pushed != 'true'
+    uses: ./.github/workflows/ci.yml
+    secrets: inherit
 
   update-files:
     name: Update Files and Create Pull Request

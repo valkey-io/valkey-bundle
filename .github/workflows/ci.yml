@@ -8,6 +8,7 @@ on:
     paths:
       - "**/Dockerfile"
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   id-token: write
