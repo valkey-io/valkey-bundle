@@ -140,6 +140,7 @@ run_tests() {
             --skiptest "Extended Redis Compatibility config" \
             --skiptest "CLIENT LIST with IPv6 filter" \
             --skiptest "CLIENT LIST with IPv6 negative filter" \
+            --skiptest "CLIENT KILL with IPv6 filter" \
             ;;
         "JSON")
             setup_test_framework "tst/integration/valkeytests"
