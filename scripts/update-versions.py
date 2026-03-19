@@ -64,17 +64,6 @@ def get_latest_module_release(repository: str) -> str:
     tags.sort(key=lambda v: (parse_version(v)[:3], parse_version(v)[3] or float('inf')))
     return tags[-1]
 
-def get_latest_stable_module_release(repository: str) -> str:
-    """Use GitHub CLI to fetch the latest stable release tag for each module."""
-    result = subprocess.check_output(
-        ['gh', 'release', 'list', '--repo', repository, '--limit', '50',
-         '--json', 'tagName,isPrerelease', '-q',
-         '[.[] | select(.isPrerelease == false) | select(.tagName | test("-rc") | not)] | .[].tagName'],
-        text=True)
-    tags = [t.lstrip('v') for t in result.strip().splitlines() if t.strip()]
-    tags.sort(key=lambda v: [int(x) for x in v.split('.')])
-    return tags[-1]
-
 def update_unstable(versions_data: Dict[str, Any]) -> Dict[str, Any]:
     """Update the unstable block with latest stable module releases."""
     known_modules = get_known_modules_from_versions(versions_data)
@@ -137,7 +126,7 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
 
             module_versions = {}
             for name, repository in known_modules.items():
-                latest_version = get_latest_stable_module_release(repository)
+                latest_version = get_latest_module_release(repository)
                 module_versions[name] = {"version": latest_version}
 
             new_entry = {
