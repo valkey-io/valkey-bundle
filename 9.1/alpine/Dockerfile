@@ -4,31 +4,30 @@
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
 
-FROM docker.io/valkey/valkey:unstable-trixie AS build
+FROM docker.io/valkey/valkey:9.1.0-rc1-alpine AS build
 
-ARG SERVER_VERSION=unstable
+ARG SERVER_VERSION=9.1.0-rc1
 
-RUN set -eux;   \
-                \
-    apt-get update;     \
-    apt-get install -y --no-install-recommends  \
-                        ca-certificates         \
-                        build-essential         \
-                        cmake                   \
-                        git                     \
-                        curl                    \
-                        clang                   \
-                        clangd                  \
-                        g++                     \
-                        libgtest-dev            \
-                        ninja-build             \
-                        libssl-dev              \
-                        clang-tidy              \
-                        clang-format            \
-                        libsystemd-dev          \
-                        pkg-config              \
-                    ;\
-    apt-get clean && rm -rf /var/lib/apt/lists/* ;
+RUN set -eux; \
+    apk add --no-cache            \
+	        ca-certificates       \
+	        build-base            \
+	        cmake                 \
+	        git                   \
+	        curl                  \
+	        clang                 \
+	        clang19-dev           \
+	        gtest-dev             \
+	        ninja-build           \
+	        ninja-is-really-ninja \
+	        openssl-dev           \
+	        clang19-extra-tools   \
+	        linux-headers         \
+	        bash                  \
+                pkgconfig             \
+	;\
+    update-ca-certificates; \
+    ln -s /usr/lib/ninja-build/bin/ninja /usr/bin/ninja-build;
 
 # Install Rust
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y;
@@ -50,7 +49,7 @@ RUN set -eux; \
 
 # Build Bloom module
 WORKDIR /opt/valkey-bloom
-RUN cargo build --all --all-targets --release;
+RUN RUSTFLAGS="-C target-feature=-crt-static" cargo build --all --all-targets --release;
 
 # Build Search module
 WORKDIR /opt/valkey-search
@@ -61,11 +60,13 @@ RUN set -eux; \
 
 # Build LDAP module
 WORKDIR /opt/valkey-ldap
-RUN cargo build --all --all-targets --release;
+RUN RUSTFLAGS="-C target-feature=-crt-static" cargo build --all --all-targets --release;
 
-FROM docker.io/valkey/valkey:unstable-trixie
+FROM docker.io/valkey/valkey:9.1.0-rc1-alpine
 
-RUN mkdir -p /usr/lib/valkey;
+RUN set -eux; \
+    apk add --no-cache libstdc++; \
+    mkdir -p /usr/lib/valkey;
 
 # Copy built modules from the build stage
 COPY --from=build /opt/valkey-json/build/src/libjson.so /usr/lib/valkey/libjson.so
