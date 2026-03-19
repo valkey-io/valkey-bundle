@@ -178,7 +178,7 @@ class TestUpdateVersionsValkey:
     def test_new_major_minor_creates_entry(self, versions_data, mocker):
         mocker.patch.object(update_versions, "get_debian_version", return_value="trixie")
         mocker.patch.object(
-            update_versions, "get_latest_stable_module_release", return_value="2.0.0"
+            update_versions, "get_latest_module_release", return_value="2.0.0"
         )
 
         result = update_versions_fn(versions_data, "valkey", "10.0.0")
