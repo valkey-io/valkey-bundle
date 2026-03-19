@@ -26,6 +26,8 @@ jobs:
     name: Update Unstable Module Versions
     if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.version == 'unstable' && inputs.component == 'valkey')
     runs-on: ubuntu-latest
+    outputs:
+      versions-updated: ${{ steps.commit-push.outputs.versions-updated }}
     steps:
       - name: Checkout Valkey-Bundle
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -69,20 +71,17 @@ jobs:
         run: |
           git add versions.json unstable/ dockerhub-description.md
           if git diff --staged --quiet; then
-            echo "pushed=false" >> $GITHUB_OUTPUT
+            echo "versions-updated=false" >> $GITHUB_OUTPUT
           else
             git commit -m "Automated update for unstable module versions"
             git push
-            echo "pushed=true" >> $GITHUB_OUTPUT
+            echo "versions-updated=true" >> $GITHUB_OUTPUT
           fi
-
-    outputs:
-      pushed: ${{ steps.commit-push.outputs.pushed }}
 
   trigger-ci:
     name: Trigger CI
     needs: update-unstable
-    if: needs.update-unstable.outputs.pushed != 'true'
+    if: needs.update-unstable.outputs.versions-updated != 'true'
     uses: ./.github/workflows/ci.yml
     secrets: inherit
 
