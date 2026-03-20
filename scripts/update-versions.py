@@ -54,13 +54,14 @@ def get_debian_version(valkey_version: str) -> str:
     
     return container_versions[version_key]["debian"]["version"]
 
-def get_latest_module_release(repository: str) -> str:
-    """Use GitHub CLI to fetch the latest release tag for each module (including RCs)."""
-    result = subprocess.check_output(
-        ['gh', 'release', 'list', '--repo', repository, '--limit', '50',
-         '--json', 'tagName', '-q', '.[].tagName'],
-        text=True)
+def get_latest_module_release(repository: str, include_rc: bool = True) -> str:
+    """Use GitHub CLI to fetch the latest release tag for each module."""
+    result = subprocess.check_output(['gh', 'release', 'list', '--repo', repository, '--limit', '50', '--json', 'tagName', '-q', '.[].tagName'], text=True)
     tags = [t.lstrip('v') for t in result.strip().splitlines() if t.strip()]
+
+    if not include_rc:
+        tags = [t for t in tags if parse_version(t)[3] is None]
+
     tags.sort(key=lambda v: (parse_version(v)[:3], parse_version(v)[3] or float('inf')))
     return tags[-1]
 
@@ -89,8 +90,18 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
         if existing_entry:
             # Patch or RC update
             existing_bundle_version = versions_data[new_major_minor_release]["version"]
+            existing_valkey_version = versions_data[new_major_minor_release]["valkey-server"]["version"]
             versions_data[new_major_minor_release]["valkey-server"]["version"] = new_version
             versions_data[new_major_minor_release]["debian"]["version"] = get_debian_version(new_version)
+
+            # When valkey goes from RC to GA on the latest block, downgrade any RC modules to latest stable
+            if new_major_minor_release == latest and rc is None and parse_version(existing_valkey_version)[3] is not None:
+                known_modules = get_known_modules_from_versions(versions_data)
+                for name, repository in known_modules.items():
+                    current_module_version = versions_data[new_major_minor_release]["modules"][name]["version"]
+                    if parse_version(current_module_version)[3] is not None:
+                        stable_version = get_latest_module_release(repository, include_rc=False)
+                        versions_data[new_major_minor_release]["modules"][name]["version"] = stable_version
 
             # For backported valkey releases, always increment bundle version
             if new_major_minor_release != latest:
@@ -99,8 +110,7 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
                 logging.info(f"Updated backported bundle version from {existing_bundle_version} to {versions_data[new_major_minor_release]['version']}")
             else:
                 try:
-                    subprocess.check_output(
-                        ["git", "ls-remote", "--exit-code", "--heads", "origin", "valkey-bundle-update"], stderr=subprocess.DEVNULL)
+                    subprocess.check_output(["git", "ls-remote", "--exit-code", "--heads", "origin", "valkey-bundle-update"], stderr=subprocess.DEVNULL)
                     logging.info("There is an open PR for the branch valkey-bundle-update - bundle patch version won't be bumped.")
                 except subprocess.CalledProcessError:
                     bundle_major, bundle_minor, bundle_patch, bundle_rc = parse_version(existing_bundle_version)
@@ -209,8 +219,7 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
             versions_data[latest]["modules"][module_key] = {"version": new_version}
 
         try:
-            subprocess.check_output(
-                ["git", "ls-remote", "--exit-code", "--heads", "origin", "valkey-bundle-update"], stderr=subprocess.DEVNULL)
+            subprocess.check_output(["git", "ls-remote", "--exit-code", "--heads", "origin", "valkey-bundle-update"], stderr=subprocess.DEVNULL)
             logging.info("There is an open PR for the branch valkey-bundle-update - bundle patch version won't be bumped.")
         except subprocess.CalledProcessError:
             try:
