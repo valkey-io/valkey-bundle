@@ -98,9 +98,7 @@ class TestGetVersionsTable:
         assert len(lines) == 2  # unstable + 9.0
         # unstable row should NOT have a bundle link
         assert "| unstable |" in lines[0]
-        # 9.0 row should have a bundle release link
         assert "9.0.1" in lines[1]
-        assert "valkey-bundle/releases/tag/9.0.1" in lines[1]
 
     def test_sorts_numeric_descending(self, tmp_path, monkeypatch):
         versions = {

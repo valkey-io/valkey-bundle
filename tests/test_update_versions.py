@@ -178,7 +178,7 @@ class TestUpdateVersionsValkey:
     def test_new_major_minor_creates_entry(self, versions_data, mocker):
         mocker.patch.object(update_versions, "get_debian_version", return_value="trixie")
         mocker.patch.object(
-            update_versions, "get_latest_stable_module_release", return_value="2.0.0"
+            update_versions, "get_latest_module_release", return_value="2.0.0"
         )
 
         result = update_versions_fn(versions_data, "valkey", "10.0.0")
@@ -187,6 +187,74 @@ class TestUpdateVersionsValkey:
         assert result["10.0"]["version"] == "10.0.0"
         for mod in ["valkey-json", "valkey-bloom", "valkey-search", "valkey-ldap"]:
             assert result["10.0"]["modules"][mod]["version"] == "2.0.0"
+
+    def test_new_major_minor_rc_creates_entry(self, versions_data, mocker):
+        mocker.patch.object(update_versions, "get_debian_version", return_value="trixie")
+        mocker.patch.object(update_versions, "get_latest_module_release", return_value="2.0.0-rc1")
+
+        result = update_versions_fn(versions_data, "valkey", "10.0.0-rc1")
+        assert "10.0" in result
+        assert result["10.0"]["valkey-server"]["version"] == "10.0.0-rc1"
+        assert result["10.0"]["version"] == "10.0.0-rc1"
+        for mod in ["valkey-json", "valkey-bloom", "valkey-search", "valkey-ldap"]:
+            assert result["10.0"]["modules"][mod]["version"] == "2.0.0-rc1"
+
+    def test_backported_valkey_always_bumps_bundle(self, versions_data, mocker):
+        mocker.patch.object(update_versions, "get_debian_version", return_value="bookworm")
+        result = update_versions_fn(versions_data, "valkey", "8.1.5")
+        assert result["8.1"]["valkey-server"]["version"] == "8.1.5"
+        assert result["8.1"]["version"] == "8.1.3"  # 8.1.2 -> 8.1.3
+
+    def test_backported_valkey_does_not_touch_latest(self, versions_data, mocker):
+        mocker.patch.object(update_versions, "get_debian_version", return_value="bookworm")
+        original_latest = copy.deepcopy(versions_data["9.0"])
+        update_versions_fn(versions_data, "valkey", "8.1.5")
+        assert versions_data["9.0"] == original_latest
+
+    def test_ga_downgrades_rc_modules_to_stable(self, versions_data_rc_latest, mocker):
+        mocker.patch.object(update_versions, "get_debian_version", return_value="bookworm")
+        mocker.patch.object(
+            update_versions, "get_latest_module_release",
+            side_effect=lambda repo, include_rc=True: {
+                "valkey-io/valkey-json": "1.0.1",
+                "valkey-io/valkey-bloom": "1.0.0",
+                "valkey-io/valkey-search": "1.0.1",
+                "valkey-io/valkey-ldap": "1.0.0",
+            }[repo],
+        )
+        # Simulate no open PR
+        mocker.patch("subprocess.check_output", side_effect=subprocess.CalledProcessError(1, "git"))
+
+        # 9.0 has valkey-server 9.0.0-rc1, search 1.1.0-rc1, ldap 1.1.0-rc1
+        result = update_versions_fn(versions_data_rc_latest, "valkey", "9.0.0")
+        assert result["9.0"]["valkey-server"]["version"] == "9.0.0"
+        # RC modules should be downgraded to latest stable
+        assert result["9.0"]["modules"]["valkey-search"]["version"] == "1.0.1"
+        assert result["9.0"]["modules"]["valkey-ldap"]["version"] == "1.0.0"
+        # Already-stable modules should be untouched
+        assert result["9.0"]["modules"]["valkey-json"]["version"] == "1.0.1"
+        assert result["9.0"]["modules"]["valkey-bloom"]["version"] == "1.0.0"
+
+    def test_ga_does_not_downgrade_when_no_rc_modules(self, versions_data, mocker):
+        mocker.patch.object(update_versions, "get_debian_version", return_value="bookworm")
+        mocker.patch("subprocess.check_output", side_effect=subprocess.CalledProcessError(1, "git"))
+        # Set valkey-server to RC so the GA path triggers, but all modules are stable
+        versions_data["9.0"]["valkey-server"]["version"] = "9.0.0-rc1"
+        versions_data["9.0"]["version"] = "9.0.0-rc1"
+
+        original_modules = copy.deepcopy(versions_data["9.0"]["modules"])
+        result = update_versions_fn(versions_data, "valkey", "9.0.0")
+        assert result["9.0"]["modules"] == original_modules
+
+    def test_ga_downgrade_only_on_latest_block(self, versions_data_three_blocks, mocker):
+        mocker.patch.object(update_versions, "get_debian_version", return_value="bookworm")
+        # 9.1 is latest, 8.1 has valkey-server set to RC for this test
+        versions_data_three_blocks["8.1"]["valkey-server"]["version"] = "8.1.0-rc1"
+        versions_data_three_blocks["8.1"]["modules"]["valkey-search"]["version"] = "1.1.0-rc1"
+
+        result = update_versions_fn(versions_data_three_blocks, "valkey", "8.1.0")
+        # 8.1 is not latest, so GA downgrade should NOT run — RC module stays
+        assert result["8.1"]["modules"]["valkey-search"]["version"] == "1.1.0-rc1"
 
 
 # ---------------------------------------------------------------------------
@@ -206,6 +274,20 @@ class TestUpdateVersionsModule:
         result = update_versions_fn(versions_data, "json", "1.0.2")
         assert result["8.1"]["modules"]["valkey-json"]["version"] == "1.0.2"
         assert result["9.0"]["modules"]["valkey-json"]["version"] == "1.0.2"
+
+    def test_module_patch_does_not_touch_unstable(self, versions_data, mocker):
+        self._no_open_pr(mocker)
+        original_unstable = copy.deepcopy(versions_data["unstable"])
+        update_versions_fn(versions_data, "json", "1.0.2")
+        assert versions_data["unstable"] == original_unstable
+
+    def test_module_patch_updates_three_blocks(self, versions_data_three_blocks, mocker):
+        self._no_open_pr(mocker)
+        # json is 1.0.1 in 8.1, 9.0, and 9.1 — patch should update all three
+        result = update_versions_fn(versions_data_three_blocks, "json", "1.0.2")
+        assert result["8.1"]["modules"]["valkey-json"]["version"] == "1.0.2"
+        assert result["9.0"]["modules"]["valkey-json"]["version"] == "1.0.2"
+        assert result["9.1"]["modules"]["valkey-json"]["version"] == "1.0.2"
 
     def test_module_patch_does_not_update_different_major_minor(self, versions_data, mocker):
         self._no_open_pr(mocker)
@@ -236,6 +318,21 @@ class TestUpdateVersionsModule:
         with pytest.raises(SystemExit):
             update_versions_fn(versions_data, "json", "1.1.0")
 
+    def test_module_minor_release_allowed_when_valkey_minor_gt_zero(self, versions_data_three_blocks, mocker):
+        self._no_open_pr(mocker)
+        # 9.1 is latest, valkey-server is 9.1.0-rc1 (minor=1), so module minor release should be allowed
+        result = update_versions_fn(versions_data_three_blocks, "json", "1.1.0")
+        assert result["9.1"]["modules"]["valkey-json"]["version"] == "1.1.0"
+        # Other blocks should be untouched
+        assert result["8.1"]["modules"]["valkey-json"]["version"] == "1.0.1"
+        assert result["9.0"]["modules"]["valkey-json"]["version"] == "1.0.1"
+
+    def test_module_major_release_allowed_with_rc_valkey(self, versions_data, mocker):
+        self._no_open_pr(mocker)
+        versions_data["9.0"]["valkey-server"]["version"] = "9.0.0-rc1"
+        result = update_versions_fn(versions_data, "json", "2.0.0")
+        assert result["9.0"]["modules"]["valkey-json"]["version"] == "2.0.0"
+
     def test_module_bumps_bundle_patch_when_no_pr(self, versions_data, mocker):
         self._no_open_pr(mocker)
 
@@ -251,3 +348,40 @@ class TestUpdateVersionsModule:
         # Use a patch release instead
         result = update_versions_fn(versions_data_rc, "json", "1.0.2")
         assert result["9.0"]["version"] == "9.0.1-rc3"
+
+    def test_module_no_bundle_bump_when_pr_exists(self, versions_data, mocker):
+        def mock_check_output(*args, **kwargs):
+            cmd = args[0] if args else kwargs.get('args', [])
+            if cmd[0] == 'git' and 'ls-remote' in cmd:
+                return b"abc123\trefs/heads/valkey-bundle-update\n"
+            if cmd[0] == 'git' and 'show' in cmd:
+                return json.dumps(versions_data)
+            raise subprocess.CalledProcessError(1, "unknown")
+
+        mocker.patch("subprocess.check_output", side_effect=mock_check_output)
+        original_bundle = versions_data["9.0"]["version"]
+        result = update_versions_fn(versions_data, "json", "1.0.2")
+        assert result["9.0"]["version"] == original_bundle
+
+    def test_module_patch_dedup_non_latest_already_bumped(self, versions_data_three_blocks, mocker):
+        """When a non-latest block's bundle was already bumped (differs from mainline), skip the bump."""
+        def mock_check_output(*args, **kwargs):
+            cmd = args[0] if args else kwargs.get('args', [])
+            if cmd[0] == 'git' and 'ls-remote' in cmd:
+                raise subprocess.CalledProcessError(1, "git")
+            if cmd[0] == 'git' and 'show' in cmd:
+                # Simulate mainline has 8.1 bundle at 8.1.2 (same as current)
+                # but 9.0 bundle at 9.0.0 (different from current 9.0.1 — already bumped)
+                import json
+                mainline = copy.deepcopy(versions_data_three_blocks)
+                mainline["9.0"]["version"] = "9.0.0"
+                return json.dumps(mainline)
+            raise subprocess.CalledProcessError(1, "unknown")
+
+        mocker.patch("subprocess.check_output", side_effect=mock_check_output)
+
+        result = update_versions_fn(versions_data_three_blocks, "json", "1.0.2")
+        # 8.1 should bump (mainline matches current)
+        assert result["8.1"]["version"] == "8.1.3"
+        # 9.0 should NOT bump (mainline differs — already bumped)
+        assert result["9.0"]["version"] == "9.0.1"

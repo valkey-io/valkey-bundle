@@ -54,25 +54,15 @@ def get_debian_version(valkey_version: str) -> str:
     
     return container_versions[version_key]["debian"]["version"]
 
-def get_latest_module_release(repository: str) -> str:
-    """Use GitHub CLI to fetch the latest release tag for each module (including RCs)."""
-    result = subprocess.check_output(
-        ['gh', 'release', 'list', '--repo', repository, '--limit', '50',
-         '--json', 'tagName', '-q', '.[].tagName'],
-        text=True)
+def get_latest_module_release(repository: str, include_rc: bool = True) -> str:
+    """Use GitHub CLI to fetch the latest release tag for each module."""
+    result = subprocess.check_output(['gh', 'release', 'list', '--repo', repository, '--limit', '50', '--json', 'tagName', '-q', '.[].tagName'], text=True)
     tags = [t.lstrip('v') for t in result.strip().splitlines() if t.strip()]
-    tags.sort(key=lambda v: (parse_version(v)[:3], parse_version(v)[3] or float('inf')))
-    return tags[-1]
 
-def get_latest_stable_module_release(repository: str) -> str:
-    """Use GitHub CLI to fetch the latest stable release tag for each module."""
-    result = subprocess.check_output(
-        ['gh', 'release', 'list', '--repo', repository, '--limit', '50',
-         '--json', 'tagName,isPrerelease', '-q',
-         '[.[] | select(.isPrerelease == false) | select(.tagName | test("-rc") | not)] | .[].tagName'],
-        text=True)
-    tags = [t.lstrip('v') for t in result.strip().splitlines() if t.strip()]
-    tags.sort(key=lambda v: [int(x) for x in v.split('.')])
+    if not include_rc:
+        tags = [t for t in tags if parse_version(t)[3] is None]
+
+    tags.sort(key=lambda v: (parse_version(v)[:3], parse_version(v)[3] or float('inf')))
     return tags[-1]
 
 def update_unstable(versions_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -100,23 +90,38 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
         if existing_entry:
             # Patch or RC update
             existing_bundle_version = versions_data[new_major_minor_release]["version"]
+            existing_valkey_version = versions_data[new_major_minor_release]["valkey-server"]["version"]
             versions_data[new_major_minor_release]["valkey-server"]["version"] = new_version
             versions_data[new_major_minor_release]["debian"]["version"] = get_debian_version(new_version)
 
-            try:
-                subprocess.check_output(
-                    ["git", "ls-remote", "--exit-code", "--heads", "origin", "valkey-bundle-update"], stderr=subprocess.DEVNULL)
-                logging.info("There is an open PR for the branch valkey-bundle-update - bundle patch version won't be bumped.")
-            except subprocess.CalledProcessError:
+            # When valkey goes from RC to GA on the latest block, downgrade any RC modules to latest stable
+            if new_major_minor_release == latest and rc is None and parse_version(existing_valkey_version)[3] is not None:
+                known_modules = get_known_modules_from_versions(versions_data)
+                for name, repository in known_modules.items():
+                    current_module_version = versions_data[new_major_minor_release]["modules"][name]["version"]
+                    if parse_version(current_module_version)[3] is not None:
+                        stable_version = get_latest_module_release(repository, include_rc=False)
+                        versions_data[new_major_minor_release]["modules"][name]["version"] = stable_version
+
+            # For backported valkey releases, always increment bundle version
+            if new_major_minor_release != latest:
                 bundle_major, bundle_minor, bundle_patch, bundle_rc = parse_version(existing_bundle_version)
-                
-                if rc is not None or bundle_rc is not None:
-                    if rc is not None:
-                        versions_data[new_major_minor_release]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch}-rc{bundle_rc + 1}"
+                versions_data[new_major_minor_release]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch + 1}"
+                logging.info(f"Updated backported bundle version from {existing_bundle_version} to {versions_data[new_major_minor_release]['version']}")
+            else:
+                try:
+                    subprocess.check_output(["git", "ls-remote", "--exit-code", "--heads", "origin", "valkey-bundle-update"], stderr=subprocess.DEVNULL)
+                    logging.info("There is an open PR for the branch valkey-bundle-update - bundle patch version won't be bumped.")
+                except subprocess.CalledProcessError:
+                    bundle_major, bundle_minor, bundle_patch, bundle_rc = parse_version(existing_bundle_version)
+                    
+                    if rc is not None or bundle_rc is not None:
+                        if rc is not None:
+                            versions_data[new_major_minor_release]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch}-rc{bundle_rc + 1}"
+                        else:
+                            versions_data[new_major_minor_release]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch}"
                     else:
-                        versions_data[new_major_minor_release]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch}"
-                else:
-                    versions_data[new_major_minor_release]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch + 1}"
+                        versions_data[new_major_minor_release]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch + 1}"
                     logging.info("There is no open PR for the branch valkey-bundle-update — bumping bundle patch version.")
         else:
             # New major/minor version
@@ -124,7 +129,7 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
 
             module_versions = {}
             for name, repository in known_modules.items():
-                latest_version = get_latest_stable_module_release(repository)
+                latest_version = get_latest_module_release(repository)
                 module_versions[name] = {"version": latest_version}
 
             new_entry = {
@@ -180,25 +185,70 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
                 if current_major_minor == new_major_minor_release:
                     versions_data[version_block]["modules"][module_key]["version"] = new_version
                     logging.info(f"Patch release: Updated {module_key} to {new_version} in Bundle version {version_block}")
+                    
+                    if version_block != latest:
+                        try:
+                            result = subprocess.check_output(['git', 'show', 'origin/mainline:versions.json'], text=True)
+                            mainline_versions = json.loads(result)
+                            mainline_bundle_version = mainline_versions[version_block]["version"]
+                            current_bundle_version = versions_data[version_block]["version"]
+                            
+                            if mainline_bundle_version != current_bundle_version:
+                                logging.info(f"Bundle version {version_block} already incremented from {mainline_bundle_version} to {current_bundle_version}")
+                            else:
+                                bundle_major, bundle_minor, bundle_patch, bundle_rc = parse_version(current_bundle_version)
+                                
+                                if bundle_rc is not None:
+                                    versions_data[version_block]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch}-rc{bundle_rc + 1}"
+                                else:
+                                    versions_data[version_block]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch + 1}"
+                                
+                                logging.info(f"Incremented bundle version {version_block} from {current_bundle_version} to {versions_data[version_block]['version']}")
+                        except subprocess.CalledProcessError:
+                            current_bundle_version = versions_data[version_block]["version"]
+                            bundle_major, bundle_minor, bundle_patch, bundle_rc = parse_version(current_bundle_version)
+                            
+                            if bundle_rc is not None:
+                                versions_data[version_block]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch}-rc{bundle_rc + 1}"
+                            else:
+                                versions_data[version_block]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch + 1}"
+                            
+                            logging.info(f"Incremented bundle version {version_block} from {current_bundle_version} to {versions_data[version_block]['version']}")
         else:
             # For major or minor releases we will only update latest version entry
             versions_data[latest]["modules"][module_key] = {"version": new_version}
 
         try:
-            subprocess.check_output(
-                ["git", "ls-remote", "--exit-code", "--heads", "origin", "valkey-bundle-update"], stderr=subprocess.DEVNULL)
+            subprocess.check_output(["git", "ls-remote", "--exit-code", "--heads", "origin", "valkey-bundle-update"], stderr=subprocess.DEVNULL)
             logging.info("There is an open PR for the branch valkey-bundle-update - bundle patch version won't be bumped.")
         except subprocess.CalledProcessError:
-            current_version = versions_data[latest]["version"]
-            bundle_major, bundle_minor, bundle_patch, bundle_rc = parse_version(current_version)
-            
-            if bundle_rc is not None:
-                # For RC versions, increment RC number
-                versions_data[latest]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch}-rc{bundle_rc + 1}"
-            else:
-                # For stable versions, increment patch
-                versions_data[latest]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch + 1}"
-                logging.info("There is no open PR for the branch valkey-bundle-update — bumping bundle patch version.")
+            try:
+                result = subprocess.check_output(['git', 'show', 'origin/mainline:versions.json'], text=True)
+                mainline_versions = json.loads(result)
+                mainline_bundle_version = mainline_versions[latest]["version"]
+                current_version = versions_data[latest]["version"]
+                
+                if mainline_bundle_version != current_version:
+                    logging.info(f"Latest bundle version {latest} already incremented from {mainline_bundle_version} to {current_version} - skipping")
+                else:
+                    bundle_major, bundle_minor, bundle_patch, bundle_rc = parse_version(current_version)
+                    
+                    if bundle_rc is not None:
+                        versions_data[latest]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch}-rc{bundle_rc + 1}"
+                    else:
+                        versions_data[latest]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch + 1}"
+                    
+                    logging.info(f"No open PR - incremented latest bundle version from {current_version} to {versions_data[latest]['version']}.")
+            except subprocess.CalledProcessError:
+                current_version = versions_data[latest]["version"]
+                bundle_major, bundle_minor, bundle_patch, bundle_rc = parse_version(current_version)
+                
+                if bundle_rc is not None:
+                    versions_data[latest]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch}-rc{bundle_rc + 1}"
+                else:
+                    versions_data[latest]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch + 1}"
+                
+                logging.info(f"No open PR - incremented latest bundle version from {current_version} to {versions_data[latest]['version']}.")
         
         return versions_data
 
