@@ -95,14 +95,7 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
             # For backported valkey releases, always increment bundle version
             if new_major_minor_release != latest:
                 bundle_major, bundle_minor, bundle_patch, bundle_rc = parse_version(existing_bundle_version)
-                
-                if rc is not None or bundle_rc is not None:
-                    if rc is not None:
-                        versions_data[new_major_minor_release]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch}-rc{bundle_rc + 1}"
-                    else:
-                        versions_data[new_major_minor_release]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch}"
-                else:
-                    versions_data[new_major_minor_release]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch + 1}"
+                versions_data[new_major_minor_release]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch + 1}"
                 logging.info(f"Updated backported bundle version from {existing_bundle_version} to {versions_data[new_major_minor_release]['version']}")
             else:
                 try:
