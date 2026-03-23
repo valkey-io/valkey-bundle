@@ -26,7 +26,7 @@ permissions:
 jobs:
   update-unstable:
     name: Update Unstable Module Versions
-    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.version == 'unstable' && inputs.component == 'valkey')
+    if: (github.event_name == 'schedule' && github.repository_owner == 'valkey-io') || (github.event_name == 'workflow_dispatch' && inputs.version == 'unstable' && inputs.component == 'valkey')
     runs-on: ubuntu-latest
     outputs:
       versions-updated: ${{ steps.commit-push.outputs.versions-updated }}
@@ -85,6 +85,8 @@ jobs:
     needs: update-unstable
     if: needs.update-unstable.outputs.versions-updated != 'true'
     uses: ./.github/workflows/ci.yml
+    with:
+      version: unstable
     secrets: inherit
 
   update-files:

@@ -8,7 +8,17 @@ on:
     paths:
       - "**/Dockerfile"
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Versions to build (space-separated, e.g. "unstable" or "8.1 unstable")'
+        required: true
+        type: string
   workflow_call:
+    inputs:
+      version:
+        description: 'Versions to build (space-separated, e.g. "unstable" or "8.1 unstable")'
+        required: true
+        type: string
 
 permissions:
   id-token: write
@@ -49,6 +59,12 @@ jobs:
             else
               strategy='{"fail-fast": false, "matrix": {"include": []}}'
             fi
+          fi
+
+          # For workflow_call or workflow_dispatch with version input, filter to requested versions
+          if [[ "${{ github.event_name }}" == "workflow_call" || "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            versions_regex=$(echo "${{ inputs.version }}" | tr ' ' '|')
+            strategy=$(jq -c --arg versions "$versions_regex" '{"fail-fast": .["fail-fast"],"matrix":{"include":[ .matrix.include[]|select(.meta.entries[0].directory | test($versions))]}}' <<<"$strategy")
           fi
 
           echo "strategy=$(jq -c . <<<"$strategy")" >> "$GITHUB_OUTPUT"
