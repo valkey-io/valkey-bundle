@@ -61,8 +61,8 @@ jobs:
             fi
           fi
 
-          # For workflow_call or workflow_dispatch with version input, filter to requested versions
-          if [[ "${{ github.event_name }}" == "workflow_call" || "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          # Filter strategy to only build requested versions for workflow_call, workflow_dispatch, and schedule triggers
+          if [[ "${{ github.event_name }}" == "workflow_call" || "${{ github.event_name }}" == "workflow_dispatch" || "${{ github.event_name }}" == "schedule" ]]; then
             versions_regex=$(echo "${{ inputs.version }}" | tr ' ' '|')
             strategy=$(jq -c --arg versions "$versions_regex" '{"fail-fast": .["fail-fast"],"matrix":{"include":[ .matrix.include[]|select(.meta.entries[0].directory | test($versions))]}}' <<<"$strategy")
           fi
