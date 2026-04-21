@@ -17,8 +17,15 @@ def parse_version(version: str) -> tuple:
     major, minor, patch, rc = match.groups()
     return (int(major), int(minor), int(patch), int(rc) if rc else None)
 
+def bump_version(version: str) -> str:
+    """Increment patch (or RC number if RC) and return the formatted version string."""
+    major, minor, patch, rc = parse_version(version)
+    if rc is not None:
+        return f"{major}.{minor}.{patch}-rc{rc + 1}"
+    return f"{major}.{minor}.{patch + 1}"
+
 def get_latest_major_minor(versions_data: Dict[str, Any]) -> str:
-    """Get the latest major.minor version (bottom most block), skipping non-numeric keys like 'unstable'."""
+    """Get the latest major.minor version (bottom most block)."""
     numeric_keys = [k for k in versions_data.keys() if re.match(r'^\d+\.\d+$', k)]
     return max(numeric_keys, key=lambda x: [int(i) for i in x.split('.')])
 
@@ -31,7 +38,6 @@ def get_known_modules_from_versions(versions_data: Dict[str, Any]) -> Dict[str, 
         repo_name = f"valkey-io/{module_name}"
         modules[module_name] = repo_name
     
-    logging.info(f"Found modules in versions.json: {list(modules.keys())}")
     return modules
 
 def get_debian_version(valkey_version: str) -> str:
@@ -65,16 +71,29 @@ def get_latest_module_release(repository: str, include_rc: bool = True) -> str:
     tags.sort(key=lambda v: (parse_version(v)[:3], parse_version(v)[3] or float('inf')))
     return tags[-1]
 
+def bump_bundle_if_needed(versions_data: Dict[str, Any], block: str) -> None:
+    """Bump the bundle version for a block if it hasn't already been incremented vs mainline."""
+    current = versions_data[block]["version"]
+    try:
+        result = subprocess.check_output(['git', 'show', 'origin/mainline:versions.json'], text=True)
+        mainline = json.loads(result)[block]["version"]
+    except (subprocess.CalledProcessError, KeyError):
+        mainline = None
+        
+    if mainline is not None and mainline != current:
+        logging.info(f"Bundle version {block} already incremented from {mainline} to {current}")
+    else:
+        versions_data[block]["version"] = bump_version(current)
+        logging.info(f"Incremented bundle version {block} from {current} to {versions_data[block]['version']}")
+
+def fetch_latest_module_versions(known_modules: Dict[str, str]) -> Dict[str, Dict[str, str]]:
+    """Fetch latest release for each module and return as {name: {"version": ...}} dict."""
+    return {name: {"version": get_latest_module_release(repo)} for name, repo in known_modules.items()}
+
 def update_unstable(versions_data: Dict[str, Any]) -> Dict[str, Any]:
     """Update the unstable block with latest stable module releases."""
     known_modules = get_known_modules_from_versions(versions_data)
-
-    module_versions = {}
-    for name, repository in known_modules.items():
-        version = get_latest_module_release(repository)
-        module_versions[name] = {"version": version}
-
-    versions_data["unstable"]["modules"] = module_versions
+    versions_data["unstable"]["modules"] = fetch_latest_module_versions(known_modules)
     versions_data["unstable"]["debian"]["version"] = get_debian_version('unstable')
     return versions_data
 
@@ -105,8 +124,7 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
 
             # For backported valkey releases, always increment bundle version
             if new_major_minor_release != latest:
-                bundle_major, bundle_minor, bundle_patch, bundle_rc = parse_version(existing_bundle_version)
-                versions_data[new_major_minor_release]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch + 1}"
+                versions_data[new_major_minor_release]["version"] = bump_version(existing_bundle_version)
                 logging.info(f"Updated backported bundle version from {existing_bundle_version} to {versions_data[new_major_minor_release]['version']}")
             else:
                 try:
@@ -121,23 +139,18 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
                         else:
                             versions_data[new_major_minor_release]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch}"
                     else:
-                        versions_data[new_major_minor_release]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch + 1}"
+                        versions_data[new_major_minor_release]["version"] = bump_version(existing_bundle_version)
                     logging.info("There is no open PR for the branch valkey-bundle-update — bumping bundle patch version.")
         else:
             # New major/minor version
             known_modules = get_known_modules_from_versions(versions_data)
-
-            module_versions = {}
-            for name, repository in known_modules.items():
-                latest_version = get_latest_module_release(repository)
-                module_versions[name] = {"version": latest_version}
 
             new_entry = {
                 "version": new_version,
                 "valkey-server": {
                     "version": new_version
                 },
-                "modules": module_versions,
+                "modules": fetch_latest_module_versions(known_modules),
                 "debian": {
                     "version": get_debian_version(new_version)
                 }
@@ -187,33 +200,7 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
                     logging.info(f"Patch release: Updated {module_key} to {new_version} in Bundle version {version_block}")
                     
                     if version_block != latest:
-                        try:
-                            result = subprocess.check_output(['git', 'show', 'origin/mainline:versions.json'], text=True)
-                            mainline_versions = json.loads(result)
-                            mainline_bundle_version = mainline_versions[version_block]["version"]
-                            current_bundle_version = versions_data[version_block]["version"]
-                            
-                            if mainline_bundle_version != current_bundle_version:
-                                logging.info(f"Bundle version {version_block} already incremented from {mainline_bundle_version} to {current_bundle_version}")
-                            else:
-                                bundle_major, bundle_minor, bundle_patch, bundle_rc = parse_version(current_bundle_version)
-                                
-                                if bundle_rc is not None:
-                                    versions_data[version_block]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch}-rc{bundle_rc + 1}"
-                                else:
-                                    versions_data[version_block]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch + 1}"
-                                
-                                logging.info(f"Incremented bundle version {version_block} from {current_bundle_version} to {versions_data[version_block]['version']}")
-                        except subprocess.CalledProcessError:
-                            current_bundle_version = versions_data[version_block]["version"]
-                            bundle_major, bundle_minor, bundle_patch, bundle_rc = parse_version(current_bundle_version)
-                            
-                            if bundle_rc is not None:
-                                versions_data[version_block]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch}-rc{bundle_rc + 1}"
-                            else:
-                                versions_data[version_block]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch + 1}"
-                            
-                            logging.info(f"Incremented bundle version {version_block} from {current_bundle_version} to {versions_data[version_block]['version']}")
+                        bump_bundle_if_needed(versions_data, version_block)
         else:
             # For major or minor releases we will only update latest version entry
             versions_data[latest]["modules"][module_key] = {"version": new_version}
@@ -222,33 +209,7 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
             subprocess.check_output(["git", "ls-remote", "--exit-code", "--heads", "origin", "valkey-bundle-update"], stderr=subprocess.DEVNULL)
             logging.info("There is an open PR for the branch valkey-bundle-update - bundle patch version won't be bumped.")
         except subprocess.CalledProcessError:
-            try:
-                result = subprocess.check_output(['git', 'show', 'origin/mainline:versions.json'], text=True)
-                mainline_versions = json.loads(result)
-                mainline_bundle_version = mainline_versions[latest]["version"]
-                current_version = versions_data[latest]["version"]
-                
-                if mainline_bundle_version != current_version:
-                    logging.info(f"Latest bundle version {latest} already incremented from {mainline_bundle_version} to {current_version} - skipping")
-                else:
-                    bundle_major, bundle_minor, bundle_patch, bundle_rc = parse_version(current_version)
-                    
-                    if bundle_rc is not None:
-                        versions_data[latest]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch}-rc{bundle_rc + 1}"
-                    else:
-                        versions_data[latest]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch + 1}"
-                    
-                    logging.info(f"No open PR - incremented latest bundle version from {current_version} to {versions_data[latest]['version']}.")
-            except subprocess.CalledProcessError:
-                current_version = versions_data[latest]["version"]
-                bundle_major, bundle_minor, bundle_patch, bundle_rc = parse_version(current_version)
-                
-                if bundle_rc is not None:
-                    versions_data[latest]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch}-rc{bundle_rc + 1}"
-                else:
-                    versions_data[latest]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch + 1}"
-                
-                logging.info(f"No open PR - incremented latest bundle version from {current_version} to {versions_data[latest]['version']}.")
+            bump_bundle_if_needed(versions_data, latest)
         
         return versions_data
 
