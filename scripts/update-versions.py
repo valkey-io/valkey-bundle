@@ -90,13 +90,6 @@ def fetch_latest_module_versions(known_modules: Dict[str, str]) -> Dict[str, Dic
     """Fetch latest release for each module and return as {name: {"version": ...}} dict."""
     return {name: {"version": get_latest_module_release(repo)} for name, repo in known_modules.items()}
 
-def update_unstable(versions_data: Dict[str, Any]) -> Dict[str, Any]:
-    """Update the unstable block with latest stable module releases."""
-    known_modules = get_known_modules_from_versions(versions_data)
-    versions_data["unstable"]["modules"] = fetch_latest_module_versions(known_modules)
-    versions_data["unstable"]["debian"]["version"] = get_debian_version('unstable')
-    return versions_data
-
 def update_versions(versions_data: Dict[str, Any], component_name: str, new_version: str) -> Dict[str, Any]:
     """Update versions.json according to Valkey and module versioning strategy."""
     major, minor, patch, rc = parse_version(new_version)
@@ -214,12 +207,13 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
         return versions_data
 
 if __name__ == "__main__":
-    if len(sys.argv) < 3 or (sys.argv[2] != 'unstable' and len(sys.argv) != 4):
-        logging.error("Incorrect parameters. Usage: update_versions.py <json_file> <component [valkey, json, bloom, etc | unstable]> [new_version]")
+    if len(sys.argv) != 4:
+        logging.error("Incorrect parameters. Usage: update_versions.py <json_file> <component [valkey, json, bloom, etc]> <new_version>")
         sys.exit(1)
 
     json_file = sys.argv[1]
     component_name = sys.argv[2]
+    new_version = sys.argv[3]
 
     try:
         with open(json_file, 'r') as f:
@@ -230,16 +224,12 @@ if __name__ == "__main__":
 
     original_data = json.dumps(versions_data, indent=2)
 
-    if component_name == 'unstable':
-        updated_file = update_unstable(versions_data)
-    else:
-        new_version = sys.argv[3]
-        try:
-            parse_version(new_version)
-        except ValueError as version_error:
-            logging.error(version_error)
-            sys.exit(1)
-        updated_file = update_versions(versions_data, component_name, new_version)
+    try:
+        parse_version(new_version)
+    except ValueError as version_error:
+        logging.error(version_error)
+        sys.exit(1)
+    updated_file = update_versions(versions_data, component_name, new_version)
 
     updated_data = json.dumps(updated_file, indent=2)
     changed = original_data != updated_data
@@ -248,9 +238,7 @@ if __name__ == "__main__":
         f.write(updated_data)
         f.write('\n')
 
-    if component_name == 'unstable':
-        label = "unstable block"
-    elif component_name == 'valkey':
+    if component_name == 'valkey':
         label = f"{component_name} to {new_version}"
     else:
         label = f"valkey-{component_name} to {new_version}"

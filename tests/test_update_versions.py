@@ -14,7 +14,6 @@ update_versions = importlib.import_module("update-versions")
 parse_version = update_versions.parse_version
 get_latest_major_minor = update_versions.get_latest_major_minor
 get_known_modules_from_versions = update_versions.get_known_modules_from_versions
-update_unstable = update_versions.update_unstable
 update_versions_fn = update_versions.update_versions
 
 
@@ -76,52 +75,6 @@ class TestGetKnownModules:
     def test_repo_names(self, versions_data):
         modules = get_known_modules_from_versions(versions_data)
         assert modules["valkey-json"] == "valkey-io/valkey-json"
-
-
-# ---------------------------------------------------------------------------
-# update_unstable
-# ---------------------------------------------------------------------------
-class TestUpdateUnstable:
-    def test_updates_module_versions(self, versions_data, mocker):
-        mocker.patch.object(
-            update_versions, "get_latest_module_release",
-            side_effect=lambda repo: {
-                "valkey-io/valkey-json": "1.1.0",
-                "valkey-io/valkey-bloom": "1.1.0",
-                "valkey-io/valkey-search": "1.1.0",
-                "valkey-io/valkey-ldap": "1.1.0",
-            }[repo],
-        )
-        mocker.patch.object(
-            update_versions, "get_debian_version", return_value="trixie"
-        )
-
-        result = update_unstable(versions_data)
-        for mod in ["valkey-json", "valkey-bloom", "valkey-search", "valkey-ldap"]:
-            assert result["unstable"]["modules"][mod]["version"] == "1.1.0"
-
-    def test_updates_debian_version(self, versions_data, mocker):
-        mocker.patch.object(
-            update_versions, "get_latest_module_release", return_value="1.0.0"
-        )
-        mocker.patch.object(
-            update_versions, "get_debian_version", return_value="trixie"
-        )
-
-        result = update_unstable(versions_data)
-        assert result["unstable"]["debian"]["version"] == "trixie"
-
-    def test_does_not_touch_other_blocks(self, versions_data, mocker):
-        original_81 = copy.deepcopy(versions_data["8.1"])
-        mocker.patch.object(
-            update_versions, "get_latest_module_release", return_value="1.0.0"
-        )
-        mocker.patch.object(
-            update_versions, "get_debian_version", return_value="bookworm"
-        )
-
-        result = update_unstable(versions_data)
-        assert result["8.1"] == original_81
 
 
 # ---------------------------------------------------------------------------
