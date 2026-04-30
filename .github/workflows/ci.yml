@@ -221,9 +221,6 @@ jobs:
         run: ${{ matrix.version.runs.prepare }}
 
       - name: Validation Tests ${{ matrix.version.name }}
-        # Skip tests for the scheduled daily unstable bundle build, which
-        # tracks each module's default branch and is expected to be unstable.
-        if: ${{ !(github.event_name == 'workflow_call' && inputs.version == 'unstable') }}
         run: |
           docker images
           set -- "${{ env.DOCKER_REPO_NAME }}"
@@ -239,8 +236,9 @@ jobs:
 
       # Core + Module Integration Tests
       - name: All Core + Module Tests
-        # Skip tests for the scheduled daily unstable bundle build, which
-        # tracks each module's default branch and is expected to be unstable.
+        # Skip heavy integration tests for the scheduled daily unstable bundle
+        # build, which tracks each module's default branch and is expected to
+        # be unstable. Lightweight container-functional validation still runs.
         if: ${{ !(github.event_name == 'workflow_call' && inputs.version == 'unstable') }}
         run: |
           matrix_version="${{ matrix.version.name }}"
