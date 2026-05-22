@@ -23,7 +23,7 @@
     }
   },
   "8.1": {
-    "version": "8.1.5",
+    "version": "8.1.6",
     "valkey-server": {
       "version": "8.1.7"
     },
@@ -38,7 +38,7 @@
         "version": "1.0.2"
       },
       "valkey-ldap": {
-        "version": "1.0.0"
+        "version": "1.0.1"
       }
     },
     "debian": {
@@ -46,7 +46,7 @@
     }
   },
   "9.0": {
-    "version": "9.0.2",
+    "version": "9.0.3",
     "valkey-server": {
       "version": "9.0.4"
     },
@@ -61,7 +61,7 @@
         "version": "1.0.2"
       },
       "valkey-ldap": {
-        "version": "1.0.0"
+        "version": "1.0.1"
       }
     },
     "debian": {
