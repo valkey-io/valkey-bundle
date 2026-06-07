@@ -236,10 +236,10 @@ jobs:
 
       # Core + Module Integration Tests
       - name: All Core + Module Tests
-        # Skip heavy integration tests for the scheduled daily unstable bundle
-        # build, which tracks each module's default branch and is expected to
-        # be unstable. Lightweight container-functional validation still runs.
-        if: ${{ !(github.event_name == 'workflow_call' && inputs.version == 'unstable') }}
+        # Skip heavy integration tests for unstable builds, which track each
+        # module's default branch and are expected to be unstable.
+        # Lightweight container-functional validation still runs.
+        if: ${{ !contains(matrix.version.name, 'unstable') }}
         run: |
           matrix_version="${{ matrix.version.name }}"
           bundle_version=$(echo "$matrix_version" | sed 's/-alpine$//' | cut -d'.' -f1-2)
