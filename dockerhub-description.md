@@ -12,13 +12,12 @@
 
 
 ## Official releases
-- [`9.0.1`, `9.0`, `9`, `latest`, `9.0.1-trixie`, `9.0-trixie`, `9-trixie`, `trixie`](https://github.com/valkey-io/valkey-bundle/blob/mainline/9.0/debian/Dockerfile)
-- [`9.0.1-alpine`, `9.0-alpine`, `9-alpine`, `alpine`](https://github.com/valkey-io/valkey-bundle/blob/mainline/9.0/alpine/Dockerfile)
-- [`8.1.4`, `8.1`, `8`, `8.1.4-trixie`, `8.1-trixie`, `8-trixie`](https://github.com/valkey-io/valkey-bundle/blob/mainline/8.1/debian/Dockerfile)
-- [`8.1.4-alpine`, `8.1-alpine`, `8-alpine`](https://github.com/valkey-io/valkey-bundle/blob/mainline/8.1/alpine/Dockerfile)
-## Release candidates
-- [`9.1.0-rc2`, `9.1-rc2`, `9.1.0-rc2-trixie`, `9.1-rc2-trixie`](https://github.com/valkey-io/valkey-bundle/blob/mainline/9.1/debian/Dockerfile)
-- [`9.1.0-rc2-alpine`, `9.1-rc2-alpine`](https://github.com/valkey-io/valkey-bundle/blob/mainline/9.1/alpine/Dockerfile)
+- [`9.1.0`, `9.1`, `9`, `latest`, `9.1.0-trixie`, `9.1-trixie`, `9-trixie`, `trixie`](https://github.com/valkey-io/valkey-bundle/blob/mainline/9.1/debian/Dockerfile)
+- [`9.1.0-alpine`, `9.1-alpine`, `9-alpine`, `alpine`](https://github.com/valkey-io/valkey-bundle/blob/mainline/9.1/alpine/Dockerfile)
+- [`9.0.3`, `9.0`, `9.0.3-trixie`, `9.0-trixie`](https://github.com/valkey-io/valkey-bundle/blob/mainline/9.0/debian/Dockerfile)
+- [`9.0.3-alpine`, `9.0-alpine`](https://github.com/valkey-io/valkey-bundle/blob/mainline/9.0/alpine/Dockerfile)
+- [`8.1.6`, `8.1`, `8`, `8.1.6-trixie`, `8.1-trixie`, `8-trixie`](https://github.com/valkey-io/valkey-bundle/blob/mainline/8.1/debian/Dockerfile)
+- [`8.1.6-alpine`, `8.1-alpine`, `8-alpine`](https://github.com/valkey-io/valkey-bundle/blob/mainline/8.1/alpine/Dockerfile)
 ## Latest unstable
 - [`unstable`, `unstable-trixie`](https://github.com/valkey-io/valkey-bundle/blob/mainline/unstable/debian/Dockerfile)
 - [`unstable-alpine`](https://github.com/valkey-io/valkey-bundle/blob/mainline/unstable/alpine/Dockerfile)
