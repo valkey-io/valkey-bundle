@@ -46,6 +46,16 @@ jobs:
         working-directory: ./valkey-bundle
 
     steps:
+      - name: Generate token
+        id: generate-token
+        if: github.repository_owner == 'valkey-io'
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1.12.0
+        with:
+          app-id: ${{ secrets.VALKEYRIE_BOT_APP_ID }}
+          private-key: ${{ secrets.VALKEYRIE_BOT_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: valkey-bundle
+
       - name: Checkout Valkey-Bundle 
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
@@ -178,7 +188,7 @@ jobs:
       - name: Push changes and update existing PR
         if: steps.check-branch.outputs.branch-exists == 'true' && steps.update-versions.outputs.has-changes == 'true'
         env:
-          GH_TOKEN: ${{ secrets.VALKEY_BUNDLE_PAT_FOR_PR }}
+          GH_TOKEN: ${{ github.repository_owner == 'valkey-io' && steps.generate-token.outputs.token || secrets.VALKEY_BUNDLE_PAT_FOR_PR }}
         run: |
           BRANCH_NAME="${{ steps.check-branch.outputs.branch-name }}"
           git push origin HEAD:"$BRANCH_NAME"
@@ -188,7 +198,7 @@ jobs:
         uses: peter-evans/create-pull-request@4e1beaa7521e8b457b572c090b25bd3db56bf1c5 # v5.0.3
         with:
           path: valkey-bundle
-          token: ${{ secrets.VALKEY_BUNDLE_PAT_FOR_PR }}
+          token: ${{ github.repository_owner == 'valkey-io' && steps.generate-token.outputs.token || secrets.VALKEY_BUNDLE_PAT_FOR_PR }}
           branch: ${{ steps.check-branch.outputs.branch-name }}
           delete-branch: false
           title: "Automated Updates for Valkey Bundle"
@@ -203,7 +213,7 @@ jobs:
       - name: Comment on Pull Request
         if: steps.update-versions.outputs.has-changes == 'true'
         env:
-          GH_TOKEN: ${{ secrets.VALKEY_BUNDLE_PAT_FOR_PR }}
+          GH_TOKEN: ${{ github.repository_owner == 'valkey-io' && steps.generate-token.outputs.token || secrets.VALKEY_BUNDLE_PAT_FOR_PR }}
         run: |
           BRANCH_NAME="${{ steps.check-branch.outputs.branch-name }}"
           gh pr comment "$BRANCH_NAME" --body "**Automated:** Updated ${{ steps.process-inputs.outputs.component }} to version ${{ steps.process-inputs.outputs.version }}."

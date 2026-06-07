@@ -4,9 +4,9 @@
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
 
-FROM docker.io/valkey/valkey:9.1.0-rc2-alpine AS build
+FROM docker.io/valkey/valkey:9.1.0-alpine AS build
 
-ARG SERVER_VERSION=9.1.0-rc2
+ARG SERVER_VERSION=9.1.0
 
 RUN set -eux; \
     apk add --no-cache            \
@@ -40,7 +40,7 @@ RUN set -eux; \
     git clone --depth 1 --branch 1.0.2 https://github.com/valkey-io/valkey-json.git; \
     git clone --depth 1 --branch 1.0.1 https://github.com/valkey-io/valkey-bloom.git; \
     git clone --depth 1 --branch 1.2.0 https://github.com/valkey-io/valkey-search.git; \
-    git clone --depth 1 --branch 1.0.0 https://github.com/valkey-io/valkey-ldap.git;
+    git clone --depth 1 --branch 1.1.0 https://github.com/valkey-io/valkey-ldap.git;
 
 # Build JSON module
 WORKDIR /opt/valkey-json
@@ -62,7 +62,7 @@ RUN set -eux; \
 WORKDIR /opt/valkey-ldap
 RUN RUSTFLAGS="-C target-feature=-crt-static" cargo build --all --all-targets --release;
 
-FROM docker.io/valkey/valkey:9.1.0-rc2-alpine
+FROM docker.io/valkey/valkey:9.1.0-alpine
 
 RUN set -eux; \
     apk add --no-cache libstdc++; \

@@ -23,9 +23,9 @@
     }
   },
   "8.1": {
-    "version": "8.1.4",
+    "version": "8.1.6",
     "valkey-server": {
-      "version": "8.1.6"
+      "version": "8.1.7"
     },
     "modules": {
       "valkey-json": {
@@ -38,7 +38,7 @@
         "version": "1.0.2"
       },
       "valkey-ldap": {
-        "version": "1.0.0"
+        "version": "1.0.1"
       }
     },
     "debian": {
@@ -46,9 +46,9 @@
     }
   },
   "9.0": {
-    "version": "9.0.1",
+    "version": "9.0.3",
     "valkey-server": {
-      "version": "9.0.3"
+      "version": "9.0.4"
     },
     "modules": {
       "valkey-json": {
@@ -61,7 +61,7 @@
         "version": "1.0.2"
       },
       "valkey-ldap": {
-        "version": "1.0.0"
+        "version": "1.0.1"
       }
     },
     "debian": {
@@ -69,9 +69,9 @@
     }
   },
   "9.1": {
-    "version": "9.1.0-rc2",
+    "version": "9.1.0",
     "valkey-server": {
-      "version": "9.1.0-rc2"
+      "version": "9.1.0"
     },
     "modules": {
       "valkey-json": {
@@ -84,7 +84,7 @@
         "version": "1.2.0"
       },
       "valkey-ldap": {
-        "version": "1.0.0"
+        "version": "1.1.0"
       }
     },
     "debian": {
