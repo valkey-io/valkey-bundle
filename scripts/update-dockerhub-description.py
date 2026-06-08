@@ -40,33 +40,28 @@ def format_tag_line(entry: dict) -> str:
         raise
 
 def get_versions_table() -> str:
-    """Generate versions table from versions.json"""
     with open('versions.json', 'r') as f:
         data = json.load(f)
 
     numeric_keys = sorted([k for k in data.keys() if k.replace('.', '').isdigit()], key=lambda x: [int(i) for i in x.split('.')], reverse=True)
-    sorted_versions = ['unstable'] + numeric_keys
     table_rows = []
-    
-    for version_key in sorted_versions:
+
+    for version_key in numeric_keys:
         version_data = data[version_key]
-        
+
         bundle_version = version_data['version']
         valkey_version = version_data['valkey-server']['version']
-        
+
         modules = version_data['modules']
         json_version = modules['valkey-json']['version']
         bloom_version = modules['valkey-bloom']['version']
         search_version = modules['valkey-search']['version']
         ldap_version = modules['valkey-ldap']['version']
 
-        if version_key == 'unstable':
-            row = f"| {bundle_version} | {valkey_version} | [{json_version}](https://github.com/valkey-io/valkey-json/releases/tag/{json_version})| [{bloom_version}](https://github.com/valkey-io/valkey-bloom/releases/tag/{bloom_version})| [{search_version}](https://github.com/valkey-io/valkey-search/releases/tag/{search_version}) | [{ldap_version}](https://github.com/valkey-io/valkey-ldap/releases/tag/{ldap_version}) |"
-        else:
-            row = f"| {bundle_version} |[{valkey_version}](https://github.com/valkey-io/valkey/releases/tag/{valkey_version}) | [{json_version}](https://github.com/valkey-io/valkey-json/releases/tag/{json_version})| [{bloom_version}](https://github.com/valkey-io/valkey-bloom/releases/tag/{bloom_version})| [{search_version}](https://github.com/valkey-io/valkey-search/releases/tag/{search_version}) | [{ldap_version}](https://github.com/valkey-io/valkey-ldap/releases/tag/{ldap_version}) |"
-        
+        row = f"| {bundle_version} |[{valkey_version}](https://github.com/valkey-io/valkey/releases/tag/{valkey_version}) | [{json_version}](https://github.com/valkey-io/valkey-json/releases/tag/{json_version})| [{bloom_version}](https://github.com/valkey-io/valkey-bloom/releases/tag/{bloom_version})| [{search_version}](https://github.com/valkey-io/valkey-search/releases/tag/{search_version}) | [{ldap_version}](https://github.com/valkey-io/valkey-ldap/releases/tag/{ldap_version}) |"
+
         table_rows.append(row)
-    
+
     return "\n".join(table_rows)
     
 def update_docker_description(json_file: str, template_file: str, output_file: str) -> None:

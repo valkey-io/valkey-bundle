@@ -72,10 +72,10 @@ class TestGetVersionsTable:
                 "version": "unstable",
                 "valkey-server": {"version": "unstable"},
                 "modules": {
-                    "valkey-json": {"version": "1.0.0"},
-                    "valkey-bloom": {"version": "1.0.0"},
-                    "valkey-search": {"version": "1.0.0"},
-                    "valkey-ldap": {"version": "1.0.0"},
+                    "valkey-json": {"version": "unstable"},
+                    "valkey-bloom": {"version": "unstable"},
+                    "valkey-search": {"version": "main"},
+                    "valkey-ldap": {"version": "main"},
                 },
             },
             "9.0": {
@@ -95,10 +95,11 @@ class TestGetVersionsTable:
 
         table = get_versions_table()
         lines = table.strip().split("\n")
-        assert len(lines) == 2  # unstable + 9.0
-        # unstable row should NOT have a bundle link
-        assert "| unstable |" in lines[0]
-        assert "9.0.1" in lines[1]
+        # Only the numeric (9.0) block should be in the table;
+        # unstable is hardcoded in the template.
+        assert len(lines) == 1
+        assert "9.0.1" in lines[0]
+        assert "unstable" not in table
 
     def test_sorts_numeric_descending(self, tmp_path, monkeypatch):
         versions = {
@@ -106,10 +107,10 @@ class TestGetVersionsTable:
                 "version": "unstable",
                 "valkey-server": {"version": "unstable"},
                 "modules": {
-                    "valkey-json": {"version": "1.0.0"},
-                    "valkey-bloom": {"version": "1.0.0"},
-                    "valkey-search": {"version": "1.0.0"},
-                    "valkey-ldap": {"version": "1.0.0"},
+                    "valkey-json": {"version": "unstable"},
+                    "valkey-bloom": {"version": "unstable"},
+                    "valkey-search": {"version": "main"},
+                    "valkey-ldap": {"version": "main"},
                 },
             },
             "8.1": {
@@ -139,10 +140,10 @@ class TestGetVersionsTable:
 
         table = get_versions_table()
         lines = table.strip().split("\n")
-        # Order: unstable, 9.0, 8.1
-        assert "unstable" in lines[0]
-        assert "9.0.1" in lines[1]
-        assert "8.1.1" in lines[2]
+        # Order: 9.0, 8.1 (unstable not in table anymore)
+        assert len(lines) == 2
+        assert "9.0.1" in lines[0]
+        assert "8.1.1" in lines[1]
 
 
 # ---------------------------------------------------------------------------
