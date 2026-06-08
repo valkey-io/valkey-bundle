@@ -22,6 +22,7 @@ This image is built on top of the official Valkey base image and simplifies depl
 
 | valkey-bundle | valkey | valkey-json | valkey-bloom | valkey-search | valkey-ldap |
 |-------------------------|-------------|-------------|--------------|---------------|---------------|
+| unstable | unstable | [unstable](https://github.com/valkey-io/valkey-json/tree/unstable) | [unstable](https://github.com/valkey-io/valkey-bloom/tree/unstable) | [main](https://github.com/valkey-io/valkey-search/tree/main) | [main](https://github.com/valkey-io/valkey-ldap/tree/main) |
 {versions_table}
 
 
