@@ -228,26 +228,71 @@ run_tests() {
             fi
             ;;
         "Search")
-            echo "CANT RUN SEARCH TESTS UNTIL BUNDLE IS UPDATED WITH NEW SEARCH PATCH"
-    
-            # setup_test_framework "integration/valkey-test-framework"
-                    
-            # pip install -r integration/valkey-test-framework/requirements.txt
-            # pip install absl-py numpy 
+            setup_test_framework "integration/valkeytestframework"
 
-            # docker run -d -p $VALKEY_PORT:6379 --name "$CONTAINER_NAME" "$image" \
-            #    valkey-server \
-            #       --enable-debug-command yes \
-            #       --protected-mode no >/dev/null 2>&1
-            # sleep 3
+            docker run -d -p $VALKEY_PORT:6379 --name "$CONTAINER_NAME" "$image" \
+                valkey-server \
+                --save "" \
+                --enable-debug-command yes \
+                --enable-module-command yes \
+                --protected-mode no >/dev/null 2>&1
+            sleep 3
 
-            # cd integration
-            # export PYTHONPATH="$(pwd)/valkeytestframework:$(pwd)"
-            # export SKIPLOGCLEAN=1
-            # python -m pytest --log-cli-level=INFO --capture=sys --cache-clear -v -k "not (test_module_loaded or CME or cluster)" test_*.py
-            # local pytest_exit_code=$?
-            # cleanup_container
-            # return $pytest_exit_code
+            export VALKEY_SERVER_PATH="valkey-server"
+            export MODULE_PATH="/usr/lib/valkey/modules/libsearch.so"
+            export JSON_MODULE_PATH="/usr/lib/valkey/modules/libjson.so"
+
+            cd integration
+            export PYTHONPATH="$(pwd)/valkeytestframework:$(pwd)"
+            export SKIPLOGCLEAN=1
+
+            # List of test files compatible with external server mode in order to test core functionality of Search
+            TEST_FILES=""
+            for test in \
+                test_aggregate_metrics.py \
+                test_expired.py \
+                test_filter_expressions.py \
+                test_ft_create.py \
+                test_ft_dropindex.py \
+                test_ft_internal_update.py \
+                test_fulltext.py \
+                test_fulltext_space_performance.py \
+                test_info.py \
+                test_json_operations.py \
+                test_multidb_search.py \
+                test_multi_lua.py \
+                test_non_vector.py \
+                test_query_parser.py \
+                test_reclaimable_memory.py \
+                test_vss_basic.py
+            do
+                if [ -f "$test" ]; then
+                    TEST_FILES="$TEST_FILES $test"
+                fi
+            done
+
+            # Exclude specific incompatible tests within the files
+            SKIP_TESTS="not ("
+            SKIP_TESTS+="Cluster or cluster or CME"
+            SKIP_TESTS+=" or TestFullTextDebugMode or debug"
+            SKIP_TESTS+=" or TestAppMetrics or TestCreateNonVectorIndexes"
+            SKIP_TESTS+=" or replica or acl"
+            SKIP_TESTS+=" or setup_test0 or rdb or backfill"
+            SKIP_TESTS+=" or test_query_string_bytes_limit or test_tag_min_prefix_length_config"
+            SKIP_TESTS+=" or test_text_search or test_suffix_search or test_text_size_estimation"
+            SKIP_TESTS+=" or test_reclaimable_memory"
+            SKIP_TESTS+=")"
+
+            python -m pytest --log-cli-level=INFO --capture=sys --cache-clear -v \
+                -k "$SKIP_TESTS" \
+                $TEST_FILES
+
+            local pytest_exit_code=$?
+            cleanup_container
+            cd ..
+            if [ $pytest_exit_code -ne 0 ]; then
+                false
+            fi
             ;;
         "LDAP")
             echo "VALKEY LDAP DOESN'T USE VALKEY TEST FRAMEWORK"
@@ -275,7 +320,7 @@ if [[ "$version_key" != "unstable" ]]; then
 fi
 run_tests "JSON" "./valkey-json" || overall_success=false
 run_tests "Bloom" "./valkey-bloom" || overall_success=false
-# run_tests "Search" "./valkey-search" || overall_success=false
+run_tests "Search" "./valkey-search" || overall_success=false
 # run_tests "LDAP" "./valkey-ldap" || overall_success=false
 
 echo "=== Integration Tests Complete ==="
