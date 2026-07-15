@@ -23,7 +23,7 @@
     }
   },
   "8.1": {
-    "version": "8.1.7",
+    "version": "8.1.8",
     "valkey-server": {
       "version": "8.1.8"
     },
@@ -35,7 +35,7 @@
         "version": "1.0.1"
       },
       "valkey-search": {
-        "version": "1.0.2"
+        "version": "1.0.3"
       },
       "valkey-ldap": {
         "version": "1.0.1"
@@ -46,7 +46,7 @@
     }
   },
   "9.0": {
-    "version": "9.0.3",
+    "version": "9.0.4",
     "valkey-server": {
       "version": "9.0.4"
     },
@@ -58,7 +58,7 @@
         "version": "1.0.1"
       },
       "valkey-search": {
-        "version": "1.0.2"
+        "version": "1.0.3"
       },
       "valkey-ldap": {
         "version": "1.0.1"
