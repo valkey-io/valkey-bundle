@@ -69,7 +69,7 @@
     }
   },
   "9.1": {
-    "version": "9.1.1",
+    "version": "9.1.2",
     "valkey-server": {
       "version": "9.1.0"
     },
