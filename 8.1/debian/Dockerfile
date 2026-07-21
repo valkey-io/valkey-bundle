@@ -4,9 +4,9 @@
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
 
-FROM docker.io/valkey/valkey:8.1.8-trixie AS build
+FROM docker.io/valkey/valkey:8.1.9-trixie AS build
 
-ARG SERVER_VERSION=8.1.8
+ARG SERVER_VERSION=8.1.9
 
 RUN set -eux;   \
                 \
@@ -63,7 +63,7 @@ RUN set -eux; \
 WORKDIR /opt/valkey-ldap
 RUN cargo build --all --all-targets --release;
 
-FROM docker.io/valkey/valkey:8.1.8-trixie
+FROM docker.io/valkey/valkey:8.1.9-trixie
 
 RUN mkdir -p /usr/lib/valkey;
 
