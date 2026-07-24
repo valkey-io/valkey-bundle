@@ -16,12 +16,12 @@ RUN set -eux; \
 	        git                   \
 	        curl                  \
 	        clang                 \
-	        clang19-dev           \
+	        clang-dev             \
 	        gtest-dev             \
 	        ninja-build           \
 	        ninja-is-really-ninja \
 	        openssl-dev           \
-	        clang19-extra-tools   \
+	        clang-extra-tools     \
 	        linux-headers         \
 	        bash                  \
                 pkgconfig             \
