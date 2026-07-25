@@ -210,8 +210,6 @@ jobs:
             public.ecr.aws/${{ env.ECR_REPO_PATH }},ghcr.io/${{ env.GHCR_REPO_NAME }},${{ env.DOCKER_REPO_NAME }}
           provenance: false
           load: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
           pull: true
 
       - name: Prepare Environment
