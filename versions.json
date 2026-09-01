@@ -46,9 +46,9 @@
     }
   },
   "9.0": {
-    "version": "9.0.6",
+    "version": "9.0.7",
     "valkey-server": {
-      "version": "9.0.5"
+      "version": "9.0.6"
     },
     "modules": {
       "valkey-json": {
