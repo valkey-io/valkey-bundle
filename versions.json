@@ -23,7 +23,7 @@
     }
   },
   "8.1": {
-    "version": "8.1.11",
+    "version": "8.1.12",
     "valkey-server": {
       "version": "8.1.10"
     },
