@@ -46,7 +46,7 @@ RUN set -eux; \
 # Build JSON module
 WORKDIR /opt/valkey-json
 RUN set -eux; \
-    ./build.sh --release
+    SERVER_VERSION=8.1 ./build.sh --release
 
 # Build Bloom module
 WORKDIR /opt/valkey-bloom
