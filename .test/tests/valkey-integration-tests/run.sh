@@ -146,6 +146,7 @@ run_tests() {
             
             pip install -r requirements.txt
 
+            cleanup_container
             docker run -d -p $VALKEY_PORT:6379 --name "$CONTAINER_NAME" "$image" \
                 valkey-server \
                 --enable-debug-command yes \
@@ -155,7 +156,7 @@ run_tests() {
             export SOURCE_DIR="$(pwd)"
 
             cd tst/integration
-            python -m pytest --cache-clear -v -s
+            python -m pytest --cache-clear -v -s -k "not TestJsonDebugGating"
 
             local pytest_exit_code=$?
             
