@@ -5,7 +5,7 @@ import sys
 import re
 import logging
 import subprocess
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
@@ -71,15 +71,16 @@ def get_latest_module_release(repository: str, include_rc: bool = True) -> str:
     tags.sort(key=lambda v: (parse_version(v)[:3], parse_version(v)[3] or float('inf')))
     return tags[-1]
 
+def get_mainline_bundle_version(block: str) -> Optional[str]:
+    """Return the bundle version for a block on origin/mainline."""
+    result = subprocess.check_output(['git', 'show', 'origin/mainline:versions.json'], text=True)
+    return json.loads(result).get(block, {}).get("version")
+
 def bump_bundle_if_needed(versions_data: Dict[str, Any], block: str) -> None:
     """Bump the bundle version for a block if it hasn't already been incremented vs mainline."""
     current = versions_data[block]["version"]
-    try:
-        result = subprocess.check_output(['git', 'show', 'origin/mainline:versions.json'], text=True)
-        mainline = json.loads(result)[block]["version"]
-    except (subprocess.CalledProcessError, KeyError):
-        mainline = None
-        
+    mainline = get_mainline_bundle_version(block)
+
     if mainline is not None and mainline != current:
         logging.info(f"Bundle version {block} already incremented from {mainline} to {current}")
     else:
@@ -103,6 +104,14 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
             # Patch or RC update
             existing_bundle_version = versions_data[new_major_minor_release]["version"]
             existing_valkey_version = versions_data[new_major_minor_release]["valkey-server"]["version"]
+
+            if existing_valkey_version == new_version:
+                logging.info(f"Valkey {new_version} already current in Bundle version {new_major_minor_release}; skipping")
+                return versions_data
+
+            # For backported valkey releases, always increment bundle version
+            mainline_bundle_version = get_mainline_bundle_version(new_major_minor_release)
+
             versions_data[new_major_minor_release]["valkey-server"]["version"] = new_version
             versions_data[new_major_minor_release]["debian"]["version"] = get_debian_version(new_version)
 
@@ -115,25 +124,25 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
                         stable_version = get_latest_module_release(repository, include_rc=False)
                         versions_data[new_major_minor_release]["modules"][name]["version"] = stable_version
 
-            # For backported valkey releases, always increment bundle version
-            if new_major_minor_release != latest:
+            existing_bundle_rc = parse_version(existing_bundle_version)[3]
+            already_bumped = mainline_bundle_version is not None and mainline_bundle_version != existing_bundle_version
+            if already_bumped and not (rc is None and existing_bundle_rc is not None):
+                logging.info(f"Valkey Bundle version {new_major_minor_release} already incremented from {mainline_bundle_version} to {existing_bundle_version}")
+            elif new_major_minor_release != latest:
+                # Backported valkey release
                 versions_data[new_major_minor_release]["version"] = bump_version(existing_bundle_version)
-                logging.info(f"Updated backported bundle version from {existing_bundle_version} to {versions_data[new_major_minor_release]['version']}")
+                logging.info(f"Updated backported Valkey Bundle version from {existing_bundle_version} to {versions_data[new_major_minor_release]['version']}")
             else:
-                try:
-                    subprocess.check_output(["git", "ls-remote", "--exit-code", "--heads", "origin", "valkey-bundle-update"], stderr=subprocess.DEVNULL)
-                    logging.info("There is an open PR for the branch valkey-bundle-update - bundle patch version won't be bumped.")
-                except subprocess.CalledProcessError:
-                    bundle_major, bundle_minor, bundle_patch, bundle_rc = parse_version(existing_bundle_version)
-                    
-                    if rc is not None or bundle_rc is not None:
-                        if rc is not None:
-                            versions_data[new_major_minor_release]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch}-rc{bundle_rc + 1}"
-                        else:
-                            versions_data[new_major_minor_release]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch}"
+                bundle_major, bundle_minor, bundle_patch, bundle_rc = parse_version(existing_bundle_version)
+
+                if rc is not None or bundle_rc is not None:
+                    if rc is not None:
+                        versions_data[new_major_minor_release]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch}-rc{(bundle_rc or 0) + 1}"
                     else:
-                        versions_data[new_major_minor_release]["version"] = bump_version(existing_bundle_version)
-                    logging.info("There is no open PR for the branch valkey-bundle-update — bumping bundle patch version.")
+                        versions_data[new_major_minor_release]["version"] = f"{bundle_major}.{bundle_minor}.{bundle_patch}"
+                else:
+                    versions_data[new_major_minor_release]["version"] = bump_version(existing_bundle_version)
+                logging.info(f"Bumped Valkey Bundle version {new_major_minor_release} from {existing_bundle_version} to {versions_data[new_major_minor_release]['version']}")
         else:
             # New major/minor version
             known_modules = get_known_modules_from_versions(versions_data)
@@ -179,6 +188,8 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
             )
             sys.exit(0)
         
+        module_updated = False
+
         if patch > 0:
             # For patch releases we will update all version entries with the same major.minor version as the module patch we just released
             for version_block in versions_data.keys():
@@ -187,23 +198,27 @@ def update_versions(versions_data: Dict[str, Any], component_name: str, new_vers
                 current_module_version = versions_data[version_block]["modules"][module_key]["version"]
                 current_major, current_minor, _, _ = parse_version(current_module_version)
                 current_major_minor = f"{current_major}.{current_minor}"
-                
+
                 if current_major_minor == new_major_minor_release:
+                    if current_module_version == new_version:
+                        continue
                     versions_data[version_block]["modules"][module_key]["version"] = new_version
                     logging.info(f"Patch release: Updated {module_key} to {new_version} in Bundle version {version_block}")
-                    
-                    if version_block != latest:
+
+                    if version_block == latest:
+                        module_updated = True
+                    else:
                         bump_bundle_if_needed(versions_data, version_block)
         else:
             # For major or minor releases we will only update latest version entry
-            versions_data[latest]["modules"][module_key] = {"version": new_version}
+            if versions_data[latest]["modules"].get(module_key, {}).get("version") != new_version:
+                versions_data[latest]["modules"][module_key] = {"version": new_version}
+                module_updated = True
 
-        try:
-            subprocess.check_output(["git", "ls-remote", "--exit-code", "--heads", "origin", "valkey-bundle-update"], stderr=subprocess.DEVNULL)
-            logging.info("There is an open PR for the branch valkey-bundle-update - bundle patch version won't be bumped.")
-        except subprocess.CalledProcessError:
+        # Only bump the latest bundle if the module for the latest block actually changed.
+        if module_updated:
             bump_bundle_if_needed(versions_data, latest)
-        
+
         return versions_data
 
 if __name__ == "__main__":
