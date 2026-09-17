@@ -57,7 +57,15 @@ jobs:
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             diff_range="HEAD^1 HEAD"
           elif [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/mainline" ]]; then
-            diff_range="HEAD~1 HEAD"
+            # Diff the full pushed range so multi-commit pushes (direct or
+            # rebase-merged) are covered. Fall back to the last commit when
+            # the before SHA is unavailable (branch creation, force push).
+            before="${{ github.event.before }}"
+            if [[ ! "$before" =~ ^0+$ ]] && git fetch --quiet --depth=1 origin "$before" 2>/dev/null; then
+              diff_range="$before HEAD"
+            else
+              diff_range="HEAD~1 HEAD"
+            fi
           fi
 
           if [[ -n "$diff_range" ]]; then
