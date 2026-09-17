@@ -25,6 +25,12 @@ permissions:
   contents: read
   packages: write
 
+# Cancel superseded PR runs. Push and release runs are never cancelled
+# (they publish images); same-group runs queue serially instead.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
   IS_PULL: ${{ github.event_name == 'pull_request' }}
 
