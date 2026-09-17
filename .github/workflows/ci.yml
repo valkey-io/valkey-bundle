@@ -38,6 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       strategy: ${{ steps.generate-jobs.outputs.strategy }}
+      has_jobs: ${{ steps.generate-jobs.outputs.has_jobs }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -85,12 +86,14 @@ jobs:
           fi
 
           echo "strategy=$(jq -c . <<<"$strategy")" >> "$GITHUB_OUTPUT"
+          echo "has_jobs=$(jq -r '.matrix.include | length > 0' <<<"$strategy")" >> "$GITHUB_OUTPUT"
           jq . <<<"$strategy" # debugging aid to visually inspect the generated matrix
   # Job to build and push Docker images individually for each architecture/platform
   build_and_push:
     needs: [generate-jobs]
-    # Skip cleanly when change detection selected no versions
-    if: ${{ fromJson(needs.generate-jobs.outputs.strategy).matrix.include[0] != null }}
+    # Skip cleanly when change detection selected no versions.
+    # String comparison also stays safe if the output is ever missing.
+    if: ${{ needs.generate-jobs.outputs.has_jobs == 'true' }}
     env:
       HAS_SECRETS: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' && secrets.DOCKERHUB_ACCOUNT != '' && secrets.DOCKERHUB_REPOSITORY != '' && secrets.ECR_REGISTRY_ALIAS != '' && secrets.ECR_REPOSITORY_NAME != '' && secrets.AWS_ROLE_TO_ASSUME != ''  }}
     strategy:
