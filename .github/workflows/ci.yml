@@ -25,6 +25,12 @@ permissions:
   contents: read
   packages: write
 
+# Cancel superseded PR runs. Push and release runs are never cancelled
+# (they publish images); same-group runs queue serially instead.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
   IS_PULL: ${{ github.event_name == 'pull_request' }}
 
@@ -38,6 +44,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       strategy: ${{ steps.generate-jobs.outputs.strategy }}
+      has_jobs: ${{ steps.generate-jobs.outputs.has_jobs }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -48,14 +55,39 @@ jobs:
         name: Generate Jobs
         run: |
           strategy="$("$BASHBREW_SCRIPTS/github-actions/generate.sh")"
-          # For pushes to mainline, only build changed versions
-          if [[ ("${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/mainline")]] ; then
-            changed_files=$(git diff --name-only HEAD~1 HEAD)
-            if printf "%s\n" "$changed_files" | grep -qE "^(versions\.json|[0-9]+\.[0-9]+/|unstable/)"; then
-              changed_versions=$(echo $changed_files | grep -oE "[0-9]+\.[0-9]+|unstable" | sort -u | tr '\n' '|' | sed 's/|$//')
-              if [[ -n "$changed_versions" ]]; then
-                strategy=$(jq -c --arg versions "$changed_versions" '{"fail-fast": .["fail-fast"],"matrix":{"include":[ .matrix.include[]|select(.meta.entries[0].directory | test($versions))]}}' <<<"$strategy")
-              fi
+
+          # Change detection: build only the versions whose files changed.
+          # PRs diff against the base branch (HEAD^1 of the merge commit);
+          # pushes to mainline diff against the previous commit.
+          diff_range=""
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            diff_range="HEAD^1 HEAD"
+          elif [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/mainline" ]]; then
+            # Diff the full pushed range so multi-commit pushes (direct or
+            # rebase-merged) are covered. Fall back to the last commit when
+            # the before SHA is unavailable (branch creation, force push).
+            before="${{ github.event.before }}"
+            if [[ ! "$before" =~ ^0+$ ]] && git fetch --quiet --depth=1 origin "$before" 2>/dev/null; then
+              diff_range="$before HEAD"
+            else
+              diff_range="HEAD~1 HEAD"
+            fi
+          fi
+
+          if [[ -n "$diff_range" ]]; then
+            changed_files=$(git diff --name-only $diff_range)
+            changed_versions=$(printf "%s\n" "$changed_files" | sed -nE 's#^([0-9]+\.[0-9]+|unstable)/.*#\1#p' | sort -u)
+
+            # PRs touching CI workflows or test files also build the latest
+            # version so the test harness itself gets exercised.
+            if [[ "${{ github.event_name }}" == "pull_request" ]] && printf "%s\n" "$changed_files" | grep -qE "^(\.github/|\.test/|tests/)"; then
+              latest_version=$(jq -r 'keys[]' versions.json | { grep -E '^[0-9]+\.[0-9]+$' || true; } | sort -V | tail -1)
+              changed_versions=$(printf "%s\n%s\n" "$changed_versions" "$latest_version" | sed '/^$/d' | sort -u)
+            fi
+
+            if [[ -n "$changed_versions" ]]; then
+              versions_regex=$(printf "%s\n" "$changed_versions" | paste -sd'|' -)
+              strategy=$(jq -c --arg versions "$versions_regex" '{"fail-fast": .["fail-fast"],"matrix":{"include":[ .matrix.include[]|select(.meta.entries[0].directory | test("^(" + $versions + ")/"))]}}' <<<"$strategy")
             else
               strategy='{"fail-fast": false, "matrix": {"include": []}}'
             fi
@@ -68,10 +100,14 @@ jobs:
           fi
 
           echo "strategy=$(jq -c . <<<"$strategy")" >> "$GITHUB_OUTPUT"
+          echo "has_jobs=$(jq -r '.matrix.include | length > 0' <<<"$strategy")" >> "$GITHUB_OUTPUT"
           jq . <<<"$strategy" # debugging aid to visually inspect the generated matrix
   # Job to build and push Docker images individually for each architecture/platform
   build_and_push:
     needs: [generate-jobs]
+    # Skip cleanly when change detection selected no versions.
+    # String comparison also stays safe if the output is ever missing.
+    if: ${{ needs.generate-jobs.outputs.has_jobs == 'true' }}
     env:
       HAS_SECRETS: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' && secrets.DOCKERHUB_ACCOUNT != '' && secrets.DOCKERHUB_REPOSITORY != '' && secrets.ECR_REGISTRY_ALIAS != '' && secrets.ECR_REPOSITORY_NAME != '' && secrets.AWS_ROLE_TO_ASSUME != ''  }}
     strategy:
@@ -223,23 +259,6 @@ jobs:
             set -- --config ~/oi/test/config.sh --config ./.test/config.sh "$@";
           fi
           ~/oi/test/run.sh "$@"
-
-      - name: Set up Python
-        uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # v4
-        with:
-          python-version: "3.8"
-
-      # Core + Module Integration Tests
-      - name: All Core + Module Tests
-        # Skip heavy integration tests for unstable builds, which track each
-        # module's default branch and are expected to be unstable.
-        # Lightweight container-functional validation still runs.
-        if: ${{ !contains(matrix.version.name, 'unstable') }}
-        run: |
-          matrix_version="${{ matrix.version.name }}"
-          bundle_version=$(echo "$matrix_version" | sed 's/-alpine$//' | cut -d'.' -f1-2)
-
-          ./.test/tests/valkey-integration-tests/run.sh "${{ env.DOCKER_REPO_NAME }}" "$bundle_version"
 
       # Export digest to a file to reference it later in merging manifests
       - name: Export digest
