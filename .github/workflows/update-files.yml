@@ -49,12 +49,14 @@ jobs:
       - name: Generate token
         id: generate-token
         if: github.repository_owner == 'valkey-io'
-        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1.12.0
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         with:
           app-id: ${{ secrets.VALKEYRIE_BOT_APP_ID }}
           private-key: ${{ secrets.VALKEYRIE_BOT_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
           repositories: valkey-bundle
+          permission-contents: write
+          permission-pull-requests: write
 
       - name: Checkout Valkey-Bundle 
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
