@@ -14,8 +14,8 @@
 ## Official releases
 - [`9.1.4`, `9.1`, `9`, `latest`, `9.1.4-trixie`, `9.1-trixie`, `9-trixie`, `trixie`](https://github.com/valkey-io/valkey-bundle/blob/mainline/9.1/debian/Dockerfile)
 - [`9.1.4-alpine`, `9.1-alpine`, `9-alpine`, `alpine`](https://github.com/valkey-io/valkey-bundle/blob/mainline/9.1/alpine/Dockerfile)
-- [`9.0.6`, `9.0`, `9.0.6-trixie`, `9.0-trixie`](https://github.com/valkey-io/valkey-bundle/blob/mainline/9.0/debian/Dockerfile)
-- [`9.0.6-alpine`, `9.0-alpine`](https://github.com/valkey-io/valkey-bundle/blob/mainline/9.0/alpine/Dockerfile)
+- [`9.0.7`, `9.0`, `9.0.7-trixie`, `9.0-trixie`](https://github.com/valkey-io/valkey-bundle/blob/mainline/9.0/debian/Dockerfile)
+- [`9.0.7-alpine`, `9.0-alpine`](https://github.com/valkey-io/valkey-bundle/blob/mainline/9.0/alpine/Dockerfile)
 - [`8.1.11`, `8.1`, `8`, `8.1.11-trixie`, `8.1-trixie`, `8-trixie`](https://github.com/valkey-io/valkey-bundle/blob/mainline/8.1/debian/Dockerfile)
 - [`8.1.11-alpine`, `8.1-alpine`, `8-alpine`](https://github.com/valkey-io/valkey-bundle/blob/mainline/8.1/alpine/Dockerfile)
 ## Release candidates
@@ -38,7 +38,7 @@ This image is built on top of the official Valkey base image and simplifies depl
 | unstable | unstable | [unstable](https://github.com/valkey-io/valkey-json/tree/unstable) | [unstable](https://github.com/valkey-io/valkey-bloom/tree/unstable) | [main](https://github.com/valkey-io/valkey-search/tree/main) | [main](https://github.com/valkey-io/valkey-ldap/tree/main) |
 | 9.2.0-rc3 |[9.2.0-rc1](https://github.com/valkey-io/valkey/releases/tag/9.2.0-rc1) | [1.0.3](https://github.com/valkey-io/valkey-json/releases/tag/1.0.3)| [1.0.1](https://github.com/valkey-io/valkey-bloom/releases/tag/1.0.1)| [1.3.0-rc2](https://github.com/valkey-io/valkey-search/releases/tag/1.3.0-rc2) | [1.1.1](https://github.com/valkey-io/valkey-ldap/releases/tag/1.1.1) |
 | 9.1.4 |[9.1.3](https://github.com/valkey-io/valkey/releases/tag/9.1.3) | [1.0.3](https://github.com/valkey-io/valkey-json/releases/tag/1.0.3)| [1.0.1](https://github.com/valkey-io/valkey-bloom/releases/tag/1.0.1)| [1.2.1](https://github.com/valkey-io/valkey-search/releases/tag/1.2.1) | [1.1.1](https://github.com/valkey-io/valkey-ldap/releases/tag/1.1.1) |
-| 9.0.6 |[9.0.6](https://github.com/valkey-io/valkey/releases/tag/9.0.6) | [1.0.3](https://github.com/valkey-io/valkey-json/releases/tag/1.0.3)| [1.0.1](https://github.com/valkey-io/valkey-bloom/releases/tag/1.0.1)| [1.0.3](https://github.com/valkey-io/valkey-search/releases/tag/1.0.3) | [1.0.1](https://github.com/valkey-io/valkey-ldap/releases/tag/1.0.1) |
+| 9.0.7 |[9.0.7](https://github.com/valkey-io/valkey/releases/tag/9.0.7) | [1.0.3](https://github.com/valkey-io/valkey-json/releases/tag/1.0.3)| [1.0.1](https://github.com/valkey-io/valkey-bloom/releases/tag/1.0.1)| [1.0.3](https://github.com/valkey-io/valkey-search/releases/tag/1.0.3) | [1.0.1](https://github.com/valkey-io/valkey-ldap/releases/tag/1.0.1) |
 | 8.1.11 |[8.1.11](https://github.com/valkey-io/valkey/releases/tag/8.1.11) | [1.0.3](https://github.com/valkey-io/valkey-json/releases/tag/1.0.3)| [1.0.1](https://github.com/valkey-io/valkey-bloom/releases/tag/1.0.1)| [1.0.3](https://github.com/valkey-io/valkey-search/releases/tag/1.0.3) | [1.0.1](https://github.com/valkey-io/valkey-ldap/releases/tag/1.0.1) |
 
 
