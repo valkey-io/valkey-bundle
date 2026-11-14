@@ -92,13 +92,13 @@
     }
   },
   "9.2": {
-    "version": "9.2.0-rc4",
+    "version": "9.2.0-rc5",
     "valkey-server": {
       "version": "9.2.0-rc2"
     },
     "modules": {
       "valkey-json": {
-        "version": "1.0.3"
+        "version": "1.1.0"
       },
       "valkey-bloom": {
         "version": "1.0.1"
